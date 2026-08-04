@@ -1,0 +1,6 @@
+{
+  "name": "Diagnóstico Legal Chile - Asistente PJUD & OJV",
+  "description": "Análisis legal de resoluciones, demandas y plazos procedimentales en Chile según el CPC, Código del Trabajo y leyes vigentes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
