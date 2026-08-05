@@ -8,6 +8,10 @@ import crypto from "crypto";
 import { saveOrder, getOrderByOrderId, getOrderByPreferenceId, updateOrder } from "./src/lib/orderStore.js";
 import { checkRateLimit, getClientIp, PAYMENT_RATE_LIMIT, ANALYZE_RATE_LIMIT } from "./src/lib/rateLimit.js";
 import { SEO_PAGES } from "./src/data/seoPages.js";
+import { SEO_PAGES_EXTRA } from "./src/data/seoPagesExtra.js";
+
+// Combinación de TODAS las páginas SEO: 21 originales + 45 nuevas = 66 URLs
+const ALL_SEO_PAGES = [...SEO_PAGES, ...SEO_PAGES_EXTRA];
 
 dotenv.config();
 
@@ -569,7 +573,7 @@ app.post("/api/payment/confirm-test", (req, res) => {
 });
 
 // ========== SEO LANDING PAGES (Long-Tail) ==========
-function renderSEOPage(page: typeof SEO_PAGES[0]) {
+function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
   const roleLabel = page.role === 'demandante' ? 'Quiero demandar' : page.role === 'demandado' ? 'Me demandaron' : 'Consulta legal';
   const roleColor = page.role === 'demandante' ? '#2563eb' : page.role === 'demandado' ? '#dc2626' : '#0891b2';
   const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
@@ -678,8 +682,8 @@ function renderSEOPage(page: typeof SEO_PAGES[0]) {
 </html>`;
 }
 
-function getRelatedPages(page: typeof SEO_PAGES[0]) {
-  return SEO_PAGES
+function getRelatedPages(page: typeof ALL_SEO_PAGES[0]) {
+  return ALL_SEO_PAGES
     .filter(p => p.slug !== page.slug && p.caseType === page.caseType)
     .slice(0, 4)
     .map(p => ({ slug: p.slug, h1: p.h1 }));
@@ -687,7 +691,7 @@ function getRelatedPages(page: typeof SEO_PAGES[0]) {
 
 // Register SEO static routes + sitemap + robots
 function registerSEORoutes() {
-  for (const page of SEO_PAGES) {
+  for (const page of ALL_SEO_PAGES) {
     app.get(page.slug, (_req, res) => {
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.send(renderSEOPage(page));
@@ -697,7 +701,7 @@ function registerSEORoutes() {
   // Sitemap
   app.get("/sitemap.xml", (_req, res) => {
     const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
-    const urls = SEO_PAGES.map(p => `  <url>\n    <loc>${baseUrl}${p.slug}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>`).join('\n');
+    const urls = ALL_SEO_PAGES.map(p => `  <url>\n    <loc>${baseUrl}${p.slug}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>`).join('\n');
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
     res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>${baseUrl}/</loc>\n    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>\n${urls}\n</urlset>`);
   });
