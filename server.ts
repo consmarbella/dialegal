@@ -7,6 +7,8 @@ import mammoth from "mammoth";
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import crypto from "crypto";
 import { saveOrder, getOrderByOrderId, getOrderByPreferenceId, updateOrder } from "./src/lib/orderStore.js";
+import { checkRateLimit, getClientIp, PAYMENT_RATE_LIMIT, ANALYZE_RATE_LIMIT } from "./src/lib/rateLimit.js";
+import { SEO_PAGES } from "./src/data/seoPages.js";
 
 dotenv.config();
 
@@ -72,6 +74,118 @@ Debes responder SIEMPRE utilizando estrictamente la siguiente estructura en form
 ---
 *Descargo de responsabilidad: Este análisis constituye una orientación informativa y técnica generada mediante Inteligencia Artificial adaptada a la legislación chilena. No constituye asesoría legal formal ni reemplaza el patrocinio y poder otorgado a un abogado habilitado para el ejercicio de la profesión en Chile (Ley 18.120).*
 `;
+
+const SYSTEM_INSTRUCTION_DOCUMENT_GENERATOR = `Eres un Abogado Litigante Senior en Chile con 20 años de experiencia en redacción de escritos judiciales para el Poder Judicial Chileno (PJUD) y la Oficina Judicial Virtual (OJV).
+
+Tu tarea es redactar un documento legal chileno formal, listo para ser presentado ante el tribunal correspondiente. Debes generar el documento en formato Markdown estructurado, siguiendo EXACTAMENTE las formalidades procesales chilenas.
+
+REGLAS OBLIGATORIAS:
+1. FORMATO PJUD: Usa el formato estándar de escritos del Poder Judicial chileno: EN LO PRINCIPAL, PRIMER OTROSÍ, SEGUNDO OTROSÍ.
+2. ENCABEZADO: Incluye S.J.L. (Señor Juez Letrado), identificación del tribunal (si se proporciona), RIT/ROL, y carátula.
+3. FIRMA: Incluye espacio para firma del abogado patrocinante con nombre, RUT y cédula profesional.
+4. FUNDAMENTACIÓN JURÍDICA: Cita artículos exactos del código correspondiente (CPC, Código del Trabajo, Ley 19.968, CPP, Ley 18.287, etc.).
+5. CERO ALUCINACIONES: No inventes jurisprudencia ni números de rol. Si no tienes un dato, usa [COMPLETAR] como marcador.
+6. PATROCINIO Y PODER: Incluye la cláusula estándar de patrocinio y poder según Ley 18.120.
+7. DESCARGO: Al final del documento incluye la advertencia de que este es un modelo generado por IA que debe ser revisado y firmado por un abogado habilitado.
+
+Responde ÚNICAMENTE con el documento legal redactado en markdown, sin comentarios adicionales ni introducciones.`;
+
+// ========== DOCUMENT GENERATION ENDPOINT ==========
+app.post("/api/generate-document", async (req, res) => {
+  try {
+    const { templateId, caseData } = req.body;
+
+    if (!templateId || !caseData) {
+      return res.status(400).json({ error: "templateId y caseData son requeridos" });
+    }
+
+    // Rate limiting
+    const ip = getClientIp(req.headers as Record<string, string | string[] | undefined>);
+    const rl = checkRateLimit(`generate-doc:${ip}`, ANALYZE_RATE_LIMIT);
+    if (!rl.allowed) {
+      return res.status(429).json({
+        error: "Demasiadas solicitudes. Intenta en unos segundos.",
+        retryAfter: Math.ceil(rl.resetMs / 1000),
+      });
+    }
+
+    const ai = getGeminiClient();
+
+    const templatePrompts: Record<string, string> = {
+      contestacion_civil: `Redacta una CONTESTACIÓN DE DEMANDA CIVIL en formato PJUD. 
+DATOS: Demandante: ${caseData.demandante || "[COMPLETAR]"}, Demandado: ${caseData.demandado || "[COMPLETAR]"}, Tribunal: ${caseData.tribunal || "[COMPLETAR]"}, ROL: ${caseData.rol || "[COMPLETAR]"}.
+Incluye: personería, opone excepciones dilatorias y perentorias, controvierte los hechos uno a uno, ofrece medios de prueba, y solicita rechazo total de la demanda con costas. Cita artículos del CPC.`,
+
+      oposicion_ejecutivo: `Redacta una OPOSICIÓN DE EXCEPCIONES A LA EJECUCIÓN (Art. 464 CPC) en formato PJUD.
+DATOS: Ejecutado: ${caseData.nombre || "[COMPLETAR]"}, Ejecutante: ${caseData.demandante || "[COMPLETAR]"}, Tribunal: ${caseData.tribunal || "[COMPLETAR]"}, ROL: ${caseData.rol || "[COMPLETAR]"}, Monto: ${caseData.materia || "[COMPLETAR]"}.
+Opón al menos 3 excepciones del Art. 464 CPC (pago, prescripción, falsedad del título, etc.), ofrece prueba documental y solicita el rechazo de la ejecución con costas.`,
+
+      demanda_despido: `Redacta una DEMANDA POR DESPIDO INJUSTIFICADO EN SEDE LABORAL en formato PJUD.
+DATOS: Trabajador: ${caseData.nombre || "[COMPLETAR]"}, Empleador: ${caseData.demandado || "[COMPLETAR]"}, Tribunal: ${caseData.tribunal || "[COMPLETAR]"}.
+Incluye: relación circunstanciada de los hechos, fecha de inicio y término, causal invocada, razones por las que es injustificada, solicitud de indemnización sustitutiva del aviso previo, indemnización por años de servicio con recargo legal, feriado proporcional, y tutela laboral si corresponde. Cita Código del Trabajo Arts. 162, 163, 168, 485 y siguientes.`,
+
+      demanda_alimentos: `Redacta una DEMANDA DE ALIMENTOS en formato PJUD para Juzgado de Familia.
+DATOS: Demandante: ${caseData.nombre || "[COMPLETAR]"}, Demandado: ${caseData.demandado || "[COMPLETAR]"}, Tribunal: ${caseData.tribunal || "[COMPLETAR]"}.
+Incluye: individualización de las partes, relación de los hijos, necesidades de los alimentarios, capacidad económica del alimentante, monto solicitado, solicitud de alimentos provisorios (Art. 54 Ley 19.968), y medidas de apremio en caso de incumplimiento. Cita Ley 19.968 y Ley 14.908.`,
+
+      querella_penal: `Redacta una QUERELLA CRIMINAL en formato PJUD ante Juzgado de Garantía.
+DATOS: Querellante: ${caseData.nombre || "[COMPLETAR]"}, Querellado: ${caseData.demandado || "[COMPLETAR]"}, Tribunal: ${caseData.tribunal || "[COMPLETAR]"}.
+Incluye: individualización del querellante y querellado, relación circunstanciada de los hechos constitutivos de delito, calificación jurídica, participación, diligencias solicitadas al Ministerio Público, y solicitud de diligencias de investigación. Cita artículos del Código Penal y Código Procesal Penal.`,
+
+      recurso_apelacion: `Redacta un RECURSO DE APELACIÓN en formato PJUD ante Corte de Apelaciones.
+DATOS: Apelante: ${caseData.nombre || "[COMPLETAR]"}, Tribunal recurrido: ${caseData.tribunal || "[COMPLETAR]"}, ROL: ${caseData.rol || "[COMPLETAR]"}.
+Incluye: individualización de la resolución recurrida, fundamentos de hecho y de derecho del recurso, peticiones concretas, y solicitud de elevación del expediente. Cita CPC Arts. 186, 187, 189 y siguientes.`,
+    };
+
+    const prompt = templatePrompts[templateId] || templatePrompts.contestacion_civil;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.6-flash",
+      contents: { parts: [{ text: prompt }] },
+      config: {
+        systemInstruction: SYSTEM_INSTRUCTION_DOCUMENT_GENERATOR,
+        temperature: 0.15,
+        maxOutputTokens: 8192,
+      },
+    });
+
+    const document = response.text || "Error generando el documento. Por favor intenta nuevamente.";
+
+    res.json({ document, templateId });
+  } catch (err: any) {
+    console.error("Error en /api/generate-document:", err);
+    res.status(500).json({
+      error: "Error generando el documento legal: " + (err.message || "Error interno"),
+    });
+  }
+});
+
+// ========== DOCUMENT DOWNLOAD ENDPOINT ==========
+app.post("/api/download-document", async (req, res) => {
+  try {
+    const { content, filename, format } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ error: "Contenido del documento requerido" });
+    }
+
+    const safeName = (filename || "documento-legal").replace(/[^a-zA-Z0-9_\-áéíóúñ]/g, "_");
+
+    if (format === "txt") {
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="${safeName}.txt"`);
+      return res.send(content);
+    }
+
+    // Default: Markdown download
+    res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${safeName}.md"`);
+    return res.send(content);
+  } catch (err: any) {
+    console.error("Error en /api/download-document:", err);
+    res.status(500).json({ error: "Error descargando documento" });
+  }
+});
 
 // Route to analyze legal case / documents
 app.post("/api/analyze", async (req, res) => {
@@ -456,7 +570,106 @@ app.post("/api/payment/confirm-test", (req, res) => {
   return res.json({ ok: true, order: updated });
 });
 
+// ========== SEO LANDING PAGES (Long-Tail) ==========
+function renderSEOPage(page: typeof SEO_PAGES[0]) {
+  const roleLabel = page.role === 'demandante' ? 'Quiero demandar' : page.role === 'demandado' ? 'Me demandaron' : 'Consulta legal';
+  const roleColor = page.role === 'demandante' ? '#2563eb' : page.role === 'demandado' ? '#dc2626' : '#0891b2';
+
+  return `<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${page.titleSEO}</title>
+  <meta name="description" content="${page.metaDescription}" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://diagnosticolegalchile.cl${page.slug}" />
+  <meta property="og:title" content="${page.titleSEO}" />
+  <meta property="og:description" content="${page.metaDescription}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://diagnosticolegalchile.cl${page.slug}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${page.titleSEO}" />
+  <meta name="twitter:description" content="${page.metaDescription}" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LegalService",
+    "name": "Diagnóstico Legal Chile",
+    "description": "${page.metaDescription}",
+    "areaServed": { "@type": "Country", "name": "Chile" },
+    "serviceType": "Orientación Legal con IA",
+    "url": "https://diagnosticolegalchile.cl${page.slug}"
+  }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #0f172a; line-height: 1.6; }
+    .nav-bar { background: #0b1f3a; padding: 16px 24px; display: flex; align-items: center; gap: 10px; }
+    .nav-bar .logo { color: #fff; font-weight: 800; font-size: 18px; text-decoration: none; display: flex; align-items: center; gap: 8px; }
+    .nav-bar .logo span.blue { color: #60a5fa; }
+    .main-wrap { max-width: 820px; margin: 0 auto; padding: 40px 20px 60px; }
+    .breadcrumb { font-size: 13px; color: #94a3b8; margin-bottom: 24px; }
+    .breadcrumb a { color: #64748b; text-decoration: none; }
+    .breadcrumb a:hover { color: #0f172a; }
+    .role-badge { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; margin-bottom: 12px; }
+    h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; color: #0f172a; margin-bottom: 24px; line-height: 1.2; }
+    .section-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 6px; }
+    .diagnos-text { font-size: 15px; color: #334155; line-height: 1.7; margin-bottom: 28px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; }
+    .cta-box { background: #2563eb; color: #fff; border-radius: 12px; padding: 18px 24px; text-align: center; margin-bottom: 32px; display: block; text-decoration: none; font-weight: 700; font-size: 15px; transition: background 0.15s; box-shadow: 0 4px 14px rgba(37,99,235,0.25); }
+    .cta-box:hover { background: #1d4ed8; }
+    .cta-box .arrow { display: inline-block; margin-left: 6px; transition: transform 0.15s; }
+    .cta-box:hover .arrow { transform: translateX(3px); }
+    .bullets { list-style: none; margin-bottom: 36px; }
+    .bullets li { padding: 10px 0 10px 28px; position: relative; font-size: 14px; color: #334155; border-bottom: 1px solid #f1f5f9; line-height: 1.6; }
+    .bullets li::before { content: '•'; position: absolute; left: 8px; color: #2563eb; font-weight: 700; }
+    .faq-section { margin-top: 36px; }
+    .faq-section h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 16px; color: #0f172a; }
+    .faq-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; margin-bottom: 10px; }
+    .faq-item .q { font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+    .faq-item .a { font-size: 13px; color: #475569; line-height: 1.6; }
+    .footer-bar { border-top: 1px solid #e2e8f0; padding: 24px 20px; text-align: center; font-size: 12px; color: #94a3b8; margin-top: 40px; }
+    .footer-bar strong { color: #64748b; }
+    @media (max-width: 640px) { h1 { font-size: 1.5rem; } .main-wrap { padding: 24px 16px 40px; } }
+  </style>
+</head>
+<body>
+  <nav class="nav-bar">
+    <span style="font-size:22px;">⚖️</span>
+    <a href="/" class="logo">Diagnóstico<span class="blue">Legal</span> Chile</a>
+  </nav>
+  <main class="main-wrap">
+    <div class="breadcrumb"><a href="/">Inicio</a> &rsaquo; ${page.caseType === 'arriendo' ? 'Arriendo' : page.caseType === 'laboral' ? 'Laboral' : page.caseType === 'deuda' ? 'Deudas' : page.caseType === 'civil' ? 'Civil' : page.caseType === 'familia' ? 'Familia' : page.caseType === 'penal' ? 'Penal' : 'Legal'}</div>
+    <span class="role-badge" style="background:${roleColor}15;color:${roleColor}">${roleLabel}</span>
+    <h1>${page.h1}</h1>
+    <p class="section-label">Diagnóstico del caso</p>
+    <div class="diagnos-text">${page.diagnosText}</div>
+    <a href="/" class="cta-box">${page.ctaText} <span class="arrow">→</span></a>
+    <ul class="bullets">
+      ${page.bullets.map(b => `<li>${b}</li>`).join('')}
+    </ul>
+    <section class="faq-section">
+      <h2>Preguntas frecuentes</h2>
+      ${page.faqs.map(f => `<div class="faq-item"><p class="q">${f.q}</p><p class="a">${f.a}</p></div>`).join('')}
+    </section>
+    <div class="footer-bar">
+      <p><strong>Diagnóstico Legal Chile</strong> &mdash; Herramienta de orientación legal adaptada a la legislación chilena.</p>
+      <p style="margin-top:4px;">No constituye asesoría legal formal. Consulta con un abogado habilitado (Ley 18.120).</p>
+    </div>
+  </main>
+</body>
+</html>`;
+}
+
 async function startServer() {
+  // SEO static routes — must be registered before Vite middleware
+  for (const page of SEO_PAGES) {
+    app.get(page.slug, (_req, res) => {
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(renderSEOPage(page));
+    });
+  }
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

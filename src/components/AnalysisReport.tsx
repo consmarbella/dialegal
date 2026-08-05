@@ -3,6 +3,7 @@ import { LegalArea, ChatMessage } from '../types';
 import { Scale, Download, Copy, BookmarkPlus, Send, MessageSquare, AlertCircle, CheckCircle, ShieldAlert, FileText, Lock, ShieldCheck, CreditCard, Sparkles, CheckCircle2 } from 'lucide-react';
 import { PaymentModal } from './PaymentModal';
 
+
 interface AnalysisReportProps {
   analysisMarkdown: string;
   userStory: string;
