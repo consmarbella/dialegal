@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import mammoth from "mammoth";
@@ -17,15 +16,14 @@ const PORT = 3000;
 
 app.use(express.json({ limit: "50mb" }));
 
-// Initialize MercadoPago client
+// Initialize MercadoPago client (token SOLO desde variables de entorno, nunca hardcodeado)
 const envToken = process.env.MP_ACCESS_TOKEN;
-const defaultToken = "APP_USR-8910760867269099-050716-f6dc2b4b33b05a7b18a5a9d4d02fbae2-3031953787";
 const mpAccessToken = (envToken && (envToken.startsWith("APP_USR-") || envToken.startsWith("TEST-")))
   ? envToken
-  : defaultToken;
+  : undefined;
 const isMpConfigured = Boolean(mpAccessToken);
-const isSandbox = mpAccessToken.startsWith("TEST-");
-const mp = isMpConfigured ? new MercadoPagoConfig({ accessToken: mpAccessToken }) : null;
+const isSandbox = Boolean(mpAccessToken && mpAccessToken.startsWith("TEST-"));
+const mp = isMpConfigured && mpAccessToken ? new MercadoPagoConfig({ accessToken: mpAccessToken }) : null;
 
 // Initialize Gemini API
 const getGeminiClient = () => {
@@ -574,6 +572,9 @@ app.post("/api/payment/confirm-test", (req, res) => {
 function renderSEOPage(page: typeof SEO_PAGES[0]) {
   const roleLabel = page.role === 'demandante' ? 'Quiero demandar' : page.role === 'demandado' ? 'Me demandaron' : 'Consulta legal';
   const roleColor = page.role === 'demandante' ? '#2563eb' : page.role === 'demandado' ? '#dc2626' : '#0891b2';
+  const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
+  const faqSchema = page.faqs.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } }));
+  const related = getRelatedPages(page);
 
   return `<!DOCTYPE html>
 <html lang="es-CL">
@@ -583,11 +584,12 @@ function renderSEOPage(page: typeof SEO_PAGES[0]) {
   <title>${page.titleSEO}</title>
   <meta name="description" content="${page.metaDescription}" />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://diagnosticolegalchile.cl${page.slug}" />
+  <link rel="canonical" href="${baseUrl}${page.slug}" />
+  <meta property="og:locale" content="es_CL" />
   <meta property="og:title" content="${page.titleSEO}" />
   <meta property="og:description" content="${page.metaDescription}" />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://diagnosticolegalchile.cl${page.slug}" />
+  <meta property="og:url" content="${baseUrl}${page.slug}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${page.titleSEO}" />
   <meta name="twitter:description" content="${page.metaDescription}" />
@@ -595,11 +597,25 @@ function renderSEOPage(page: typeof SEO_PAGES[0]) {
   {
     "@context": "https://schema.org",
     "@type": "LegalService",
-    "name": "Diagnóstico Legal Chile",
+    "name": "LegalHelp Chile",
     "description": "${page.metaDescription}",
     "areaServed": { "@type": "Country", "name": "Chile" },
     "serviceType": "Orientación Legal con IA",
-    "url": "https://diagnosticolegalchile.cl${page.slug}"
+    "provider": { "@type": "Organization", "name": "LegalHelp Chile", "url": "https://legalhelp.cl" },
+    "url": "${baseUrl}${page.slug}"
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": ${JSON.stringify(faqSchema)}
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "${baseUrl}/" },
+      { "@type": "ListItem", "position": 2, "name": "${page.h1}", "item": "${baseUrl}${page.slug}" }
+    ]
   }
   </script>
   <style>
@@ -652,8 +668,9 @@ function renderSEOPage(page: typeof SEO_PAGES[0]) {
       <h2>Preguntas frecuentes</h2>
       ${page.faqs.map(f => `<div class="faq-item"><p class="q">${f.q}</p><p class="a">${f.a}</p></div>`).join('')}
     </section>
+    ${related.length > 0 ? `<section style="margin-top:36px;"><h2 style="font-size:1.25rem;font-weight:700;margin-bottom:16px;color:#0f172a;">Casos relacionados</h2><div style="display:flex;flex-wrap:wrap;gap:8px;">${related.map(r => `<a href="${r.slug}" style="display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;text-decoration:none;">${r.h1}</a>`).join('')}</div></section>` : ''}
     <div class="footer-bar">
-      <p><strong>Diagnóstico Legal Chile</strong> &mdash; Herramienta de orientación legal adaptada a la legislación chilena.</p>
+      <p><strong>LegalHelp Chile</strong> &mdash; Diagnóstico Legal Chile, herramienta de orientación legal adaptada a la legislación chilena.</p>
       <p style="margin-top:4px;">No constituye asesoría legal formal. Consulta con un abogado habilitado (Ley 18.120).</p>
     </div>
   </main>
@@ -661,8 +678,15 @@ function renderSEOPage(page: typeof SEO_PAGES[0]) {
 </html>`;
 }
 
-async function startServer() {
-  // SEO static routes — must be registered before Vite middleware
+function getRelatedPages(page: typeof SEO_PAGES[0]) {
+  return SEO_PAGES
+    .filter(p => p.slug !== page.slug && p.caseType === page.caseType)
+    .slice(0, 4)
+    .map(p => ({ slug: p.slug, h1: p.h1 }));
+}
+
+// Register SEO static routes + sitemap + robots
+function registerSEORoutes() {
   for (const page of SEO_PAGES) {
     app.get(page.slug, (_req, res) => {
       res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -670,23 +694,45 @@ async function startServer() {
     });
   }
 
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
+  // Sitemap
+  app.get("/sitemap.xml", (_req, res) => {
+    const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
+    const urls = SEO_PAGES.map(p => `  <url>\n    <loc>${baseUrl}${p.slug}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>`).join('\n');
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>${baseUrl}/</loc>\n    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>\n${urls}\n</urlset>`);
+  });
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Servidor de Diagnóstico Legal Chile corriendo en http://localhost:${PORT}`);
+  // robots.txt
+  app.get("/robots.txt", (_req, res) => {
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.send(`User-Agent: *\nAllow: /\nDisallow: /api/\n\nUser-Agent: GPTBot\nUser-Agent: OAI-SearchBot\nUser-Agent: PerplexityBot\nUser-Agent: ClaudeBot\nUser-Agent: Google-Extended\nAllow: /\n\nUser-Agent: CCBot\nUser-Agent: Bytespider\nUser-Agent: meta-externalagent\nDisallow: /\n\nSitemap: https://legalhelp.cl/sitemap.xml\n`);
   });
 }
 
-startServer();
+const distPath = path.join(process.cwd(), "dist");
+
+// Serve static build in production
+if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+  app.use(express.static(distPath));
+  app.get("/", (_req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}
+
+// Vercel / Serverless export: handler receives all requests (routes SEO + API + SPA fallback)
+export const handler = app;
+export default app;
+
+// Only run the persistent server locally (not on Vercel)
+if (!process.env.VERCEL && process.env.NODE_ENV !== "production") {
+  registerSEORoutes();
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Servidor de Diagnóstico Legal Chile corriendo en http://localhost:${PORT}`);
+  });
+} else {
+  registerSEORoutes();
+  // SPA fallback: preserve original behavior of serving index.html for unmatched routes
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
+}

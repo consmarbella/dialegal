@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Scale, Calculator, FileText, Lock } from 'lucide-react';
+import { Shield, Calculator, FileText, Lock } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: 'analyzer' | 'calculator';
@@ -24,21 +24,33 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Logo & Title */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-blue-600 rounded flex items-center justify-center font-bold text-white text-lg shrink-0 shadow-sm">
-              <Scale className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <a href="/" className="flex items-center gap-3 group" aria-label="LegalHelp Chile - Inicio">
+              <svg className="transition-transform duration-200 group-hover:scale-105" width="30" height="34" viewBox="0 0 38 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(0 0 14px rgba(0,212,255,0.5))' }}>
+                <defs>
+                  <linearGradient id="lgNav" x1="0" y1="0" x2="38" y2="44" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#00d4ff"></stop>
+                    <stop offset="100%" stopColor="#60a5fa"></stop>
+                  </linearGradient>
+                </defs>
+                <path d="M2 2 L13 2 L13 26 L36 26 L36 34 Q19 44 2 36 Z" fill="url(#lgNav)"></path>
+                <rect x="14" y="2" width="5" height="24" fill="#05070f" rx="0.5"></rect>
+                <rect x="27" y="2" width="5" height="24" fill="#05070f" rx="0.5"></rect>
+                <rect x="14" y="11" width="18" height="5" fill="#05070f" rx="0.5"></rect>
+              </svg>
+              <span className="text-2xl font-bold tracking-tight" style={{ textShadow: '0 0 20px rgba(255,255,255,0.4)' }}>
+                <span className="text-white">LEGAL</span>
+                <span className="text-cyan-400" style={{ textShadow: '0 0 28px rgba(0,212,255,0.65), 0 0 60px rgba(0,212,255,0.25)' }}>HELP</span>
+              </span>
+            </a>
+            <div className="hidden sm:flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 font-normal text-xs uppercase tracking-wider border-l border-slate-700 pl-2">
                   Diagnóstico Legal Chile
-                  <span className="text-slate-400 font-normal text-xs uppercase tracking-wider border-l border-slate-700 pl-2">
-                    Análisis de Expediente PJUD
-                  </span>
-                </h1>
+                </span>
+                <span className="text-slate-500 font-normal text-[10px] uppercase tracking-wider border-l border-slate-700 pl-2">
+                  Análisis de Expediente PJUD
+                </span>
               </div>
-              <p className="text-xs text-slate-300 font-medium mt-0.5">
-                Diagnóstico Procesal Inmediato: Traduce tu Demanda, Calcula tus Plazos Finales y Evalúa tu Demanda
-              </p>
             </div>
           </div>
 

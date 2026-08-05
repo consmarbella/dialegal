@@ -1,0 +1,19 @@
+User-Agent: *
+Allow: /
+Disallow: /api/
+Disallow: /pago/
+
+User-Agent: GPTBot
+User-Agent: OAI-SearchBot
+User-Agent: PerplexityBot
+User-Agent: ClaudeBot
+User-Agent: Google-Extended
+Allow: /
+
+User-Agent: CCBot
+User-Agent: Bytespider
+User-Agent: meta-externalagent
+Disallow: /
+
+Host: https://legalhelp.cl
+Sitemap: https://legalhelp.cl/sitemap.xml
