@@ -9,9 +9,10 @@ import { saveOrder, getOrderByOrderId, getOrderByPreferenceId, updateOrder } fro
 import { checkRateLimit, getClientIp, PAYMENT_RATE_LIMIT, ANALYZE_RATE_LIMIT } from "./src/lib/rateLimit.js";
 import { SEO_PAGES } from "./src/data/seoPages.js";
 import { SEO_PAGES_EXTRA } from "./src/data/seoPagesExtra.js";
+import { SEO_PAGES_BATCH2 } from "./src/data/seoPagesBatch2.js";
 
-// Combinación de TODAS las páginas SEO: 21 originales + 45 nuevas = 66 URLs
-const ALL_SEO_PAGES = [...SEO_PAGES, ...SEO_PAGES_EXTRA];
+// Combinación de TODAS las páginas SEO: 21 originales + 45 + 20 = 86 páginas (+home = 87 URLs)
+const ALL_SEO_PAGES = [...SEO_PAGES, ...SEO_PAGES_EXTRA, ...SEO_PAGES_BATCH2];
 
 dotenv.config();
 
