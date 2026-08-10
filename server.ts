@@ -22,6 +22,18 @@ const PORT = 3000;
 
 app.use(express.json({ limit: "50mb" }));
 
+// SEO: eliminar soft-duplicates por query string (utm, fbclid, p=, s=, page=, etc.)
+// excepto los parametros que usa la app (payment/orderId del redirect de MercadoPago).
+const ALLOWED_QUERY_PARAMS = new Set(["payment", "orderId"]);
+app.use((req, res, next) => {
+  const queryKeys = Object.keys(req.query);
+  if (queryKeys.length > 0 && queryKeys.some(k => !ALLOWED_QUERY_PARAMS.has(k))) {
+    const cleanUrl = `${req.protocol}://${req.get("host")}${req.path}`;
+    return res.redirect(301, cleanUrl);
+  }
+  next();
+});
+
 // Initialize MercadoPago client (token SOLO desde variables de entorno, nunca hardcodeado)
 const envToken = process.env.MP_ACCESS_TOKEN;
 const mpAccessToken = (envToken && (envToken.startsWith("APP_USR-") || envToken.startsWith("TEST-")))
