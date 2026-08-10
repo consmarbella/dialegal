@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import mammoth from "mammoth";
@@ -580,6 +581,7 @@ function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
   const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
   const faqSchema = page.faqs.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } }));
   const related = getRelatedPages(page);
+  const pageDate = process.env.SEO_PAGE_DATE || "2026-08-01";
 
   return `<!DOCTYPE html>
 <html lang="es-CL">
@@ -599,6 +601,20 @@ function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
   <meta name="twitter:title" content="${page.titleSEO}" />
   <meta name="twitter:description" content="${page.metaDescription}" />
   <script type="application/ld+json">
+  [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "${page.titleSEO}",
+    "url": "${baseUrl}${page.slug}",
+    "description": "${page.metaDescription}",
+    "inLanguage": "es-CL",
+    "isPartOf": { "@type": "WebSite", "name": "LegalHelp Chile", "url": "${baseUrl}/" },
+    "datePublished": "${pageDate}",
+    "dateModified": "${pageDate}",
+    "author": { "@type": "Organization", "name": "LegalHelp Chile", "url": "https://legalhelp.cl" },
+    "publisher": { "@type": "Organization", "name": "LegalHelp Chile", "url": "https://legalhelp.cl" }
+  },
   {
     "@context": "https://schema.org",
     "@type": "LegalService",
@@ -622,6 +638,7 @@ function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
       { "@type": "ListItem", "position": 2, "name": "${page.h1}", "item": "${baseUrl}${page.slug}" }
     ]
   }
+  ]
   </script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -690,6 +707,31 @@ function getRelatedPages(page: typeof ALL_SEO_PAGES[0]) {
     .map(p => ({ slug: p.slug, h1: p.h1 }));
 }
 
+// Homepage SSR: static crawlable content inside #root (React replaces it on hydration)
+function renderHomeContent() {
+  const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
+  const links = [...new Map(ALL_SEO_PAGES.map(p => [p.slug, p])).values()]
+    .slice(0, 24)
+    .map(p => `<li><a href="${baseUrl}${p.slug}">${p.h1}</a></li>`)
+    .join('');
+  return `<main style="max-width:820px;margin:0 auto;padding:40px 20px;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;line-height:1.6;">
+    <h1 style="font-size:2.2rem;font-weight:800;">Diagnóstico legal con IA en Chile</h1>
+    <p style="font-size:1.05rem;color:#334155;">Analiza tu demanda o citación, calcula tus plazos fatales y recibe orientación legal para arriendo, laboral, deudas, familia, civil y penal. Sin costo inicial y sin reemplazar el patrocinio de un abogado.</p>
+    <h2 style="font-size:1.3rem;margin-top:32px;">Guías y consultas legales frecuentes</h2>
+    <ul style="columns:2;gap:24px;list-style:none;padding:0;">${links}</ul>
+    <p style="margin-top:32px;font-size:0.85rem;color:#64748b;">Herramienta de orientación legal adaptada a la legislación chilena (CPC, Código del Trabajo, Ley 19.968). No constituye asesoría legal formal.</p>
+  </main>`;
+}
+
+function serveHomePage(_req: express.Request, res: express.Response) {
+  const indexPath = path.join(distPath, "index.html");
+  const html = fs.readFileSync(indexPath, "utf-8");
+  const content = renderHomeContent();
+  const withContent = html.replace('<div id="root"></div>', `<div id="root">${content}</div>`);
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(withContent);
+}
+
 // Register SEO static routes + sitemap + robots
 function registerSEORoutes() {
   for (const page of ALL_SEO_PAGES) {
@@ -710,7 +752,51 @@ function registerSEORoutes() {
   // robots.txt
   app.get("/robots.txt", (_req, res) => {
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.send(`User-Agent: *\nAllow: /\nDisallow: /api/\n\nUser-Agent: GPTBot\nUser-Agent: OAI-SearchBot\nUser-Agent: PerplexityBot\nUser-Agent: ClaudeBot\nUser-Agent: Google-Extended\nAllow: /\n\nUser-Agent: CCBot\nUser-Agent: Bytespider\nUser-Agent: meta-externalagent\nDisallow: /\n\nSitemap: https://legalhelp.cl/sitemap.xml\n`);
+    res.send(`User-Agent: *
+Allow: /
+Disallow: /api/
+Disallow: /*?*
+
+User-Agent: GPTBot
+User-Agent: OAI-SearchBot
+User-Agent: PerplexityBot
+User-Agent: ClaudeBot
+User-Agent: Google-Extended
+Allow: /
+Disallow: /*?*
+
+User-Agent: CCBot
+User-Agent: Bytespider
+User-Agent: meta-externalagent
+Disallow: /
+
+Sitemap: https://legalhelp.cl/sitemap.xml
+`);
+  });
+
+  // llms.txt (GEO): contexto para LLMs y AI Overviews
+  app.get("/llms.txt", (_req, res) => {
+    const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
+    const topLinks = [...new Map(ALL_SEO_PAGES.map(p => [p.slug, p])).values()]
+      .slice(0, 30)
+      .map(p => `- [${p.h1}](${baseUrl}${p.slug}): ${p.metaDescription}`)
+      .join('\n');
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.send(`# LegalHelp Chile
+
+> Diagnóstico legal con IA en Chile. Orientación sobre demandas, plazos fatales (CPC, Código del Trabajo, Ley 19.968), arriendo, laboral, deudas, familia, civil y penal. No constituye asesoría legal formal; no reemplaza el patrocinio de un abogado habilitado en Chile.
+
+## Guías y consultas frecuentes
+
+${topLinks}
+
+## Recursos oficiales
+
+- [Poder Judicial de Chile](https://www.pjud.cl)
+- [Biblioteca del Congreso Nacional - Ley Fácil](https://www.bcn.cl)
+- [SERNAC](https://www.sernac.cl)
+- [Dirección del Trabajo](https://www.dt.gob.cl)
+`);
   });
 }
 
@@ -718,10 +804,8 @@ const distPath = path.join(process.cwd(), "dist");
 
 // Serve static build in production
 if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
-  app.use(express.static(distPath));
-  app.get("/", (_req, res) => {
-    res.sendFile(path.join(distPath, "index.html"));
-  });
+  app.use(express.static(distPath, { index: false }));
+  app.get("/", serveHomePage);
 }
 
 // Vercel / Serverless export: handler receives all requests (routes SEO + API + SPA fallback)
