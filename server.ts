@@ -786,6 +786,15 @@ Sitemap: https://legalhelp.cl/sitemap.xml
 `);
   });
 
+  // Bing Site Verification (Bing Webmaster Tools)
+  app.get("/BingSiteAuth.xml", (_req, res) => {
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.send(`<?xml version="1.0"?>
+<users>
+	<user>5FA314B20BB93FD6E5357FBFF4B76C39</user>
+</users>`);
+  });
+
   // llms.txt (GEO): contexto para LLMs y AI Overviews
   app.get("/llms.txt", (_req, res) => {
     const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
