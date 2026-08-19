@@ -794,6 +794,14 @@ Sitemap: https://legalhelp.cl/sitemap.xml
 </users>`);
   });
 
+  // IndexNow key (Bing/Yandex/Seznam): https://www.indexnow.org/documentation
+  const INDEXNOW_KEY = "28ff68bc2e761ea86f7ba9b100045687";
+  app.get(`/${INDEXNOW_KEY}.txt`, (_req, res) => {
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.send(INDEXNOW_KEY);
+  });
+
   // llms.txt (GEO): contexto para LLMs y AI Overviews
   app.get("/llms.txt", (_req, res) => {
     const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
