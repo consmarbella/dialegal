@@ -714,24 +714,52 @@ function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
 }
 
 function getRelatedPages(page: typeof ALL_SEO_PAGES[0]) {
-  return ALL_SEO_PAGES
-    .filter(p => p.slug !== page.slug && p.caseType === page.caseType)
-    .slice(0, 4)
+  const sameType = ALL_SEO_PAGES.filter(p => p.slug !== page.slug && p.caseType === page.caseType);
+  const crossType = ALL_SEO_PAGES.filter(p => p.slug !== page.slug && p.caseType !== page.caseType);
+  const order = (a: typeof ALL_SEO_PAGES[0], b: typeof ALL_SEO_PAGES[0]) => {
+    const aHub = a.slug.includes('abogado') ? 0 : 1;
+    const bHub = b.slug.includes('abogado') ? 0 : 1;
+    return aHub - bHub || a.slug.localeCompare(b.slug);
+  };
+  return [...sameType.sort(order).slice(0, 6), ...crossType.sort(order).slice(0, 4)]
     .map(p => ({ slug: p.slug, h1: p.h1 }));
 }
 
 // Homepage SSR: static crawlable content inside #root (React replaces it on hydration)
+const CASE_TYPE_LABELS: Record<string, string> = {
+  arriendo: "Arriendo y desalojo",
+  laboral: "Laboral y despidos",
+  deuda: "Deudas, cobranza y embargos",
+  familia: "Familia, alimentos y divorcio",
+  civil: "Civil, contratos y herencias",
+  penal: "Penal, denuncias y detención",
+  general: "General y abogados",
+};
+
+function groupByCaseType() {
+  const groups: Record<string, typeof ALL_SEO_PAGES> = {};
+  for (const p of ALL_SEO_PAGES) {
+    (groups[p.caseType] ||= []).push(p);
+  }
+  return groups;
+}
+
 function renderHomeContent() {
   const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
-  const links = [...new Map(ALL_SEO_PAGES.map(p => [p.slug, p])).values()]
-    .slice(0, 24)
-    .map(p => `<li><a href="${baseUrl}${p.slug}">${p.h1}</a></li>`)
+  const groups = groupByCaseType();
+  const sections = Object.entries(CASE_TYPE_LABELS)
+    .map(([type, label]) => {
+      const pages = (groups[type] || []).sort((a, b) => a.slug.localeCompare(b.slug));
+      if (!pages.length) return '';
+      const items = pages.map(p => `<li><a href="${baseUrl}${p.slug}">${p.h1}</a></li>`).join('');
+      return `<h3 style="font-size:1.1rem;font-weight:700;margin-top:24px;color:#0b1f3a;">${label}</h3><ul style="columns:2;gap:24px;list-style:none;padding:0;">${items}</ul>`;
+    })
     .join('');
   return `<main style="max-width:820px;margin:0 auto;padding:40px 20px;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;line-height:1.6;">
     <h1 style="font-size:2.2rem;font-weight:800;">Diagnóstico legal con IA en Chile</h1>
     <p style="font-size:1.05rem;color:#334155;">Analiza tu demanda o citación, calcula tus plazos fatales y recibe orientación legal para arriendo, laboral, deudas, familia, civil y penal. Sin costo inicial y sin reemplazar el patrocinio de un abogado.</p>
     <h2 style="font-size:1.3rem;margin-top:32px;">Guías y consultas legales frecuentes</h2>
-    <ul style="columns:2;gap:24px;list-style:none;padding:0;">${links}</ul>
+    ${sections}
     <p style="margin-top:32px;font-size:0.85rem;color:#64748b;">Herramienta de orientación legal adaptada a la legislación chilena (CPC, Código del Trabajo, Ley 19.968). No constituye asesoría legal formal.</p>
   </main>`;
 }
@@ -762,9 +790,10 @@ function registerSEORoutes() {
   // Sitemap
   app.get("/sitemap.xml", (_req, res) => {
     const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
-    const urls = ALL_SEO_PAGES.map(p => `  <url>\n    <loc>${baseUrl}${p.slug}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>`).join('\n');
+    const lastmod = process.env.SEO_PAGE_DATE || "2026-08-19";
+    const urls = ALL_SEO_PAGES.map(p => `  <url>\n    <loc>${baseUrl}${p.slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>`).join('\n');
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
-    res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>${baseUrl}/</loc>\n    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>\n${urls}\n</urlset>`);
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>${baseUrl}/</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>\n${urls}\n</urlset>`);
   });
 
   // robots.txt
