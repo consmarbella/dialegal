@@ -780,13 +780,13 @@ User-Agent: OAI-SearchBot
 User-Agent: PerplexityBot
 User-Agent: ClaudeBot
 User-Agent: Google-Extended
-Allow: /
-Disallow: /*?*
-
 User-Agent: CCBot
 User-Agent: Bytespider
 User-Agent: meta-externalagent
-Disallow: /
+User-Agent: Applebot-Extended
+User-Agent: anthropic-ai
+User-Agent: Amazonbot
+Allow: /
 
 Sitemap: https://legalhelp.cl/sitemap.xml
 `);
@@ -804,26 +804,60 @@ Sitemap: https://legalhelp.cl/sitemap.xml
   // llms.txt (GEO): contexto para LLMs y AI Overviews
   app.get("/llms.txt", (_req, res) => {
     const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
-    const topLinks = [...new Map(ALL_SEO_PAGES.map(p => [p.slug, p])).values()]
-      .slice(0, 30)
-      .map(p => `- [${p.h1}](${baseUrl}${p.slug}): ${p.metaDescription}`)
-      .join('\n');
+    const sections: Record<string, string> = {
+      arriendo: "Arriendo y desalojo",
+      laboral: "Laboral y despidos",
+      deuda: "Deudas, cobranza y embargos",
+      familia: "Familia, alimentos y divorcio",
+      civil: "Civil, contratos y herencias",
+      penal: "Penal, denuncias y detención",
+      general: "General y abogados",
+    };
+    const byType: Record<string, typeof ALL_SEO_PAGES> = {};
+    for (const p of ALL_SEO_PAGES) {
+      (byType[p.caseType] ||= []).push(p);
+    }
+    const parts: string[] = [
+      "# LegalHelp Chile",
+      "",
+      "> Diagnóstico legal con IA en Chile. Orientación sobre demandas, plazos fatales (CPC, Código del Trabajo, Ley 19.968), arriendo, laboral, deudas, familia, civil y penal. No constituye asesoría legal formal; no reemplaza el patrocinio de un abogado habilitado en Chile.",
+      "",
+      "> Consulta gratuita con IA: sube tu caso y recibe diagnóstico con plazos, riesgos y pasos a seguir. Enlaces: [Diagnóstico](https://legalhelp.cl/) · [Orientación legal](https://legalhelp.cl/necesito-orientacion-legal) · [Abogado urgente](https://legalhelp.cl/abogado-urgente)",
+      "",
+      "## Guías por tema",
+      "",
+    ];
+    for (const [type, label] of Object.entries(sections)) {
+      const pages = (byType[type] || []).sort((a, b) => a.slug.localeCompare(b.slug));
+      if (!pages.length) continue;
+      parts.push(`### ${label}`, "");
+      for (const p of pages) {
+        parts.push(`- [${p.h1}](${baseUrl}${p.slug}): ${p.metaDescription}`);
+      }
+      parts.push("");
+    }
+    parts.push(
+      "## Recursos oficiales de Chile",
+      "",
+      "- [Poder Judicial de Chile](https://www.pjud.cl)",
+      "- [Biblioteca del Congreso Nacional - Ley Fácil](https://www.bcn.cl)",
+      "- [SERNAC](https://www.sernac.cl)",
+      "- [Dirección del Trabajo](https://www.dt.gob.cl)",
+      ""
+    );
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.send(`# LegalHelp Chile
+    res.send(parts.join("\n"));
+  });
 
-> Diagnóstico legal con IA en Chile. Orientación sobre demandas, plazos fatales (CPC, Código del Trabajo, Ley 19.968), arriendo, laboral, deudas, familia, civil y penal. No constituye asesoría legal formal; no reemplaza el patrocinio de un abogado habilitado en Chile.
-
-## Guías y consultas frecuentes
-
-${topLinks}
-
-## Recursos oficiales
-
-- [Poder Judicial de Chile](https://www.pjud.cl)
-- [Biblioteca del Congreso Nacional - Ley Fácil](https://www.bcn.cl)
-- [SERNAC](https://www.sernac.cl)
-- [Dirección del Trabajo](https://www.dt.gob.cl)
-`);
+  // llms-full.txt: version ampliada con el texto de diagnostico completo de cada pagina
+  app.get("/llms-full.txt", (_req, res) => {
+    const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
+    const blocks = ALL_SEO_PAGES
+      .sort((a, b) => a.slug.localeCompare(b.slug))
+      .map(p => `# ${p.h1}\n\nURL: ${baseUrl}${p.slug}\n\n${p.diagnosText}\n\nPuntos clave:\n${p.bullets.map(b => `- ${b}`).join('\n')}\n\nPreguntas frecuentes:\n${p.faqs.map(f => `Q: ${f.q}\nA: ${f.a}`).join('\n\n')}`)
+      .join('\n\n---\n\n');
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.send(`# LegalHelp Chile - Contenido completo\n\n> Orientación legal con IA para Chile. Fuente oficial del sitio https://legalhelp.cl. No constituye asesoría legal formal.\n\n${blocks}`);
   });
 }
 
