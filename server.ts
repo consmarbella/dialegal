@@ -759,13 +759,99 @@ function registerSEORoutes() {
     });
   }
 
-  // Sitemap
+  // Sitemap Index: pointing to 3 sub-sitemaps
   app.get("/sitemap.xml", (_req, res) => {
     const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
     const lastmod = process.env.SEO_PAGE_DATE || "2026-08-19";
-    const urls = ALL_SEO_PAGES.map(p => `  <url>\n    <loc>${baseUrl}${p.slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>`).join('\n');
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
-    res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>${baseUrl}/</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>\n${urls}\n</urlset>`);
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>${baseUrl}/sitemap-new.xml</loc>
+    <lastmod>${lastmod}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-redirects.xml</loc>
+    <lastmod>${lastmod}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-home.xml</loc>
+    <lastmod>${lastmod}</lastmod>
+  </sitemap>
+</sitemapindex>`);
+  });
+
+  // Sitemap: new SEO pages (87)
+  app.get("/sitemap-new.xml", (_req, res) => {
+    const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
+    const lastmod = process.env.SEO_PAGE_DATE || "2026-08-19";
+    const urls = ALL_SEO_PAGES.map(p => {
+      const priority = p.slug === '/' ? '1.0' : '0.8';
+      return `  <url>
+    <loc>${baseUrl}${p.slug}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>${priority}</priority>
+  </url>`;
+    }).join('\n');
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls}
+</urlset>`);
+  });
+
+  // Sitemap: old /p/* URLs (708 redirects) — helps Google discover the 301s
+  app.get("/sitemap-redirects.xml", (_req, res) => {
+    const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
+    // Import redirects data
+    const fs = require("fs");
+    const pathMod = require("path");
+    const redirectsPath = pathMod.join(process.cwd(), "dist", "redirects.json");
+    let redirectEntries: Array<[string, string]> = [];
+    try {
+      const raw = fs.readFileSync(redirectsPath, "utf-8");
+      const data = JSON.parse(raw);
+      redirectEntries = Object.entries(data) as Array<[string, string]>;
+    } catch {
+      // Fallback: read from source
+      try {
+        const srcPath = pathMod.join(process.cwd(), "src", "data", "redirects.ts");
+        const src = fs.readFileSync(srcPath, "utf-8");
+        const matches = src.matchAll(/"([^"]+)"\s*:\s*"([^"]+)"/g);
+        for (const m of matches) {
+          redirectEntries.push([m[1], m[2]]);
+        }
+      } catch { /* skip */ }
+    }
+    const urls = redirectEntries.map(([oldSlug, dest]) => {
+      return `  <url>
+    <loc>${baseUrl}/p/${oldSlug}</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>`;
+    }).join('\n');
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls}
+</urlset>`);
+  });
+
+  // Sitemap: home only
+  app.get("/sitemap-home.xml", (_req, res) => {
+    const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
+    const lastmod = process.env.SEO_PAGE_DATE || "2026-08-19";
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}/</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>`);
   });
 
   // robots.txt
