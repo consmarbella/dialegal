@@ -22,6 +22,9 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
+// Security: disable X-Powered-By header
+app.disable("x-powered-by");
+
 app.use(express.json({ limit: "50mb" }));
 
 // SEO: eliminar soft-duplicates por query string (utm, fbclid, p=, s=, page=, etc.)
@@ -611,9 +614,14 @@ function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
   <meta property="og:description" content="${page.metaDescription}" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${baseUrl}${page.slug}" />
+  <meta property="og:site_name" content="LegalHelp Chile" />
+  <meta property="og:image" content="${baseUrl}/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${page.titleSEO}" />
   <meta name="twitter:description" content="${page.metaDescription}" />
+  <meta name="twitter:image" content="${baseUrl}/og-image.png" />
   <script type="application/ld+json">
   [
   {
@@ -882,8 +890,13 @@ if (!process.env.VERCEL && process.env.NODE_ENV !== "production") {
   });
 } else {
   registerSEORoutes();
-  // SPA fallback: preserve original behavior of serving index.html for unmatched routes
+  // Custom 404: serve 404.html for unmatched routes instead of SPA fallback
   app.get("*", (req, res) => {
-    res.sendFile(path.join(distPath, "index.html"));
+    const notFoundPath = path.join(distPath, "404.html");
+    if (require("fs").existsSync(notFoundPath)) {
+      res.status(404).sendFile(notFoundPath);
+    } else {
+      res.status(404).send(`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>404 - Página no encontrada | LegalHelp Chile</title><meta name="robots" content="noindex"><style>body{font-family:system-ui,-apple-system,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#05070f;color:#e0e6f0}.box{text-align:center;max-width:480px;padding:2rem}h1{font-size:4rem;margin:0;color:#00d4ff}p{font-size:1.1rem;line-height:1.6;color:#a0aec0}a{color:#00d4ff;text-decoration:none;border:1px solid #00d4ff;padding:.5rem 1.5rem;border-radius:6px;display:inline-block;margin-top:1rem;transition:all .2s}a:hover{background:#00d4ff;color:#05070f}</style></head><body><div class="box"><h1>404</h1><p>Esta página no existe o fue movida. Puedes volver al inicio para encontrar lo que necesitas.</p><a href="/">Volver al inicio</a></div></body></html>`);
+    }
   });
 }
