@@ -11,7 +11,7 @@ import { checkRateLimit, getClientIp, PAYMENT_RATE_LIMIT, ANALYZE_RATE_LIMIT } f
 import { SEO_PAGES } from "./src/data/seoPages.js";
 import { SEO_PAGES_EXTRA } from "./src/data/seoPagesExtra.js";
 import { SEO_PAGES_BATCH2 } from "./src/data/seoPagesBatch2.js";
-import { resolvePseoRedirect, EXACT_REDIRECTS } from "./src/data/redirects.js";
+import { resolvePseoRedirect } from "./src/data/redirects.js";
 import { ALL_SEO_PAGES as ALL_SEO_PAGES_SHARED, renderHomeContent } from "./src/lib/homeSsr.js";
 
 // Combinación de TODAS las páginas SEO: 21 originales + 45 + 20 = 86 páginas (+home = 87 URLs)
@@ -35,16 +35,6 @@ app.use((req, res, next) => {
   if (queryKeys.length > 0 && queryKeys.some(k => !ALLOWED_QUERY_PARAMS.has(k))) {
     const cleanUrl = `${req.protocol}://${req.get("host")}${req.path}`;
     return res.redirect(301, cleanUrl);
-  }
-  next();
-});
-
-// SEO: redirect city-specific direct URLs via EXACT_REDIRECTS (not just /p/*)
-app.use((req, res, next) => {
-  if (req.method !== 'GET') return next();
-  const slug = req.path.replace(/^\//, '').replace(/\/$/, '');
-  if (EXACT_REDIRECTS[slug]) {
-    return res.redirect(301, EXACT_REDIRECTS[slug]);
   }
   next();
 });
@@ -768,6 +758,15 @@ function registerSEORoutes() {
       res.send(renderSEOPage(page));
     });
   }
+
+  // Redirecciones 301 para URLs directas (no /p/*) — city-specific slugs
+  // IMPORTANTE: debe ir DESPUÉS de las rutas SEO para no interferir
+  const { EXACT_REDIRECTS } = require("./src/data/redirects.js");
+  app.get("/:slug", (req, res, next) => {
+    const dest = EXACT_REDIRECTS[req.params.slug];
+    if (dest) return res.redirect(301, dest);
+    next();
+  });
 
   // Sitemap Index: pointing to 3 sub-sitemaps
   app.get("/sitemap.xml", (_req, res) => {
