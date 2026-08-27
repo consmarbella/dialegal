@@ -761,10 +761,9 @@ function registerSEORoutes() {
 
   // Redirecciones 301 para URLs directas (no /p/*) — city-specific slugs
   // IMPORTANTE: debe ir DESPUÉS de las rutas SEO para no interferir
-  const { EXACT_REDIRECTS } = require("./src/data/redirects.js");
   app.get("/:slug", (req, res, next) => {
-    const dest = EXACT_REDIRECTS[req.params.slug];
-    if (dest) return res.redirect(301, dest);
+    const dest = resolvePseoRedirect(req.params.slug);
+    if (dest && dest !== '/') return res.redirect(301, dest);
     next();
   });
 
