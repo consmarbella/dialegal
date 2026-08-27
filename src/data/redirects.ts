@@ -2,7 +2,7 @@
 // Generado desde GSC (653 URLs /p/ con trafico historico) hacia las paginas actuales.
 // Regla de resolucion en resolvePseoRedirect: coincidencia exacta -> prefijo -> home.
 
-const EXACT_REDIRECTS: Record<string, string> = {
+export const EXACT_REDIRECTS: Record<string, string> = {
   "acuerdo-divorcio-mutuo-acuerdo": "/como-divorciarse-en-chile",
   "acuerdo-divorcio-mutuo-acuerdo-calama": "/como-divorciarse-en-chile",
   "acuerdo-divorcio-mutuo-acuerdo-copiapo": "/como-divorciarse-en-chile",
