@@ -928,23 +928,154 @@ export const SEO_PAGES_EXTRA: SEOPage[] = [
   {
     slug: '/prescripcion-de-multas-de-transito',
     h1: 'Prescripción de multas de tránsito y TAG en Chile',
-    diagnosText: 'Las multas de tránsito y TAG no duran para siempre. Las multas asociadas al conductor prescriben a los 1 año (Ley 15.231 Art. 54) y las asociadas a la patente como el TAG prescriben a los 3 años desde su anotación (Ley 18.287 Art. 24). Existe además una condonación del 80% de multas TAG con tope de 100 UTM vigente en 2026. Solicitar la prescripción ante el Juzgado de Policía Local es tu mejor opción para liberarte sin pagar.',
+    diagnosText: `¿Tienes multas de tránsito o TAG que crees que ya no deberías pagar? En Chile, las multas prescriben. Esto significa que si la municipalidad o la concesionaria no cobran judicialmente dentro de ciertos plazos, la obligación de pagar se extingue por completo. Este artículo te explica todo lo que necesitas saber: plazos exactos, diferencia entre multas del conductor y multas de patente, cómo solicitar la prescripción paso a paso, formato de escrito incluido, y los errores más comunes que cometen los conductores al intentar prescribir sus multas.
+
+## Tipos de multas y plazos de prescripción
+
+En Chile existen dos tipos de multas de tránsito, y cada una tiene un plazo de prescripción diferente. Es fundamental que entiendas la diferencia porque de eso depende cuánto tiempo debes esperar antes de solicitar la prescripción.
+
+### Multas asociadas al conductor (prescriben a 1 año)
+
+Estas son las multas que se aplican directamente a la persona que cometió la infracción, sin importar qué vehículo conducía. Están reguladas por el artículo 54 de la Ley 15.231 sobre Organización y Atribuciones de los Juzgados de Policía Local. Los plazos son:
+
+- Infracciones leves: 1 año desde que la multa quedó firme (sin recurso o tras resolución definitiva).
+- Infracciones graves: 1 año desde que la multa quedó firme.
+- Infracciones gravísimas: 1 año desde que la multa quedó firme.
+
+Ejemplos de multas del conductor: conducir sin licencia, conducir en estado de ebriedad, exceso de velocidad, no respetar señales de tránsito, no ceder el paso a peatones, usar el celular manejando.
+
+Si la municipalidad o Carabineros no inician cobro judicial dentro de 1 año, la multa prescribe y queda sin efecto. No necesitas hacer nada para que prescriba automáticamente, pero si quieres que se elimine del Registro Civil, debes solicitar la prescripción ante el Juzgado de Policía Local.
+
+### Multas asociadas a la patente o TAG (prescriben a 3 años)
+
+Estas son las multas que se aplican al vehículo, no al conductor. Incluyen las multas por circular sin TAG, por circular con TAG inhabilitado, por uso de vías exclusivas, y por infracciones de autopistas concesionadas. Están reguladas por el artículo 24 de la Ley 18.287 sobre Procedimiento ante los Juzgados de Policía Local. El plazo es:
+
+- 3 años desde que la multa fue anotada en el Registro de Multas por Infracciones de Tránsito No Pagadas que lleva el Registro Civil.
+
+Este plazo de 3 años comienza a correr desde la anotación en el Registro Civil, no desde la fecha de la infracción. Es decir, si te multaron en enero de 2023 pero la multa se anotó en el Registro Civil en marzo de 2023, el plazo de 3 años vence en marzo de 2026.
+
+### Condonación del 80% de multas TAG
+
+Además de la prescripción, existe la posibilidad de condonar el 80% del monto de multas TAG. La ley vigente permite condonar el 80% de multas TAG con un tope de 100 UTM. Esto significa que si debes 100 UTM, podrías pagar solo 20 UTM. Para saber si tu multa califica para la condonación, debes consultar directamente en el Juzgado de Policía Local o en la municipalidad que emitió la multa.
+
+La condonación es diferente a la prescripción. La prescripción extingue la deuda completa (no pagas nada). La condonación reduce el monto (pagas el 20%). Si tu multa aún no ha prescrito pero quieres pagar menos, la condonación puede ser una buena opción.
+
+## Cómo solicitar la prescripción de una multa de tránsito: paso a paso
+
+El proceso de prescripción no es automático. Si bien la deuda se extingue por el paso del tiempo, si quieres que se elimine del Registro Civil y de tu hoja de vida del conductor, debes solicitarla formalmente. Aquí te explicamos cada paso:
+
+### Paso 1: Verifica si tu multa ya prescribió
+
+Antes de hacer cualquier trámite, verifica que la multa haya cumplido el plazo de prescripción. Para ello:
+
+1. Ve al Registro Civil y solicita tu certificado de multas de tránsito. Este certificado muestra todas las multas registradas a tu nombre, incluyendo la fecha de anotación.
+2. Revisa la fecha de anotación de cada multa. Si han pasado más de 1 año (para multas del conductor) o más de 3 años (para multas de patente/TAG), la multa puede prescribir.
+3. Verifica que no exista cobro judicial pendiente. Si la municipalidad o la concesionaria iniciaron un juicio de cobro antes de que se cumpliera el plazo, la prescripción no aplica porque se interrumpió.
+
+### Paso 2: Consigue el certificado de multas del Registro Civil
+
+El certificado de multas del Registro Civil es el documento clave que acredita la existencia y el estado de tus multas. Lo puedes obtener:
+
+- Presencialmente: en cualquier sucursal del Registro Civil con tu cédula de identidad. El trámite es gratuito y te lo entregan al instante.
+- En línea: a través del sitio web del Registro Civil (registrocivil.cl) con tu clave Única.
+
+El certificado muestra: número de infracción, fecha de la infracción, fecha de anotación en el Registro, monto de la multa, estado (pagada, impaga, prescrita).
+
+### Paso 3: Redacta el escrito de solicitud de prescripción
+
+El escrito es un documento formal que presentas ante el Juzgado de Policía Local. Debe contener los siguientes datos:
+
+1. Datos del solicitante: nombre completo, RUT, domicilio.
+2. Datos de la multa: número de infracción, fecha, monto, organismo emisor.
+3. Fundamento legal: indica la ley que aplica (Ley 15.231 Art. 54 para multas del conductor, o Ley 18.287 Art. 24 para multas de patente/TAG).
+4. Solicitud: pide que se declare la prescripción de la multa y que se ordene su eliminación del Registro Civil.
+5. Documentos adjuntos: certificado de multas del Registro Civil, copia de cédula de identidad.
+
+### Paso 4: Presenta el escrito en el Juzgado de Policía Local
+
+El escrito se presenta en el Juzgado de Policía Local que dictó la multa. Si no sabes cuál es, revisa tu certificado de multas — ahí aparece el número del Juzgado.
+
+Puedes presentar el escrito personalmente en la secretaría del Juzgado. No necesitas abogado para trámites ante el Juzgado de Policía Local si el monto no supera las 8 UTM. La prescripción de multas de tránsito generalmente no requiere abogado.
+
+### Paso 5: Espera la resolución
+
+El juez revisará tu solicitud y dictará una resolución declarando la prescripción. Esto puede tomar entre 1 y 4 semanas dependiendo de la carga del Juzgado. Si el juez aprueba la prescripción, emitirá una resolución judicial que ordena al Registro Civil eliminar la anotación de la multa.
+
+### Paso 6: Presenta la resolución en el Registro Civil
+
+Con la resolución judicial en mano, ve al Registro Civil y presenta una copia autorizada de la resolución. El Registro Civil tiene un plazo de 7 días hábiles para eliminar la anotación de tu hoja de vida del conductor. En temporada de permiso de circulación (febrero-marzo), este proceso puede demorar más.
+
+## Formato de escrito de solicitud de prescripción
+
+A continuación te dejamos un formato que puedes adaptar a tu caso. Recuerda que este es un modelo referencial y no constituye asesoría legal formal.
+
+EN LO PRINCIPAL: Solicito prescripción de multa de tránsito. EN EL OTRO SI: Acompaño documentos.
+
+SEÑOR JUEZ DE POLICÍA LOCAL DE [NOMBRE DE LA COMUNA]:
+
+[NOMBRE COMPLETO], chileno(a), de [EDAD] años de edad, cédula de identidad N° [RUT], con domicilio en [DIRECCIÓN], COMUNA DE [COMUNA], con domicilio en [DIRECCIÓN], ya individualizado en autos, con respeto digo:
+
+I. HECHOS
+
+1. Que con fecha [FECHA DE LA INFRACCIÓN], se me aplicó una multa de tránsito por infracción N° [NÚMERO], por el organismo emisor [CARABINEROS / MUNICIPALIDAD / etc.].
+
+2. Que dicha multa fue anotada en el Registro de Multas por Infracciones de Tránsito No Pagadas del Registro Civil con fecha [FECHA DE ANOTACIÓN].
+
+3. Que han transcurrido más de [1 AÑO / 3 AÑOS] desde la anotación de la multa, sin que se haya iniciado cobro judicial alguno.
+
+II. FUNDAMENTO LEGAL
+
+4. Que el artículo 54 de la Ley 15.231 establece que las infracciones o contravenciones prescriben a los 1 año desde que quedaron firmes. / Que el artículo 24 de la Ley 18.287 establece que las multas asociadas a la patente prescriben a los 3 años desde su anotación en el Registro de Multas.
+
+5. Que al no haberse iniciado cobro judicial dentro del plazo legal, la acción se ha extinguido por prescripción.
+
+III. PETITORIO
+
+POR TANTO, a Ud. solicito se sirva declarar la prescripción de la multa indicada y ordenar su eliminación del Registro de Multas por Infracciones de Tránsito No Pagadas del Registro Civil.
+
+Santiago, [FECHA].
+
+Firma: _______________
+
+## Errores comunes al solicitar la prescripción
+
+1. Presentar el escrito en el Juzgado equivocado: debes ir al Juzgado de Policía Local que dictó la multa, no al de tu domicilio.
+2. No adjuntar el certificado de multas: sin este documento, el Juzgado no puede verificar la fecha de anotación.
+3. Confundir plazos: 1 año para multas del conductor, 3 años para multas de patente/TAG. Si presentas la solicitud antes de tiempo, la rechazarán.
+4. No verificar si hay cobro judicial: si la empresa inició un juicio antes de que prescribiera, la prescripción no aplica.
+5. Olvidar presentar la resolución en el Registro Civil: el Juzgado ordena la eliminación, pero el trámite final lo haces tú en el Registro Civil.`,
     ctaText: 'Analizar la prescripción de mi multa',
     bullets: [
-      'Multas del conductor: prescriben a los 1 año desde que quedaron firmes (Ley 15.231 Art. 54). Si no se pagan ni se cobran en ese plazo, la acción se extingue.',
-      'Multas asociadas a la patente (TAG, Autopista Central, vías exclusivas): prescriben a los 3 años desde la anotación en el Registro de Multas por Infracciones de Tránsito (Ley 18.287 Art. 24).',
-      'Condonación del 80%: la Ley vigente permite condonar el 80% de multas TAG con un tope de 100 UTM. Consulta si tu multa califica antes de pagar el total.',
-      'Cómo solicitar prescripción: presenta un escrito de solicitud de prescripción ante el Juzgado de Policía Local que dictó la multa, adjuntando certificado de multas del Registro Civil.',
+      'Multas del conductor (sin licencia, velocidad, ebriedad): prescriben a 1 año desde que quedaron firmes (Ley 15.231 Art. 54). Si no se cobran judicialmente en ese plazo, la acción se extingue.',
+      'Multas de patente (TAG, Autopista Central, vías exclusivas): prescriben a 3 años desde la anotación en el Registro Civil (Ley 18.287 Art. 24). El plazo comienza desde la anotación, no desde la fecha de la infracción.',
+      'Condonación del 80%: si tu multa TAG aún no prescribió, puedes beneficiarte con la condonación del 80% con tope de 100 UTM. Pagas solo el 20%.',
+      'Paso 1: obtén tu certificado de multas en el Registro Civil (gratuito, al instante). Verifica la fecha de anotación de cada multa.',
+      'Paso 2: redacta el escrito de solicitud de prescripción con tus datos, datos de la multa y fundamento legal (Ley 15.231 Art. 54 o Ley 18.287 Art. 24).',
+      'Paso 3: presenta el escrito en el Juzgado de Policía Local que dictó la multa. No necesitas abogado si el monto es menor a 8 UTM.',
+      'Paso 4: espera la resolución del juez (1-4 semanas). Si aprueba la prescripción, ordena la eliminación del Registro Civil.',
+      'Paso 5: presenta la resolución en el Registro Civil. Tienen 7 días hábiles para eliminar la anotación.',
+      'Error común: presentar el escrito en el Juzgado equivocado. Ve al que dictó la multa, no al de tu domicilio.',
+      'Error común: no verificar si hay cobro judicial. Si la empresa inició juicio antes de que prescribiera, la prescripción no aplica.',
     ],
     faqs: [
-      { q: '¿Cuánto tiempo prescribe una multa de TAG en Chile?', a: 'Las multas TAG prescriben a los 3 años desde su anotación en el Registro de Multas por Infracciones de Tránsito (Ley 18.287 Art. 24). Si la empresa no cobra judicialmente en ese plazo, la multa se extingue.' },
-      { q: '¿Puedo solicitar la prescripción sin abogado?', a: 'Sí. En Juzgados de Policía Local puedes comparecer personalmente hasta 8 UTM. La solicitud de prescripción es un trámite simple que puedes hacer tú mismo.' },
-      { q: '¿Qué documentos necesito para solicitar la prescripción?', a: 'Certificado de multas del Registro Civil, cédula de identidad y el escrito de solicitud indicando los datos de la multa y el fundamento legal de la prescripción.' },
-      { q: '¿Qué pasa si tengo multas TAG y no las pago?', a: 'Las multas TAG pueden impedir la renovación del permiso de circulación, la transferencia del vehículo y generar cobranza judicial con embargo. Por eso es mejor solicitar la prescripción antes de que avance.' },
-      { q: '¿La prescripción de multas de TAG es diferente a la de deudas bancarias?', a: 'Sí, son temas legales distintos. Las multas TAG prescriben por la Ley 18.287 a los 3 años. Las deudas bancarias prescriben por el Código Civil a los 3 o 5 años. No confundas ambos plazos.' },
+      { q: '¿Cuánto tiempo prescribe una multa de TAG en Chile?', a: 'Las multas TAG prescriben a los 3 años desde su anotación en el Registro de Multas por Infracciones de Tránsito (Ley 18.287 Art. 24). Si la empresa no cobra judicialmente en ese plazo, la multa se extingue completamente. El plazo comienza desde la anotación en el Registro Civil, no desde la fecha de la infracción.' },
+      { q: '¿Cuánto tiempo prescribe una multa de tránsito común?', a: 'Las multas asociadas al conductor (conducir sin licencia, exceso de velocidad, estado de ebriedad, uso de celular) prescriben a 1 año desde que quedaron firmes, según el artículo 54 de la Ley 15.231. Si en ese plazo no se inicia cobro judicial, la multa se extingue.' },
+      { q: '¿Puedo solicitar la prescripción sin abogado?', a: 'Sí. En Juzgados de Policía Local puedes comparecer personalmente si el monto no supera las 8 UTM. La solicitud de prescripción es un trámite que puedes hacer tú mismo siguiendo el formato que te proporcionamos.' },
+      { q: '¿Qué documentos necesito para solicitar la prescripción?', a: 'Necesitas: (1) certificado de multas del Registro Civil, (2) cédula de identidad vigente, (3) escrito de solicitud de prescripción con tus datos y los de la multa, y (4) copia de la notificación de la multa si la tienes.' },
+      { q: '¿Qué pasa si tengo multas TAG y no las pago?', a: 'Las multas TAG pueden impedir la renovación del permiso de circulación, la transferencia del vehículo y generar cobranza judicial con embargo. Por eso es mejor solicitar la prescripción antes de que avance a cobro judicial.' },
+      { q: '¿La prescripción de multas de TAG es diferente a la de deudas bancarias?', a: 'Sí, son temas legales distintos. Las multas TAG prescriben por la Ley 18.287 a los 3 años. Las deudas bancarias prescriben por el Código Civil a los 3 o 5 años. No confundas ambos plazos ni ambos procedimientos.' },
+      { q: '¿Dónde presento el escrito de prescripción?', a: 'En el Juzgado de Policía Local que dictó la multa. No en el de tu domicilio. El número del Juzgado aparece en tu certificado de multas del Registro Civil.' },
+      { q: '¿Cuánto tarda el proceso de prescripción?', a: 'Desde que presentas el escrito hasta que el juez dicta resolución, puede tomar entre 1 y 4 semanas. Luego, el Registro Civil tiene 7 días hábiles para eliminar la anotación. En temporada de permiso de circulación (febrero-marzo) puede demorar más.' },
+      { q: '¿Puedo prescribir varias multas a la vez?', a: 'Sí. Puedes solicitar la prescripción de todas las multas que cumplan el plazo en un solo escrito, indicando los datos de cada una. Es más eficiente presentar una solicitud conjunta.' },
+      { q: '¿Qué pasa si mi solicitud de prescripción es rechazada?', a: 'Si el juez rechaza la prescripción (por ejemplo, porque hay cobro judicial pendiente o el plazo no se cumple), puedes apelar dentro de 8 días hábiles ante el mismo Juzgado. La causa se eleva al Juzgado Civil de letras.' },
+      { q: '¿Cómo sé si hay cobro judicial contra mí?', a: 'Puedes consultar en el Poder Judicial (oficinajudicialvirtual.pjud.cl) con tu RUT, o solicitar un certificado de deudas judiciales en el Registro Civil. Si hay un juicio de cobro, la prescripción no aplica mientras esté activo.' },
+      { q: '¿La prescripción afecta mi hoja de vida del conductor?', a: 'Sí, positivamente. Una vez que el Registro Civil elimina la anotación, la multa desaparece de tu hoja de vida. Esto mejora tu historial como conductor y facilita la renovación de licencia y transferencia de vehículos.' },
+      { q: '¿Puedo solicitar la prescripción de multas TAG que ya pagué?', a: 'No. La prescripción solo aplica a multas no pagadas y no cobradas judicialmente. Si ya pagaste la multa, no necesitas prescripción porque ya no adeudas nada.' },
+      { q: '¿Qué diferencia hay entre prescripción y condonación de multas TAG?', a: 'La prescripción extingue la deuda completa (no pagas nada) pero requiere esperar 3 años. La condonación del 80% te permite pagar solo el 20% del monto pero no elimina la deuda, solo la reduce.' },
+      { q: '¿Puedo conducir mientras espero la resolución de prescripción?', a: 'Sí. La solicitud de prescripción no afecta tu licencia de conducir ni tu ability para manejar. La multa sigue vigente hasta que el juez dicta resolución, pero no te impide conducir.' },
     ],
-    titleSEO: 'Prescripción de Multas de Tránsito y TAG en Chile | Plazos 2026',
-    metaDescription: 'Prescripción de multas de tránsito y TAG en Chile: plazos de 1 y 3 años, condonación 80%, cómo solicitarla ante el Juzgado de Policía Local.',
+    titleSEO: 'Prescripción Multa TAG Chile 2026 | Cómo Eliminar Multas sin Pagar',
+    metaDescription: 'Prescripción de multas de tránsito y TAG en Chile: plazos 1 y 3 años, paso a paso, formato de escrito, condonación 80%. Guía completa 2026.',
     intent: 'Quiero saber si mi multa de tránsito o TAG ya prescribió y cómo solicitar la prescripción.',
     caseType: 'deuda',
     role: 'consulta',
