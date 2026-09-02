@@ -1154,110 +1154,97 @@ Firma: _______________
   {
     slug: '/prescripcion-multas-tag',
     h1: 'Prescripción de multas TAG en Chile',
-    diagnosText: `Las multas TAG son una de las deudas más comunes entre los conductores chilenos. Si circulaste por autopistas concesionadas (Autopista Central, Costanera Norte, Vespucio Norte) sin TAG habilitado, con TAG inhabilitado o sin contratar pase diario, la concesionaria te cobra la tarifa del peaje con un recargo, y además la municipalidad puede aplicar una multa de tránsito. Pero estas multas no duran para siempre. Existe la prescripción, que extingue la deuda completamente si la concesionaria no cobra judicialmente dentro de 3 años.
+    diagnosText: `¿Tienes una multa TAG y quieres saber si ya la puedes eliminar? Si la municipalidad te multó por circular sin TAG y han pasado más de 3 años desde que apareció en el Registro Civil, tu multa prescribió. Esto significa que no la tienes que pagar. Te explicamos cómo verificarlo y cómo eliminarla en un solo día.
 
-En este artículo te explicamos todo sobre la prescripción de multas TAG: el plazo exacto, cómo se calcula, qué diferencia hay entre la deuda civil con la concesionaria y la multa de tránsito, cómo solicitar la prescripción paso a paso, y cuál es la diferencia con la condonación del 80%.
+## ¿Mi multa TAG ya prescribió? Cómo saberlo ahora
 
-## Multas TAG: ¿qué son exactamente?
+Para saber si tu multa TAG prescribió, necesitas una cosa: tu certificado de multas del Registro Civil.
 
-Cuando circulas por una autopista concesionada sin un TAG habilitado, ocurren dos cosas:
+1. Ve al Registro Civil con tu cédula de identidad (o entra a registrocivil.cl con tu clave Única).
+2. Pide el certificado de multas de tránsito.
+3. Busca las multas TAG. Fíjate en la fecha de anotación.
+4. Si han pasado más de 3 años desde esa fecha, tu multa prescribió.
 
-1. La concesionaria (Autopista Central, Costanera Norte, etc.) te cobra la tarifa del peaje más un recargo. Esto genera una deuda civil entre tú y la concesionaria.
-2. La municipalidad puede aplicarte una multa de tránsito por circular sin medio de pago habilitado en autopista urbana (artículo 114 de la Ley 18.290). Esta multa se registra en el Registro de Multas por Infracciones de Tránsito No Pagadas del Registro Civil.
+Ejemplo: si tu multa se anotó el 15 de marzo de 2023, el 16 de marzo de 2026 ya prescribió. No importa cuándo te multaron, importa cuándo se anotó en el Registro Civil.
 
-Son dos obligaciones distintas con plazos de prescripción distintos. Es fundamental que entiendas la diferencia.
+## La multa TAG tiene dos partes: no las confundas
 
-## Prescripción de la deuda civil con la concesionaria (5 años)
+Cuando circulas sin TAG, te pueden cobrar dos cosas distintas:
 
-La deuda que tienes con la concesionaria por no pagar el peaje es una deuda civil. Prescribe a los 5 años desde que la deuda se hace exigible, según el artículo 2515 del Código Civil chileno.
+1. La concesionaria (Autopista Central, Costanera Norte) te cobra el peaje + recargo. Eso es una deuda civil. Prescribe a los 5 años, pero te pueden demandar antes.
+2. La municipalidad te multa por circular sin TAG. Eso es una multa de tránsito. Prescribe a los 3 años. Nadie te demanda, simplemente se extingue.
 
-Sin embargo, este plazo de 5 años solo aplica si la concesionaria no presenta una demanda judicial dentro de ese período. Si la concesionaria te demanda antes de que pasen los 5 años, la prescripción se interrumpe y la deuda sigue vigente.
+La prescripción que te conviene es la de la multa de tránsito (3 años). Es más fácil, no necesitas abogado, y se hace en el Juzgado de Policía Local.
 
-Para solicitar la prescripción de esta deuda civil, necesitas presentar una demanda ante un tribunal civil, lo cual requiere patrocinio de abogado. Es un proceso más complejo y costoso que la prescripción de la multa de tránsito.
+## Cómo eliminar tu multa TAG que ya prescribió (paso a paso)
 
-## Prescripción de la multa de tránsito TAG (3 años)
+### Paso 1: saca tu certificado de multas
 
-La multa de tránsito que te aplica la municipalidad por circular sin TAG prescribe a los 3 años desde su anotación en el Registro de Multas por Infracciones de Tránsito No Pagadas del Registro Civil. Esto está regulado por el artículo 24 de la Ley 18.287.
+Ve al Registro Civil. Es gratis y te lo dan al instante. Si la multa TAG tiene más de 3 años anotada, pasa al paso 2.
 
-El plazo de 3 años comienza a correr desde la fecha de anotación en el Registro Civil, no desde la fecha de la infracción. Si te multaron en enero de 2023 pero la multa se anotó en el Registro Civil en junio de 2023, el plazo vence en junio de 2026.
+### Paso 2: verifica que no te hayan demandado
 
-A diferencia de la deuda civil, la prescripción de la multa de tránsito TAG es más simple: no necesitas abogado, el trámite se hace en el Juzgado de Policía Local, y si el juez aprueba la prescripción, ordena la eliminación de la multa del Registro Civil.
+Entra a oficinajudicialvirtual.pjud.cl, pon tu RUT y revisa si hay algún juicio de cobro. Si no hay nada, tu multa puede prescribir. Si hay un juicio, la prescripción no aplica.
 
-## Condonación del 80% de multas TAG
+### Paso 3: escribe tu solicitud
 
-Además de la prescripción, existe la condonación del 80% de multas TAG. La ley vigente permite condonar el 80% del monto de multas TAG con un tope de 100 UTM. Esto significa que si debes 100 UTM, podrías pagar solo 20 UTM.
+No necesitas abogado. Escribe un papel que diga:
 
-La condonación es diferente a la prescripción:
+"Señor Juez de Policía Local de [nombre de la comuna]: Yo, [tu nombre], RUT [tu RUT], solicito se declare la prescripción de la multa N° [número], por haber transcurrido más de 3 años desde su anotación en el Registro Civil (Ley 18.287 Art. 24). Pido se ordene su eliminación del Registro de Multas."
 
-- Prescripción: extingue la deuda completa. No pagas nada. Pero debes esperar 3 años.
-- Condonación: reduce el monto al 20%. Pagas menos, pero no eliminas la deuda.
+Adjunta: certificado de multas + copia de cédula de identidad.
 
-Si tu multa TAG aún no ha prescrito pero quieres pagar menos, la condonación puede ser una buena opción. Consulta en el Juzgado de Policía Local si tu multa califica.
+### Paso 4: lleva el escrito al Juzgado
 
-## Cómo solicitar la prescripción de multa TAG: paso a paso
+Ve al Juzgado de Policía Local que aparece en tu certificado de multas. No vayas al de tu domicilio, ve al que te multó. Presenta el escrito y te dan una constancia.
 
-### Paso 1: verifica que hayan pasado 3 años desde la anotación
+### Paso 5: espera la resolución (1 a 4 semanas)
 
-Ve al Registro Civil y solicita tu certificado de multas de tránsito. Revisa la fecha de anotación de cada multa TAG. Si han pasado más de 3 años, puedes solicitar la prescripción.
+El juez revisa tu caso y dicta una resolución. Si aprueba la prescripción, te avisan para que pases a buscar la resolución.
 
-### Paso 2: verifica que no haya cobro judicial
+### Paso 6: lleva la resolución al Registro Civil
 
-Antes de presentar la solicitud, verifica que la concesionaria o la municipalidad no hayan iniciado un juicio de cobro. Si hay un juicio pendiente, la prescripción no aplica porque se interrumpió. Puedes verificar esto en el Poder Judicial (oficinajudicialvirtual.pjud.cl) con tu RUT.
+Con la resolución en mano, ve al Registro Civil y entrega una copia. Ellos borran la multa de tu hoja de vida en 7 días hábiles.
 
-### Paso 3: obtén el certificado de multas del Registro Civil
+## ¿Y si mi multa TAG no ha prescribido? Condonación del 80%
 
-El certificado de multas es gratuito y lo obtienes al instante en cualquier sucursal del Registro Civil con tu cédula de identidad. También puedes obtenerlo en línea a través de registrocivil.cl con tu clave Única.
+Si tu multa TAG tiene menos de 3 años, aún no prescribió. Pero existe la condonación del 80%. Esto significa que puedes pagar solo el 20% del total. Tope: 100 UTM.
 
-### Paso 4: redacta el escrito de solicitud
+Ejemplo: si debes 50 UTM, pagas 10 UTM. Si debes 200 UTM, pagas 40 UTM (porque el tope es 100 UTM, y el 20% de 100 UTM es 20 UTM... espera, 200 UTM es más de 100 UTM, entonces pagas 20 UTM).
 
-Redacta un escrito dirigido al Juzgado de Policía Local que dictó la multa. El escrito debe incluir:
+Consulta en el Juzgado de Policía Local si tu multa califica para la condonación.
 
-1. Tus datos: nombre completo, RUT, domicilio.
-2. Datos de la multa: número de infracción, fecha, monto, organismo emisor.
-3. Fundamento legal: Ley 18.287 Art. 24 (prescripción a 3 años).
-4. Solicitud: que se declare la prescripción y se ordene la eliminación del Registro Civil.
+## ¿Necesitas ayuda? WhatsApp gratis
 
-### Paso 5: presenta el escrito en el Juzgado de Policía Local
+Si no sabes si tu multa prescribió, si no entiendes el certificado de multas, o si necesitas que te ayuden con el escrito, escríbenos por WhatsApp. Te orientamos sin costo.
 
-Ve al Juzgado de Policía Local que dictó la multa (aparece en tu certificado de multas). Presenta el escrito con el certificado de multas y una copia de tu cédula de identidad. No necesitas abogado si el monto es menor a 8 UTM.
-
-### Paso 6: espera la resolución y preséntala en el Registro Civil
-
-El juez revisará tu solicitud y dictará una resolución (1-4 semanas). Si aprueba la prescripción, presenta la resolución en el Registro Civil. Ellos tienen 7 días hábiles para eliminar la anotación.
-
-## Errores comunes al prescribir multas TAG
-
-1. Confundir la deuda civil con la multa de tránsito: son dos cosas distintas con plazos distintos (5 años vs 3 años).
-2. Presentar el escrito en el Juzgado equivocado: ve al que dictó la multa, no al de tu domicilio.
-3. No verificar cobro judicial: si hay un juicio activo, la prescripción no aplica.
-4. Esperar demasiado: si la concesionaria te demanda antes de que prescriba la deuda civil, pierdes la oportunidad.
-5. No presentar la resolución en el Registro Civil: el Juzgado ordena la eliminación, pero el trámite final lo haces tú.`,
+WhatsApp: +56 9 6765 8939`,
     ctaText: 'Consultar si mi multa TAG ya prescribió',
     bullets: [
-      'La multa de tránsito TAG prescribe a los 3 años desde su anotación en el Registro Civil (Ley 18.287 Art. 24). No desde la fecha de la infracción.',
-      'La deuda civil con la concesionaria prescribe a los 5 años (Código Civil Art. 2515), pero la concesionaria puede demandarte antes yerruptir la prescripción.',
-      'Condonación del 80%: si tu multa TAG aún no prescribió, puedes pagar solo el 20% del monto con tope de 100 UTM.',
-      'Paso 1: obtén tu certificado de multas en el Registro Civil y verifica la fecha de anotación.',
-      'Paso 2: verifica que no haya cobro judicial en el Poder Judicial (oficinajudicialvirtual.pjud.cl).',
-      'Paso 3: redacta el escrito con tus datos, datos de la multa y fundamento legal (Ley 18.287 Art. 24).',
-      'Paso 4: presenta el escrito en el Juzgado de Policía Local que dictó la multa. No necesitas abogado.',
-      'Paso 5: espera la resolución (1-4 semanas) y preséntala en el Registro Civil para eliminar la anotación.',
-      'Error común: confundir la deuda civil (5 años) con la multa de tránsito (3 años). Son plazos y procedimientos distintos.',
-      'Error común: no presentar la resolución judicial en el Registro Civil. Sin este paso, la multa sigue apareciendo en tu hoja de vida.',
+      '¿Tu multa TAG tiene más de 3 años anotada en el Registro Civil? Ya prescribió. No la tienes que pagar.',
+      'Paso 1: saca tu certificado de multas en el Registro Civil (gratis, al instante).',
+      'Paso 2: verifica que no haya juicio de cobro en oficinajudicialvirtual.pjud.cl.',
+      'Paso 3: escribe una solicitud simple pidiendo la prescripción (Ley 18.287 Art. 24).',
+      'Paso 4: lleva el escrito al Juzgado de Policía Local que te multó (no al de tu domicilio).',
+      'Paso 5: espera 1-4 semanas la resolución del juez.',
+      'Paso 6: lleva la resolución al Registro Civil para que borren la multa (7 días hábiles).',
+      'No necesitas abogado. El trámite es gratis y lo puedes hacer tú mismo.',
+      'Si tu multa tiene menos de 3 años, puedes pagar solo el 20% con la condonación del 80%.',
+      'No confundas: la deuda con la concesionaria (5 años) es distinta a la multa de tránsito (3 años).',
     ],
     faqs: [
-      { q: '¿Cuánto tiempo prescribe una multa TAG en Chile?', a: 'La multa de tránsito TAG prescribe a los 3 años desde su anotación en el Registro de Multas por Infracciones de Tránsito (Ley 18.287 Art. 24). La deuda civil con la concesionaria prescribe a los 5 años (Código Civil Art. 2515). Son plazos distintos para obligaciones distintas.' },
-      { q: '¿Cómo saber si mi multa TAG ya prescribió?', a: 'Ve al Registro Civil y solicita tu certificado de multas. Revisa la fecha de anotación de cada multa TAG. Si han pasado más de 3 años desde la anotación y no hay cobro judicial, la multa puede prescribir.' },
-      { q: '¿Puedo prescribir la multa TAG sin abogado?', a: 'Sí. La prescripción de la multa de tránsito TAG se solicita en el Juzgado de Policía Local sin necesidad de abogado si el monto es menor a 8 UTM. Es un trámite que puedes hacer tú mismo.' },
-      { q: '¿Qué documentos necesito para prescribir una multa TAG?', a: 'Certificado de multas del Registro Civil, cédula de identidad y escrito de solicitud de prescripción con tus datos y los de la multa.' },
-      { q: '¿Dónde presento la solicitud de prescripción de multa TAG?', a: 'En el Juzgado de Policía Local que dictó la multa. El número del Juzgado aparece en tu certificado de multas del Registro Civil.' },
-      { q: '¿Cuánto tarda el proceso de prescripción de multa TAG?', a: 'Desde que presentas el escrito hasta la resolución del juez: 1-4 semanas. Luego, el Registro Civil tiene 7 días hábiles para eliminar la anotación. En temporada de permiso de circulación puede demorar más.' },
-      { q: '¿La prescripción de multa TAG afecta mi hoja de vida del conductor?', a: 'Sí, positivamente. Una vez que el Registro Civil elimina la anotación, la multa desaparece de tu hoja de vida. Esto mejora tu historial y facilita la renovación de licencia.' },
-      { q: '¿Qué diferencia hay entre prescripción y condonación de multas TAG?', a: 'La prescripción extingue la deuda completa (no pagas nada) pero requiere esperar 3 años. La condonación del 80% te permite pagar solo el 20% del monto pero no elimina la deuda.' },
-      { q: '¿Puedo prescribir varias multas TAG a la vez?', a: 'Sí. Puedes solicitar la prescripción de todas las multas TAG que cumplan el plazo de 3 años en un solo escrito, indicando los datos de cada una.' },
-      { q: '¿Qué pasa si la concesionaria me demanda antes de que prescriba?', a: 'Si la concesionaria presenta una demanda de cobro antes de que se cumplan los 5 años, la prescripción de la deuda civil se interrumpe. Sin embargo, la multa de tránsito sigue su propio plazo de 3 años.' },
-      { q: '¿Puedo circular mientras espero la resolución de prescripción?', a: 'Sí. La solicitud de prescripción no afecta tu licencia ni tu ability para manejar. La multa sigue vigente hasta que el juez dicta resolución.' },
-      { q: '¿La prescripción de multa TAG aplica si ya pagué parcialmente?', a: 'No. Si realizaste un pago parcial, la prescripción no aplica porque reconociste la deuda. La prescripción solo aplica a multas completamente impagas y no cobradas judicialmente.' },
+      { q: '¿Cuánto tiempo prescribe una multa TAG?', a: 'La multa de tránsito TAG prescribe a los 3 años desde que se anotó en el Registro Civil (Ley 18.287 Art. 24). No desde la fecha de la infracción, sino desde la anotación.' },
+      { q: '¿Cómo sé si mi multa TAG ya prescribió?', a: 'Ve al Registro Civil y pide tu certificado de multas. Si la fecha de anotación tiene más de 3 años, la multa prescribió y puedes eliminarla.' },
+      { q: '¿Puedo eliminar la multa TAG sin abogado?', a: 'Sí. Ve al Juzgado de Policía Local con una solicitud simple y tu certificado de multas. No necesitas abogado si el monto es menor a 8 UTM.' },
+      { q: '¿Dónde presento la solicitud de prescripción?', a: 'En el Juzgado de Policía Local que dictó la multa. Aparece en tu certificado de multas del Registro Civil. No vayas al de tu domicilio.' },
+      { q: '¿Cuánto tarda en borrar la multa?', a: 'El juez tarda 1-4 semanas en dictar resolución. Luego el Registro Civil tarda 7 días hábiles en borrar la anotación. En temporada de permiso de circulación puede tardar más.' },
+      { q: '¿Qué pasa si no pago la multa TAG?', a: 'Si no pagas y no solicitas prescripción, la multa puede impedir la renovación del permiso de circulación y la transferencia del vehículo. Por eso es mejor solicitar la prescripción.' },
+      { q: '¿La prescripción borra la multa de mi hoja de vida?', a: 'Sí. Una vez que el Registro Civil recibe la resolución del juez, borra la multa de tu hoja de vida del conductor.' },
+      { q: '¿Puedo prescribir varias multas TAG juntas?', a: 'Sí. En un solo escrito puedes pedir la prescripción de todas las multas TAG que tengan más de 3 años.' },
+      { q: '¿Qué diferencia hay entre prescripción y condonación?', a: 'La prescripción borra la multa completa (no pagas nada). La condonación del 80% te deja pagar solo el 20%. La prescripción requiere 3 años, la condonación no.' },
+      { q: '¿Me pueden demandar por la multa TAG?', a: 'La municipalidad no te demanda por la multa de tránsito. Pero la concesionaria sí puede demandarte por la deuda civil del peaje (5 años de prescripción).' },
+      { q: '¿Puedo manejar mientras espero la prescripción?', a: 'Sí. La solicitud de prescripción no afecta tu licencia ni tu ability para manejar.' },
+      { q: '¿Necesito pagar algo para prescribir la multa?', a: 'No. El trámite de prescripción es completamente gratis. Solo necesitas tu tiempo para ir al Registro Civil y al Juzgado.' },
     ],
     titleSEO: 'Prescripción Multa TAG Chile 2026 | Plazo 3 Años y Cómo Solicitarla',
     metaDescription: 'Prescripción de multas TAG en Chile: plazo de 3 años, paso a paso, diferencia con condonación 80%, formato de escrito. Guía completa 2026.',
