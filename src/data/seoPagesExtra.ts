@@ -1044,7 +1044,7 @@ Firma: _______________
 3. Confundir plazos: 1 año para multas del conductor, 3 años para multas de patente/TAG. Si presentas la solicitud antes de tiempo, la rechazarán.
 4. No verificar si hay cobro judicial: si la empresa inició un juicio antes de que prescribiera, la prescripción no aplica.
 5. Olvidar presentar la resolución en el Registro Civil: el Juzgado ordena la eliminación, pero el trámite final lo haces tú en el Registro Civil.`,
-    ctaText: 'Analizar la prescripción de mi multa',
+    ctaText: 'Revisamos tu multa y te creamos el escrito de prescripción',
     bullets: [
       'Multas del conductor (sin licencia, velocidad, ebriedad): prescriben a 1 año desde que quedaron firmes (Ley 15.231 Art. 54). Si no se cobran judicialmente en ese plazo, la acción se extingue.',
       'Multas de patente (TAG, Autopista Central, vías exclusivas): prescriben a 3 años desde la anotación en el Registro Civil (Ley 18.287 Art. 24). El plazo comienza desde la anotación, no desde la fecha de la infracción.',
@@ -1219,7 +1219,7 @@ Consulta en el Juzgado de Policía Local si tu multa califica para la condonaci�
 Si no sabes si tu multa prescribió, si no entiendes el certificado de multas, o si necesitas que te ayuden con el escrito, escríbenos por WhatsApp. Te orientamos sin costo.
 
 WhatsApp: +56 9 6765 8939`,
-    ctaText: 'Consultar si mi multa TAG ya prescribió',
+    ctaText: 'Analizamos tu multa TAG y te creamos el escrito gratis',
     bullets: [
       '¿Tu multa TAG tiene más de 3 años anotada en el Registro Civil? Ya prescribió. No la tienes que pagar.',
       'Paso 1: saca tu certificado de multas en el Registro Civil (gratis, al instante).',
