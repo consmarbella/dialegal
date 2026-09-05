@@ -1083,22 +1083,215 @@ Firma: _______________
   {
     slug: '/defensa-infracciones-transito',
     h1: 'Defensa ante infracciones de tránsito y multas municipales en Chile',
-    diagnosText: 'Si recibiste una multa de tránsito que consideras injusta, tienes derecho a impugnarla. La defensa se presenta ante el Juzgado de Policía Local dentro de los 15 días hábiles siguientes a la notificación. Puedes alegar vicios en la notificación, error en la identificación del infractor, falta de señales o que la multa fue pagada. También puedes impugnar multas municipales por vías reservadas y TAG ante el mismo tribunal.',
+    diagnosText: `Si recibiste una multa de tránsito que consideras injusta, tienes derecho a impugnarla. La defensa se presenta ante el Juzgado de Policía Local dentro de los 15 días hábiles siguientes a la notificación. Puedes alegar vicios en la notificación, error en la identificación del infractor, falta de señales o que la multa fue pagada. También puedes impugnar multas municipales por vías reservadas y TAG ante el mismo tribunal.
+
+En este artículo te explicamos todo sobre la defensa ante infracciones de tránsito en Chile: las causales exactas, los plazos, los documentos necesarios, cómo redactar tu escrito de defensa, errores comunes que cometen los conductores, y qué pasa si pierdes la impugnación.
+
+## ¿Qué es la defensa ante multas de tránsito?
+
+La defensa ante multas de tránsito es el derecho constitucional que tienes para impugnar una multa que consideras injusta o ilegal. Este derecho está garantizado por el artículo 19 número 3 de la Constitución Política de Chile, que establece que toda persona tiene derecho a la defensa jurídica en cualquier procedimiento.
+
+En materia de tránsito, la defensa se ejerce mediante un recurso de reposición que se presenta ante el Juzgado de Policía Local que dictó la multa. Este recurso permite que un juez revise la legalidad de la multa y, si encuentra vicios, ordene su eliminación.
+
+## Causales de defensa: ¿por qué puedes impugnar tu multa?
+
+Existen varias razones legales para impugnar una multa de tránsito. Estas son las más comunes:
+
+### 1. Vicios de notificación
+
+La notificación de la multa debe cumplir requisitos estrictos. Si la notificación es defectuosa, la multa es nula. Causales de vicio de notificación:
+
+- **No se entregó personalmente**: la multa debe ser notificada al infractor en su domicilio registral. Si no se entregó personalmente y no hay aviso de dejación, la notificación es nula.
+- **Error en los datos**: si la notificación tiene errores en el nombre, RUT o dirección del infractor, es defectuosa.
+- **Notificación fuera de plazo**: la multa debe ser notificada dentro de 120 días desde la comisión de la infracción. Si se notificó después, es nula.
+- **Notificación a persona equivocada**: si la recibió otra persona que no es el infractor y no existe poder o autorización, es defectuosa.
+
+### 2. Error en la identificación del infractor
+
+Si la multa fue dirigida a la persona equivocada, puedes impugnarla alegando:
+
+- **Patente incorrecta**: si el número de patente en la multa no coincide con tu vehículo.
+- **Fotografía defectuosa**: si la foto de la infracción no permite identificar claramente al conductor o la patente.
+- **Vehículo vendido**: si vendiste el vehículo antes de la infracción y la multa llegó a tu nombre.
+- **Vehículo robado**: si el vehículo estaba reportado como robado al momento de la infracción.
+
+### 3. Falta de señales o señalización insuficiente
+
+Si la infracción ocurrió en un lugar donde no había señales visibles o la señalización estaba dañada:
+
+- **Señales ocultas**: si las señales estaban tapadas por árboles, carteles publicitarios u otros elementos.
+- **Señales dañadas**: si las señales estaban rotas, inclinadas o ilegibles.
+- **Falta de señalización**: si no había señales que indicaran la restricción (velocidad máxima, prohibición de giro, vía exclusiva).
+- **Señales contrarias**: si había señales que indicaban lo contrario de lo que la multa sanciona.
+
+### 4. La multa ya fue pagada
+
+Si pagaste la multa antes de recibir la notificación, o si el pago no se registró correctamente:
+
+- **Comprobante de pago**: presenta tu comprobante de pago ante el Juzgado.
+- **Error en el registro**: si el sistema no actualizó el pago, reclama ante el organismo emisor.
+- **Doble cobro**: si te cobraron dos veces la misma multa.
+
+### 5. Imposibilidad material de cometer la infracción
+
+Si demuestras que era materialmente imposible haber cometido la infracción:
+
+- **Vehículo en otro lugar**: si tu vehículo estaba estacionado, en mecánico, o en otro lugar al momento de la infracción.
+- **Horario incorrecto**: si la infracción indica un horario imposible (ej: 3:00 AM en una zona que cierra a las 10:00 PM).
+- **Conductor diferente**: si en el momento de la infracción conducía otra persona y puedes probarlo.
+
+## Plazos para impugnar: timing es crítico
+
+El plazo para impugnar una multa de tránsito es de **15 días hábiles** desde la notificación. Este plazo es fatal: si no impugas a tiempo, la multa queda firme y no hay recurso.
+
+**¿Qué son días hábiles?** Son días de lunes a viernes, excluyendo sábados, domingos y festivos. Si la notificación fue un viernes, el plazo empieza a correr el lunes siguiente.
+
+**¿Cómo se cuenta el plazo?** Desde el día siguiente de la notificación. Si te notificaron el 1 de marzo, el plazo empieza el 2 de marzo.
+
+**¿Qué pasa si el plazo vence un feriado?** Se prorroga al primer día hábil siguiente.
+
+## Documentos necesarios para tu defensa
+
+Antes de presentar tu escrito, reúne estos documentos:
+
+1. **Copia de la notificación de la multa**: el documento que recibiste con los datos de la infracción.
+2. **Cédula de identidad**: tu cédula vigente.
+3. **Certificado de anotaciones vigentes**: lo puedes obtener en registrocivil.cl.
+4. **Comprobante de pago** (si pagaste): boleta, transferencia o captura de pantalla.
+5. **Fotos del lugar**: si hay falta de señalización, toma fotos del lugar.
+6. **Declaración de testigos**: si有人 vio lo que pasó, pídele una declaración.
+7. **Comprobante de venta del vehículo** (si lo vendiste): contrato de compraventa.
+8. **Reporte de robo** (si fue robado): denuncia policial.
+
+## Formato de escrito de defensa
+
+Aquí tienes el formato básico para impugnar una multa de tránsito ante el Juzgado de Policía Local:
+
+---
+
+**ILUSTRE JUZGADO DE POLICÍA LOCAL DE [COMUNA]**
+
+**RIT:** [Número de RIT de la multa]
+
+**Recurre de Reposición**
+
+**[TU NOMBRE COMPLETO]**, RUT [tu RUT], en contra de la multa de tránsito N° [número de infracción], por los siguientes fundamentos:
+
+**I. HECHOS**
+
+1. Que el día [fecha], fui notificado/a de una multa de tránsito por [descripción breve de la infracción].
+2. Que la referida multa es injusta por las siguientes razones: [indicar la causal de defensa: vicio de notificación / error en identificación / falta de señalización / multa pagada / imposibilidad material].
+3. Que [describir los hechos específicos que respaldan tu defensa].
+
+**II. FUNDAMENTOS DE DERECHO**
+
+1. El artículo 19 N° 3 de la Constitución Política garantiza el derecho a la defensa.
+2. El artículo 116 del Código de Tránsito establece que las multas deben ser notificadas dentro de 120 días.
+3. El artículo 20 del Código de Tránsito establece los requisitos de la notificación.
+4. [Agregar otros artículos relevantes según tu caso].
+
+**III. PRUEBAS**
+
+1. Documental: copia de la notificación, comprobante de pago, fotos, etc.
+2. Testimonial: [nombre del testigo], RUT [RUT del testigo].
+3. [Otras pruebas relevantes].
+
+**IV. PETICION**
+
+Solicito a usted Señor Juez: a) Tener por presentado el recurso de reposición. b) Invalidar la multa N° [número] por las razones expuestas. c) Ordenar la eliminación de la infracción de mi registro.
+
+**Santiago, [fecha]**
+
+**[TU FIRMA]**
+**[TU NOMBRE COMPLETO]**
+**RUT: [tu RUT]**
+
+---
+
+## Proceso paso a paso para impugnar tu multa
+
+### Paso 1: Verifica el plazo
+
+Antes de hacer nada, cuenta los días desde la notificación. Si ya pasaron 15 días hábiles, la multa quedó firme y no puedes impugnarla.
+
+### Paso 2: Reúne los documentos
+
+Reúne todos los documentos listados arriba. Si te faltan pruebas, consígelas antes de presentar el escrito.
+
+### Paso 3: Redacta el escrito
+
+Usa el formato de arriba como guía. Sé específico en tus argumentos y adjunta todas las pruebas.
+
+### Paso 4: Presenta en el Juzgado
+
+Lleva el escrito al Juzgado de Policía Local que dictó la multa. Pide copia sellada como constancia de presentación.
+
+### Paso 5: Espera la resolución
+
+El juez tiene hasta 30 días para resolver. Te notificarán del resultado por carta o en el navegador de causas del Poder Judicial.
+
+### Paso 6: Si ganas, verifica la eliminación
+
+Si el juez anula la multa, verifica que se eliminó de tu registro en el Registro Civil y en el sistema del organismo emisor.
+
+### Paso 7: Si pierdes, apela
+
+Si el juez confirma la multa, puedes apelar ante el Juzgado Civil de letras dentro de 8 días hábiles.
+
+## Errores comunes al impugnar una multa
+
+1. **No presentar el escrito a tiempo**: el error más grave. Si pasan 15 días hábiles, pierdes el derecho a impugnar.
+
+2. **No adjuntar pruebas**: el escrito sin pruebas tiene pocas posibilidades de éxito. Siempre adjunta fotos, comprobantes y declaraciones.
+
+3. **Argumentos vagos**: no digas simplemente "la multa es injusta". Sé específico: "la notificación fue defectuosa porque no se entregó personalmente y no hubo aviso de dejación".
+
+4. **No firmar el escrito**: el escrito debe estar firmado por el recurrente. Sin firma, es nulo.
+
+5. **No pagar la tasa judicial**: en algunos Juzgados se cobra una tasa judicial por la interposición del recurso. Verifica antes de presentar.
+
+## Multas municipales: vías exclusivas y TAG
+
+Las multas municipales por vías exclusivas (carriles exclusivos de bus) y TAG se impugnan ante el mismo Juzgado de Policía Local con los mismos plazos y causales.
+
+**Vías exclusivas**: si te multaron por circular en un carril exclusivo de bus, puedes impugnar si no había señalización, si la señalización estaba dañada, o si cometiste la infracción por emergencia.
+
+**TAG**: si te multaron por circular sin TAG o con TAG inhabilitado, puedes impugnar si la concesionaria no verificó correctamente, si el TAG estaba activo, o si pagaste el pase diario.
+
+## ¿Cuánto cuesta impugnar una multa?
+
+- **Tasa judicial**: varía según el Juzgado, generalmente entre $5.000 y $15.000.
+- **Abogado**: no es obligatorio en Juzgados de Policía Local para montos hasta 8 UTM. Para montos superiores, necesitas abogado.
+- **Impugnación personal**: puedes hacerlo tú mismo sin abogado.
+
+## ¿Vale la pena impugnar?
+
+Depende de la causal. Si tienes una defensa sólida con pruebas claras, sí vale la pena. Si la multa es legítima y no tienes argumentos, es mejor pagar con el 80% de descuento antes del 30 de septiembre de 2026.
+
+## Consulta gratis
+
+Si recibiste una multa de tránsito y no sabes si tienes defensa, consulta gratis por WhatsApp. Nuestro equipo de abogados analizará tu caso sin compromiso.`,
     ctaText: 'Analizar mi defensa de tránsito',
     bullets: [
       'Plazo para impugnar: 15 días hábiles desde la notificación de la multa. Si no impugas a tiempo, la multa queda firme y no hay recurso.',
-      'Causales de defensa: vicios de forma (notificación defectuosa, falta de fundamento legal), error en la identificación del conductor, señalización insuficiente, o pago de la multa.',
+      'Causales de defensa: vicios de notificación, error en la identificación del infractor, falta de señales, multa ya pagada, o imposibilidad material de cometer la infracción.',
+      'Documentos necesarios: notificación de la multa, cédula de identidad, certificado de anotaciones vigentes, fotos del lugar, comprobante de pago, declaración de testigos.',
+      'Formato de escrito: el recurso de reposición se presenta ante el Juzgado de Policía Local que dictó la multa, indicando hechos, fundamentos de derecho y pruebas.',
+      'Si pierdes la impugnación: puedes apelar ante el Juzgado Civil de letras dentro de 8 días hábiles.',
       'Multas municipales: las multas por vías exclusivas y TAG también se impugnan ante el Juzgado de Policía Local con los mismos plazos y causales.',
-      'Forma de presentar: el escrito se presenta en el Juzgado de Policía Local que dictó la multa, indicando el número de la infracción, los hechos y los fundamentos legales.',
     ],
     faqs: [
-      { q: '¿Cuánto tiempo tengo para impugnar una multa de tránsito?', a: 'Tienes 15 días hábiles desde la notificación de la multa para impugnarla ante el Juzgado de Policía Local. Pasado ese plazo, la multa queda firme.' },
-      { q: '¿Qué documentos necesito para defenderme?', a: 'La notificación de la multa, datos del vehículo, cédula de identidad, y cualquier prueba que respalde tu defensa (fotos, GPS, testigos, comprobante de pago).' },
-      { q: '¿Puedo impugnar una multa TAG?', a: 'Sí. Las multas por TAG o vías exclusivas se impugnan ante el Juzgado de Policía Local con los mismos plazos (15 días hábiles) y causales que las multas de tránsito.' },
-      { q: '¿Qué pasa si pierdo la impugnación?', a: 'Si el juez confirma la multa, debes pagar el monto total dentro del plazo que fije la resolución. Si no pagas, puede iniciarse cobranza judicial.' },
+      { q: '¿Cuánto tiempo tengo para impugnar una multa de tránsito?', a: 'Tienes 15 días hábiles desde la notificación de la multa para impugnarla ante el Juzgado de Policía Local. Pasado ese plazo, la multa queda firme y no hay recurso posible.' },
+      { q: '¿Qué documentos necesito para defenderme?', a: 'La notificación de la multa, cédula de identidad vigente, certificado de anotaciones vigentes, comprobante de pago (si pagaste), fotos del lugar de la infracción, y declaración de testigos si los hay.' },
+      { q: '¿Puedo impugnar una multa TAG?', a: 'Sí. Las multas por TAG o vías exclusivas se impugnan ante el Juzgado de Policía Local con los mismos plazos (15 días hábiles) y causales que las multas de tránsito comunes.' },
+      { q: '¿Qué pasa si pierdo la impugnación?', a: 'Si el juez confirma la multa, debes pagar el monto total dentro del plazo que fije la resolución. Si no pagas, puede iniciarse cobranza judicial. También puedes apelar ante el Juzgado Civil de letras dentro de 8 días hábiles.' },
+      { q: '¿Necesito abogado para impugnar?', a: 'En Juzgados de Policía Local puedes impugnar personalmente si el monto de la multa no supera 8 UTM. Para montos superiores, necesitas patrocinio de abogado.' },
+      { q: '¿Cuánto cuesta impugnar una multa?', a: 'La tasa judicial varía según el Juzgado, generalmente entre $5.000 y $15.000. No es obligatorio contratar abogado para multas hasta 8 UTM.' },
+      { q: '¿Qué pasa si la notificación llegó después de 120 días?', a: 'Si la multa fue notificada después de 120 días desde la infracción, la notificación es nula y la multa debe ser eliminada. Este es un argumento de defensa muy fuerte.' },
+      { q: '¿Puedo impugnar si ya pasaron los 15 días hábiles?', a: 'No. El plazo de 15 días hábiles es fatal. Si no impugas a tiempo, la multa queda firme y no hay recurso posible. La única opción es pagar.' },
     ],
-    titleSEO: 'Defensa ante Infracciones de Tránsito en Chile | Impugnar Multas',
-    metaDescription: 'Defensa ante infracciones de tránsito en Chile: plazos para impugnar, causales, documentos y cómo presentar tu recurso ante el Juzgado de Policía Local.',
+    titleSEO: 'Defensa ante Infracciones de Tránsito en Chile | Impugnar Multas 2026',
+    metaDescription: 'Defensa ante infracciones de tránsito en Chile: causales, plazos de 15 días, formato de escrito, documentos y paso a paso para impugnar multas ante el Juzgado de Policía Local.',
     intent: 'Recibí una multa de tránsito injusta y quiero impugnarla ante el tribunal.',
     caseType: 'deuda',
     role: 'demandado',
@@ -1106,22 +1299,220 @@ Firma: _______________
   {
     slug: '/limpieza-hoja-de-vida-conductor',
     h1: 'Limpieza de hoja de vida del conductor en Chile',
-    diagnosText: 'La hoja de vida del conductor registra todas tus infracciones de tránsito, multas impagas y antecedentes como conductor. Si tienes multas prescritas, pagadas o registradas por error, puedes solicitar su limpieza ante el Registro Civil o directamente ante el organismo emisor de la multa. Una hoja limpia es requisito para renovar tu licencia de conducir y evitar problemas al transferir un vehículo.',
+    diagnosText: `La hoja de vida del conductor registra todas tus infracciones de tránsito, multas impagas y antecedentes como conductor. Si tienes multas prescritas, pagadas o registradas por error, puedes solicitar su limpieza ante el Registro Civil o directamente ante el organismo emisor de la multa. Una hoja limpia es requisito para renovar tu licencia de conducir y evitar problemas al transferir un vehículo.
+
+En este artículo te explicamos todo sobre la limpieza de hoja de vida del conductor: qué contiene, cómo consultarla, cuándo limpiarla, paso a paso, y qué hacer si hay errores en tu registro.
+
+## ¿Qué es la hoja de vida del conductor?
+
+La hoja de vida del conductor es un registro oficial que contiene todas tus infracciones de tránsito, multas impagas, accidentes y antecedentes como conductor en Chile. Este registro lo mantiene el Registro Civil y se consulta gratuitamente con tu cédula de identidad.
+
+La hoja de vida es un documento importante porque:
+
+- **Requisito para renovar licencia**: al renovar tu licencia de conducir, el Registro Civil verifica tu hoja de vida. Multas impagas pueden impedir la renovación o generar restricciones.
+- **Requisito para transferir vehículo**: si vas a vender un vehículo, el comprador verificará la hoja de vida. Multas pendientes complican la transferencia.
+- **Requisito para postular a empleos de conducir**: si postulas a un empleo que requiere conducir (taxi, bus, reparto), el empleador verificará tu hoja de vida.
+- **Control personal**: saber cuántas multas tienes y en qué estado están.
+
+## ¿Qué contiene la hoja de vida del conductor?
+
+La hoja de vida contiene la siguiente información:
+
+### 1. Infracciones de tránsito
+
+Todas las multas de tránsito registradas a tu nombre, incluyendo:
+
+- **Fecha de la infracción**: cuándo ocurrió.
+- **Descripción de la infracción**: qué infracción cometiste (velocidad, estacionamiento, semáforo, etc.).
+- **Organismo emisor**: quién te multó (Carabineros, municipalidad, Autopista).
+- **Estado**: pagada, impaga, prescrita, en cobranza.
+- **Monto**: cuánto debes.
+
+### 2. Antecedentes de tránsito
+
+- **Licencia de conducir**: estado de tu licencia (vigente, vencida, suspendida).
+- **Restricciones**: si tienes restricciones para conducir.
+- **Suspensiones**: si tu licencia fue suspendida temporalmente.
+
+### 3. Accidentes de tránsito
+
+- **Accidentes donde fuiste protagonista**: fechas, descripción y responsabilidad.
+
+### 4. Multas TAG
+
+- **Multas por autopistas concesionadas**: sin TAG, TAG inhabilitado, vías exclusivas.
+
+## ¿Cómo consultar tu hoja de vida del conductor?
+
+### Opción 1: En el Registro Civil (presencial)
+
+1. Ve a cualquier sucursal del Registro Civil.
+2. Lleva tu cédula de identidad vigente.
+3. Solicita el "Certificado de Anotaciones Vigentes del Conductor" o "Hoja de Vida del Conductor".
+4. El certificado es gratuito.
+5. Te lo entregan en el acto.
+
+### Opción 2: En registrocivil.cl (online)
+
+1. Ingresa a www.registrocivil.cl.
+2. Inicia sesión con tu claveÚnica.
+3. Busca "Certificado de Anotaciones Vigentes".
+4. Descarga el certificado en PDF.
+5. Es gratuito.
+
+### Opción 3: En el organismo emisor
+
+Si quieres saber el estado de una multa específica, puedes consultar directamente en:
+
+- **Carabineros de Chile**: en la Comisaría que te multó.
+- **Municipalidad**: en la Dirección de Obras o Tránsito de la municipalidad que te multó.
+- **Autopistas**: en el portal de la concesionaria (Autopista Central, Costanora Norte, etc.).
+
+## ¿Cuándo debes limpiar tu hoja de vida?
+
+Debes solicitar la limpieza de tu hoja de vida en estos casos:
+
+### 1. Multas prescritas
+
+Si tienes multas que ya prescribieron (1 año para multas de conductor, 3 años para multas de patente/TAG), puedes solicitar su eliminación.
+
+**¿Cómo saber si prescribió?** Si la fecha de la multa tiene más de 1 año (conductor) o 3 años (patente/TAG), la multa prescribió.
+
+### 2. Multas pagadas que no se actualizaron
+
+Si pagaste una multa pero el sistema no se actualizó, tienes derecho a que se elimine de tu registro.
+
+**¿Cómo comprobar?** Presenta tu comprobante de pago ante el organismo emisor y solicita la actualización.
+
+### 3. Multas registradas por error
+
+Si aparece una multa que no cometiste, o si los datos son incorrectos (patente equivocada, fecha incorrecta, infracción que no existió), puedes solicitar la corrección.
+
+### 4. Multas notificadas fuera de plazo
+
+Si la multa fue notificada después de 120 días desde la infracción, la notificación es nula y la multa debe ser eliminada.
+
+## Limpieza de hoja de vida: paso a paso
+
+### Paso 1: Consulta tu hoja de vida
+
+Ve al Registro Civil o a registrocivil.cl y descarga tu certificado de anotaciones vigentes. Revisa todas las multas que aparecen.
+
+### Paso 2: Identifica las multas a limpiar
+
+Revisa cada multa y determina cuáles puedes limpiar:
+
+- **Prescritas**: más de 1 año (conductor) o 3 años (patente/TAG).
+- **Pagadas**: tienes comprobante de pago.
+- **Por error**: no cometiste la infracción o los datos son incorrectos.
+
+### Paso 3: Reúne los documentos
+
+Para cada multa que quieres limpiar, reúne:
+
+- **Prescripción**: certificado de anotaciones vigentes que muestre la fecha de la multa.
+- **Pago**: comprobante de pago (boleta, transferencia, captura de pantalla).
+- **Error**: comprobante de que la multa es incorrecta (fotos, contrato de venta, denuncia de robo).
+
+### Paso 4: Presenta la solicitud
+
+Presenta la solicitud ante el organismo emisor de la multa:
+
+- **Carabineros**: en la Comisaría que te multó.
+- **Municipalidad**: en la Dirección de Obras o Tránsito.
+- **Autopista**: en el portal de la concesionaria.
+
+El escrito debe indicar:
+
+1. Tus datos personales (nombre, RUT).
+2. Número de la infracción.
+3. Motivo de la solicitud (prescripción, pago o error).
+4. Pruebas que respaldan tu solicitud.
+
+### Paso 5: Espera la resolución
+
+El organismo emisor tiene hasta 30 días para resolver. Si acepta tu solicitud, eliminará la multa de tu registro.
+
+### Paso 6: Verifica la eliminación
+
+Si el organismo acepta tu solicitud, verifica que la multa se eliminó de tu hoja de vida en el Registro Civil. Si no se eliminó, presenta una queja formal.
+
+### Paso 7: Si rechazan tu solicitud
+
+Si el organismo rechaza tu solicitud, puedes:
+
+1. **Reclamar ante el Registro Civil**: el Registro Civil puede interferir en tu nombre.
+2. **Presentar un recurso de reposición**: ante el Juzgado de Policía Local.
+3. **Consultar con un abogado**: para evaluar opciones legales.
+
+## Errores comunes al limpiar la hoja de vida
+
+1. **No verificar la prescripción**: muchas personas tienen multas prescritas que no saben que pueden eliminar.
+
+2. **No guardar comprobantes de pago**: si pagaste una multa y no tienes comprobante, es difícil demostrar el pago.
+
+3. **No presentar el escrito por escrito**: las solicitudes verbales no tienen validez. Siempre presenta un escrito firmado.
+
+4. **No verificar la eliminación**: después de que acepten tu solicitud, verifica que la multa se eliminó efectivamente.
+
+5. **Esperar demasiado**: si tienes multas prescritas, no esperes. Mientras más tiempo pase, más difícil será limpiar tu hoja de vida.
+
+## Impacto de la hoja de vida en tu vida diaria
+
+### Renovación de licencia
+
+Al renovar tu licencia de conducir, el Registro Civil verifica tu hoja de vida. Si tienes multas impagas, pueden:
+
+- **No renovar tu licencia** hasta que pagues las multas.
+- **Aplicar restricciones** a tu licencia.
+- **Solicitar cursos de educación vial** antes de renovar.
+
+### Transferencia de vehículo
+
+Si vas a vender un vehículo, el comprador verificará la hoja de vida del vehículo. Multas pendientes pueden:
+
+- **Dificultar la venta**: el comprador no querrá asumir tus multas.
+- **Reducir el precio**: el comprador descontará el monto de las multas del precio.
+- **Impedir la transferencia**: en algunos casos, las multas impidas la transferencia.
+
+### Empleos que requieren conducir
+
+Si postulas a un empleo que requiere conducir (taxi, bus, reparto, delivery), el empleador verificará tu hoja de vida. Multas pueden:
+
+- **No ser contratado**: muchos empleadores rechazan candidatos con multas pendientes.
+- **Restricciones**: algunos empleos requieren licencia sin restricciones.
+
+### Seguros de auto
+
+Al contratar un seguro de auto, la aseguradora verificará tu hoja de vida. Multas pueden:
+
+- **Aumentar la prima**: más multas = mayor riesgo = mayor precio.
+- **Rechazar el seguro**: en casos extremos, la aseguradora puede rechazarte.
+
+## Consulta gratis
+
+Si tienes dudas sobre tu hoja de vida del conductor o necesitas ayuda para limpiarla, consulta gratis por WhatsApp. Nuestro equipo de abogados analizará tu caso sin compromiso.`,
     ctaText: 'Analizar mi hoja de vida',
     bullets: [
       'Qué contiene: infracciones de tránsito, multas impagas, accidentes y antecedentes como conductor. Se consulta gratuitamente en el Registro Civil.',
       'Cuándo limpiar: si tienes multas prescritas (1 o 3 años), multas pagadas que no se actualizaron, o registros por error administrativo.',
-      'Cómo solicitar: acude al Registro Civil con tu cédula de identidad y certificado de multas. Si hay errores, reclama directamente al organismo emisor (Carabineros, municipalidad o Autopista).',
+      'Cómo consultar: ingresa a registrocivil.cl con tu claveÚnica o ve a cualquier sucursal del Registro Civil con tu cédula de identidad.',
+      'Cómo solicitar la limpieza: presenta un escrito firmado ante el organismo emisor de la multa (Carabineros, municipalidad o Autopista) con las pruebas correspondientes.',
       'Requisito para licencia: la renovación de la licencia de conducir verifica tu hoja de vida. Multas impagas pueden impedir la renovación o generar restricciones.',
+      'Impacto en transferencia: si vas a vender un vehículo, las multas pendientes complican la transferencia y pueden reducir el precio.',
     ],
     faqs: [
-      { q: '¿Cómo consulto mi hoja de vida del conductor?', a: 'En el Registro Civil con tu cédula de identidad. También puedes solicitar un certificado de multas que muestra infracciones y multas registradas a tu nombre.' },
-      { q: '¿Puedo limpiar la hoja de vida si la multa ya prescribió?', a: 'Sí. Si la multa prescribió (1 año para conductor, 3 para patente/TAG), solicita la eliminación al organismo emisor y al Registro Civil acreditando la prescripción.' },
-      { q: '¿La hoja de vida afecta la transferencia de un vehículo?', a: 'Sí. Si el vehículo tiene multas impagas, la transferencia puede verse afectada. Verifica antes de vender y liquida las multas o solicita su prescripción.' },
-      { q: '¿Qué hago si hay un error en mi hoja de vida?', a: 'Reclama por escrito al organismo que registró la multa (Carabineros, municipalidad) adjuntando comprobantes. Si no resuelven, puedes reclamar ante el Registro Civil.' },
+      { q: '¿Cómo consulto mi hoja de vida del conductor?', a: 'En el Registro Civil con tu cédula de identidad, o en registrocivil.cl con tu claveÚnica. El certificado de anotaciones vigentes es gratuito y te muestra todas tus infracciones y multas registradas.' },
+      { q: '¿Puedo limpiar la hoja de vida si la multa ya prescribió?', a: 'Sí. Si la multa prescribió (1 año para conductor, 3 para patente/TAG), solicita la eliminación al organismo emisor acreditando la prescripción con el certificado de anotaciones vigentes.' },
+      { q: '¿La hoja de vida afecta la transferencia de un vehículo?', a: 'Sí. Si el vehículo tiene multas impagas, la transferencia puede verse afectada. El comprador verificará la hoja de vida y puede no querer asumir tus multas.' },
+      { q: '¿Qué hago si hay un error en mi hoja de vida?', a: 'Reclama por escrito al organismo que registró la multa (Carabineros, municipalidad) adjuntando comprobantes. Si no resuelven, reclama ante el Registro Civil o presenta un recurso ante el Juzgado de Policía Local.' },
+      { q: '¿Cuánto tiempo demora la limpieza de la hoja de vida?', a: 'Depende del organismo emisor. Generalmente toma entre 15 y 30 días. Si el organismo no resuelve, puedes reclamar ante el Registro Civil.' },
+      { q: '¿Necesito abogado para limpiar la hoja de vida?', a: 'No es obligatorio. Puedes hacerlo tú mismo presentando un escrito firmado con las pruebas correspondientes. Sin embargo, si el caso es complejo o rechazan tu solicitud, un abogado puede ayudarte.' },
+      { q: '¿Las multas TAG aparecen en la hoja de vida?', a: 'Sí. Las multas por TAG o vías exclusivas aparecen en tu hoja de vida del conductor. Se pueden limpiar por prescripción (3 años), pago o error administrativo.' },
+      { q: '¿La hoja de vida afecta la renovación de licencia?', a: 'Sí. Al renovar tu licencia, el Registro Civil verifica tu hoja de vida. Multas impagas pueden impedir la renovación, aplicar restricciones o solicitar cursos de educación vial.' },
     ],
-    titleSEO: 'Limpieza de Hoja de Vida del Conductor en Chile | Cómo Limpiarla',
-    metaDescription: 'Limpieza de hoja de vida del conductor en Chile: cómo consultarla, cuándo limpiar multas prescritas o pagadas, y requisito para licencia de conducir.',
+    titleSEO: 'Limpieza de Hoja de Vida del Conductor en Chile | Cómo Limpiarla 2026',
+    metaDescription: 'Limpieza de hoja de vida del conductor en Chile: cómo consultarla, cuándo limpiar multas prescritas o pagadas, paso a paso, y requisito para licencia de conducir.',
     intent: 'Quiero limpiar mi hoja de vida del conductor porque tengo multas prescritas o pagadas.',
     caseType: 'deuda',
     role: 'consulta',
@@ -1129,22 +1520,245 @@ Firma: _______________
   {
     slug: '/recurso-apelacion-juzgado-policia-local',
     h1: 'Recurso de apelación contra sentencia del Juzgado de Policía Local',
-    diagnosText: 'Si perdiste un juicio en el Juzgado de Policía Local (multa de tránsito, infracción, disputa de arriendo o consumo), tienes derecho a apelar. El recurso de apelación se presenta dentro de los 8 días hábiles siguientes a la notificación de la sentencia ante el mismo Juzgado de Policía Local. La causa se eleva al Juzgado Civil de letras para una segunda revisión.',
+    diagnosText: `Si perdiste un juicio en el Juzgado de Policía Local (multa de tránsito, infracción, disputa de arriendo o consumo), tienes derecho a apelar. El recurso de apelación se presenta dentro de los 8 días hábiles siguientes a la notificación de la sentencia ante el mismo Juzgado de Policía Local. La causa se eleva al Juzgado Civil de letras para una segunda revisión.
+
+En este artículo te explicamos todo sobre el recurso de apelación ante el Juzgado de Policía Local: plazos, fundamentos, procedimiento, formato de escrito, errores comunes, y qué pasa durante y después de la apelación.
+
+## ¿Qué es el recurso de apelación?
+
+El recurso de apelación es el mecanismo legal que te permite impugnar una sentencia del Juzgado de Policía Local ante un tribunal superior (el Juzgado Civil de letras). Es la segunda instancia del proceso judicial.
+
+En materia de tránsito, la apelación se usa cuando:
+
+- **Perdiste en el JPL**: el juez confirmó la multa y no estás de acuerdo.
+- **El monto es demasiado alto**: la multa excede tus posibilidades económicas.
+- **Hay errores en la sentencia**: el juez valoró mal la prueba o aplicó mal la ley.
+- **Quieres un segundo criterio**: el Juzgado Civil puede tener una opinión diferente.
+
+## ¿Cuándo puedo apelar?
+
+Puedes apelar cuando:
+
+1. **El JPL dictó sentencia en tu contra**: si perdiste el juicio y el juez confirmó la multa.
+2. **La sentencia es apelable**: no todas las sentencias son apelables. Las sentencias en materia de tránsito generalmente sí lo son.
+3. **No estás de acuerdo con la sentencia**: si consideras que el juez cometió un error de hecho o de derecho.
+
+## Plazo para apelar: 8 días hábiles
+
+El plazo para apelar es de **8 días hábiles** desde la notificación de la sentencia. Este plazo es fatal: si no apelas a tiempo, pierdes el derecho a la segunda instancia.
+
+**¿Qué son días hábiles?** Son días de lunes a viernes, excluyendo sábados, domingos y festivos.
+
+**¿Cómo se cuenta el plazo?** Desde el día siguiente de la notificación de la sentencia.
+
+**¿Qué pasa si el plazo vence un feriado?** Se prorroga al primer día hábil siguiente.
+
+**¿Qué pasa si no apelo a tiempo?** La sentencia queda firme y no hay recurso. Debes cumplir con lo que ordena la sentencia (pagar la multa, cumplir la obligación, etc.).
+
+## Fundamentos de la apelación: errores de hecho y de derecho
+
+El recurso de apelación se basa en dos tipos de errores:
+
+### Errores de hecho
+
+Son errores en la valoración de la prueba. Ejemplos:
+
+- **El juez no consideró una prueba importante**: si presentaste fotos, testigos o documentos y el juez los ignoró.
+- **El juez valoró mal la prueba**: si el juez dijo que no había prueba cuando sí la había.
+- **El juez se confundió con los hechos**: si el juez entendió mal lo que pasó.
+
+### Errores de derecho
+
+Son errores en la aplicación de la ley. Ejemplos:
+
+- **El juez aplicó mal la ley**: si el juez citó un artículo que no corresponde.
+- **El juez no aplicó la ley correcta**: si había una ley que favorecía tu caso y el juez no la usó.
+- **El juez violó el debido proceso**: si no te dieron la oportunidad de presentar pruebas o defensa.
+
+## Procedimiento paso a paso para apelar
+
+### Paso 1: Verifica el plazo
+
+Antes de hacer nada, cuenta los días desde la notificación de la sentencia. Si ya pasaron 8 días hábiles, no puedes apelar.
+
+### Paso 2: Obtén una copia de la sentencia
+
+Necesitas una copia completa de la sentencia apelada. La puedes obtener en el Juzgado de Policía Local que dictó la sentencia.
+
+### Paso 3: Identifica los errores
+
+Revisa la sentencia y identifica los errores de hecho o de derecho. Sé específico: ¿qué error cometió el juez? ¿Dónde en la sentencia?
+
+### Paso 4: Redacta el escrito de apelación
+
+Usa el formato que te proporcionamos más abajo. Sé claro y conciso en tus argumentos.
+
+### Paso 5: Presenta en el Juzgado
+
+Lleva el escrito al Juzgado de Policía Local que dictó la sentencia. Pide copia sellada como constancia de presentación.
+
+### Paso 6: Espera la elevación
+
+El JPL elevará la causa al Juzgado Civil de letras. Esto puede tomar entre 1 y 3 meses.
+
+### Paso 7: Participa en la segunda instancia
+
+El Juzgado Civil citará a las partes para una audiencia (vista de la causa). Puedes presentar argumentos adicionales.
+
+### Paso 8: Espera la sentencia del Juzgado Civil
+
+El Juzgado Civil dictará sentencia. Puede confirmar, revocar o modificar la sentencia del JPL.
+
+## Formato de escrito de apelación
+
+Aquí tienes el formato básico para apelar una sentencia del Juzgado de Policía Local:
+
+---
+
+**ILUSTRE JUZGADO DE POLICÍA LOCAL DE [COMUNA]**
+
+**RIT:** [Número de RIT de la causa]
+
+**Rollo:** [Número de Rollo de Apelación]
+
+**Apelante:** [TU NOMBRE COMPLETO], RUT [tu RUT]
+
+**Apelado:** [Nombre del organismo emisor o parte contraria]
+
+**RECURSO DE APELACIÓN**
+
+**I. ANTECEDENTES**
+
+1. Que con fecha [fecha de la sentencia], el Ilustrre Juzgado dictó sentencia en la causa RIT N° [número], sobre [descripción breve: multa de tránsito / infracción / etc.].
+2. Que la sentencia [confirmó / ordenó] [indicar qué ordenó la sentencia].
+3. Que la sentencia es apelada por los siguientes fundamentos.
+
+**II. FUNDAMENTOS DEL RECURSO**
+
+**A. Error de hecho** (si aplica)
+
+1. El sentenciador no valoró la prueba [indicar qué prueba no fue considerada], la cual acredita [indicar qué prueba].
+2. El sentenciador valoró erróneamente la prueba [indicar qué prueba], concluyendo [indicar qué concluyó el juez] cuando la prueba demuestra [indicar qué demuestra la prueba].
+
+**B. Error de derecho** (si aplica)
+
+1. El sentenciador aplicó erróneamente el [indicar artículo de ley], el cual establece [indicar qué establece la ley].
+2. El sentenciador no aplicó el [indicar artículo de ley], el cual es aplicable al caso porque [indicar por qué].
+
+**III. PETICION**
+
+Solicito a usted Señor Juez: a) Tener por presentado el recurso de apelación en tiempo y forma. b) Elevar la causa al Juzgado Civil de Letras competente. c) En la segunda instancia, revocar la sentencia apelada y ordenar [indicar qué solicitas].
+
+**Santiago, [fecha]**
+
+**[TU FIRMA]**
+**[TU NOMBRE COMPLETO]**
+**RUT: [tu RUT]**
+
+---
+
+## Efectos de la apelación
+
+### Suspensión de la sentencia
+
+En general, la apelación suspende la ejecución de la sentencia si es de pena pecuniaria (multa). Esto significa que:
+
+- **No tienes que pagar la multa** mientras se resuelve la apelación.
+- **La multa queda "congelada"** hasta que el Juzgado Civil dicte sentencia.
+- **Si ganas la apelación**, no pagas nada.
+- **Si pierdes la apelación**, debes pagar la multa más los intereses.
+
+### Ejecución inmediata
+
+En otros casos, la sentencia se ejecuta mientras se resuelve la apelación. Ejemplos:
+
+- **Obligación de hacer**: si la sentencia te ordena hacer algo (reparar un daño, devolver un bien), debes cumplir mientras se resuelve la apelación.
+- **Obligación de no hacer**: si la sentencia te prohíbe hacer algo, debes cumplir.
+
+## ¿Necesito abogado para apelar?
+
+En Juzgados de Policía Local puedes apelar personalmente si el monto de la multa no supera 8 UTM. Para montos superiores, necesitas patrocinio de abogado.
+
+Sin embargo, se recomienda consultar con un abogado independientemente del monto, porque:
+
+- **Un abogado conoce el procedimiento**: sabe cómo redactar el recurso correctamente.
+- **Un abogado identifica errores**: puede encontrar errores que tú no ves.
+- **Un abogado representa tus intereses**: en la audiencia ante el Juzgado Civil, un abogado puede argumentar mejor tu caso.
+
+## ¿Cuánto cuesta apelar?
+
+- **Tasa judicial**: varía según el Juzgado, generalmente entre $10.000 y $30.000.
+- **Abogado**: los honorarios varían según la complejidad del caso. Generalmente entre $100.000 y $500.000.
+- **Apelación personal**: puedes hacerlo tú mismo sin abogado para multas hasta 8 UTM.
+
+## ¿Cuánto demora una apelación?
+
+El tiempo depende de la carga del Juzgado Civil. Generalmente:
+
+- **Elevación de la causa**: 1 a 3 meses.
+- **Audiencia (vista de la causa)**: 2 a 6 meses después de la elevación.
+- **Sentencia del Juzgado Civil**: 1 a 3 meses después de la audiencia.
+
+Total: entre 4 y 12 meses aproximadamente.
+
+## Errores comunes al apelar
+
+1. **No presentar el recurso a tiempo**: el error más grave. Si pasan 8 días hábiles, pierdes el derecho a apelar.
+
+2. **No identificar errores específicos**: no digas simplemente "la sentencia es injusta". Señala qué errores cometió el juez (de hecho o de derecho).
+
+3. **No adjuntar copia de la sentencia**: el recurso debe ir acompañado de una copia completa de la sentencia apelada.
+
+4. **No fundamentar el recurso**: el recurso debe tener fundamentos de hecho y de derecho. Sin fundamentos, el recurso es rechazado.
+
+5. **No pagar la tasa judicial**: en algunos Juzgados se cobra una tasa judicial por la interposición del recurso.
+
+## Casos especiales
+
+### Multas de tránsito
+
+Si apelas una multa de tránsito, el Juzgado Civil revisará si el JPL aplicó correctamente la ley. El Juzgado Civil puede:
+
+- Confirmar la multa (debes pagar).
+- Revocar la multa (se elimina).
+- Modificar la multa (reduce el monto).
+
+### Disputas de arriendo
+
+Si apelas una sentencia sobre arriendo, el Juzgado Civil revisará si el JPL resolvió correctamente la disputa. El Juzgado Civil puede:
+
+- Confirmar la sentencia.
+- Revocar la sentencia.
+- Modificar la sentencia.
+
+### Derecho del consumidor
+
+Si apelas una sentencia sobre derecho del consumidor, el Juzgado Civil revisará si el JPL aplicó correctamente la Ley 19.496.
+
+## Consulta gratis
+
+Si perdiste en el Juzgado de Policía Local y quieres apelar, consulta gratis por WhatsApp. Nuestro equipo de abogados analizará tu caso sin compromiso.`,
     ctaText: 'Analizar mi recurso de apelación',
     bullets: [
       'Plazo fatal: 8 días hábiles desde la notificación de la sentencia para presentar el recurso de apelación. No hay prórroga ni ampliación.',
       'Fundamentos: el recurso se basa en errores de hecho (el juez valoró mal la prueba) o errores de derecho (el juez aplicó mal la ley). Debes señalar qué errores cometió el tribunal.',
       'Procedimiento: el escrito se presenta en el mismo Juzgado de Policía Local que dictó la sentencia. La causa se eleva al Juzgado Civil de letras del territorio.',
       'Efectos: la apelación puede suspender la ejecución de la sentencia si es de pena pecuniaria (multa). En otros casos, la sentencia se ejecuta mientras se resuelve la apelación.',
+      '¿Necesito abogado?: en Juzgados de Policía Local puedes apelar personalmente hasta 8 UTM. Para montos superiores, necesitas patrocinio de abogado.',
+      'Tiempo: una apelación demora entre 4 y 12 meses dependiendo de la carga del Juzgado Civil.',
     ],
     faqs: [
-      { q: '¿Cuánto tiempo tengo para apelar una sentencia del JPL?', a: '8 días hábiles desde la notificación de la sentencia. Es un plazo fatal: si no apelas a tiempo, pierdes el derecho a la segunda instancia.' },
-      { q: '¿Necesito abogado para apelar?', a: 'En Juzgados de Policía Local puedes apelar personalmente hasta 8 UTM. Para montos superiores o en Juzgado Civil, necesitas patrocinio de abogado.' },
+      { q: '¿Cuánto tiempo tengo para apelar una sentencia del JPL?', a: '8 días hábiles desde la notificación de la sentencia. Es un plazo fatal: si no apelas a tiempo, pierdes el derecho a la segunda instancia y la sentencia queda firme.' },
+      { q: '¿Necesito abogado para apelar?', a: 'En Juzgados de Policía Local puedes apelar personalmente si el monto no supera 8 UTM. Para montos superiores, necesitas patrocinio de abogado. Sin embargo, se recomienda consultar con un abogado independientemente del monto.' },
       { q: '¿Qué documentos necesito para la apelación?', a: 'Copia de la sentencia apelada, tu cédula de identidad y el escrito de apelación indicando los fundamentos de hecho y de derecho del recurso.' },
-      { q: '¿Cuánto demora en resolverse una apelación?', a: 'Entre 3 y 12 meses dependiendo de la carga del Juzgado Civil. La causa se acoustic en tabla y se notifica a las partes.' },
+      { q: '¿Cuánto demora en resolverse una apelación?', a: 'Entre 4 y 12 meses dependiendo de la carga del Juzgado Civil. La causa se acoustic en tabla y se notifica a las partes para la audiencia.' },
+      { q: '¿Qué pasa si apelo una multa de tránsito?', a: 'La apelación suspende la ejecución de la sentencia si es de pena pecuniaria (multa). No tienes que pagar mientras se resuelve la apelación. Si ganas, no pagas nada.' },
+      { q: '¿Puedo apelar si quedé firme en el JPL?', a: 'No. Si no apelaste dentro de los 8 días hábiles, la sentencia quedó firme y no hay recurso posible. Debes cumplir con lo que ordena la sentencia.' },
+      { q: '¿Qué errores de hecho puedo alegar?', a: 'Errores en la valoración de la prueba: el juez no consideró una prueba importante, valoró mal la prueba, o se confundió con los hechos del caso.' },
+      { q: '¿Qué errores de derecho puedo alegar?', a: 'Errores en la aplicación de la ley: el juez aplicó un artículo que no corresponde, no aplicó la ley correcta, o violó el debido proceso.' },
     ],
-    titleSEO: 'Recurso de Apelación Juzgado de Policía Local en Chile | Plazos',
-    metaDescription: 'Recurso de apelación contra sentencia del Juzgado de Policía Local: plazo de 8 días hábiles, fundamentos, procedimiento y cómo presentar tu recurso.',
+    titleSEO: 'Recurso de Apelación Juzgado de Policía Local en Chile | Plazos 2026',
+    metaDescription: 'Recurso de apelación contra sentencia del Juzgado de Policía Local: plazo de 8 días hábiles, fundamentos (error de hecho/derecho), formato de escrito y procedimiento.',
     intent: 'Perdí en el Juzgado de Policía Local y quiero apelar la sentencia.',
     caseType: 'deuda',
     role: 'demandado',
