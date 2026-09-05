@@ -13,6 +13,7 @@ import { SEO_PAGES_EXTRA } from "./src/data/seoPagesExtra.js";
 import { SEO_PAGES_BATCH2 } from "./src/data/seoPagesBatch2.js";
 import { resolvePseoRedirect } from "./src/data/redirects.js";
 import { ALL_SEO_PAGES as ALL_SEO_PAGES_SHARED, renderHomeContent } from "./src/lib/homeSsr.js";
+import { CALCULATOR_PAGES, getCalculatorPage } from "./src/data/calculators.js";
 
 // Combinación de TODAS las páginas SEO: 21 originales + 45 + 20 = 86 páginas (+home = 87 URLs)
 const ALL_SEO_PAGES = ALL_SEO_PAGES_SHARED;
@@ -734,6 +735,295 @@ function getRelatedPages(page: typeof ALL_SEO_PAGES[0]) {
     .map(p => ({ slug: p.slug, h1: p.h1 }));
 }
 
+// Página hub de herramientas
+function renderHerramientasPage() {
+  const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
+  return `<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Herramientas Legales Gratis Chile 2026 | Calculadoras y Verificadores</title>
+  <meta name="description" content="Herramientas legales gratis para Chile: calculadora de prescripción de multas, calculadora de condonación 80%, verificador de multas TAG. Actualizado 2026." />
+  <link rel="canonical" href="${baseUrl}/herramientas" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Herramientas Legales Gratis Chile 2026",
+    "url": "${baseUrl}/herramientas",
+    "description": "Herramientas legales gratis para Chile: calculadoras de prescripción y condonación de multas TAG.",
+    "isPartOf": { "@type": "WebSite", "name": "LegalHelp Chile", "url": "${baseUrl}/" }
+  }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #0f172a; line-height: 1.6; }
+    .nav-bar { background: #0b1f3a; padding: 16px 24px; display: flex; align-items: center; gap: 10px; }
+    .nav-bar .logo { color: #fff; font-weight: 800; font-size: 18px; text-decoration: none; display: flex; align-items: center; gap: 8px; }
+    .nav-bar .logo span.blue { color: #60a5fa; }
+    .main-wrap { max-width: 820px; margin: 0 auto; padding: 40px 20px 60px; }
+    .breadcrumb { font-size: 13px; color: #94a3b8; margin-bottom: 24px; }
+    .breadcrumb a { color: #64748b; text-decoration: none; }
+    h1 { font-size: 2rem; font-weight: 800; color: #0f172a; margin-bottom: 12px; line-height: 1.2; }
+    .subtitle { font-size: 15px; color: #475569; margin-bottom: 32px; }
+    .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 36px; }
+    .tool-card { background: #fff; border: 2px solid #e2e8f0; border-radius: 16px; padding: 28px; transition: border-color 0.15s, box-shadow 0.15s; }
+    .tool-card:hover { border-color: #2563eb; box-shadow: 0 4px 20px rgba(37,99,235,0.1); }
+    .tool-card .icon { font-size: 2rem; margin-bottom: 12px; }
+    .tool-card h2 { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+    .tool-card p { font-size: 14px; color: #475569; margin-bottom: 16px; line-height: 1.6; }
+    .tool-card .btn { display: inline-block; background: #2563eb; color: #fff; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px; transition: background 0.15s; }
+    .tool-card .btn:hover { background: #1d4ed8; }
+    .info-box { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-top: 28px; }
+    .info-box h2 { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-bottom: 12px; }
+    .info-box p { font-size: 14px; color: #475569; line-height: 1.7; margin-bottom: 12px; }
+    .info-box ul { margin-left: 20px; margin-bottom: 12px; }
+    .info-box li { font-size: 14px; color: #475569; margin-bottom: 6px; line-height: 1.6; }
+    .cta-whatsapp { display: block; background: #25d366; color: #fff; text-align: center; padding: 14px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; margin-top: 16px; transition: background 0.15s; }
+    .cta-whatsapp:hover { background: #1fb855; }
+    .footer-bar { border-top: 1px solid #e2e8f0; padding: 24px; text-align: center; font-size: 12px; color: #94a3b8; margin-top: 40px; }
+    .footer-bar strong { color: #64748b; }
+    @media (max-width: 640px) { h1 { font-size: 1.5rem; } .main-wrap { padding: 24px 16px 40px; } .tools-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <nav class="nav-bar">
+    <span style="font-size:22px;">⚖️</span>
+    <a href="/" class="logo">Diagnóstico<span class="blue">Legal</span> Chile</a>
+  </nav>
+  <main class="main-wrap">
+    <div class="breadcrumb"><a href="/">Inicio</a> &rsaquo; Herramientas</div>
+    <h1>Herramientas Legales Gratis Chile 2026</h1>
+    <p class="subtitle">Calculadoras, verificadores y herramientas legales para resolver tus problemas con multas de tránsito y TAG en Chile.</p>
+
+    <div class="tools-grid">
+      <div class="tool-card">
+        <div class="icon">⏳</div>
+        <h2>Calculadora de Prescripción de Multas</h2>
+        <p>¿Tu multa TAG ya prescribió? Ingresa la fecha de anotación y te decimos si puedes eliminarla legalmente.</p>
+        <a href="/calculadora-prescripcion-multas" class="btn">Calcular Prescripción →</a>
+      </div>
+      <div class="tool-card">
+        <div class="icon">💰</div>
+        <h2>Calculadora de Condonación 80%</h2>
+        <p>¿Cuánto pagas con el 80% de descuento? Ingresa el monto original y descubre tu precio final.</p>
+        <a href="/calculadora-condonacion-multas" class="btn">Calcular Descuento →</a>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <h2>¿Qué hacer con tus multas TAG?</h2>
+      <p>Si tienes multas de tránsito o TAG pendientes, tienes opciones:</p>
+      <ul>
+        <li><strong>Prescripción:</strong> Si han pasado más de 12 meses desde la anotación, tu multa prescribió y puedes eliminarla</li>
+        <li><strong>Condonación 80%:</strong> Si pagas antes del 30 de septiembre de 2026, solo pagas el 20%</li>
+        <li><strong>Defensa técnica:</strong> Si la multa tiene errores administrativos, puedes impugnarla</li>
+      </ul>
+      <p>Nuestro equipo de abogados puede ayudarte con el proceso completo.</p>
+      <a href="https://wa.me/56967658939?text=Hola%2C+necesito+ayuda+con+mis+multas+TAG" class="cta-whatsapp" target="_blank">💬 Consultar Gratis por WhatsApp</a>
+    </div>
+
+    <div class="footer-bar">
+      <p><strong>LegalHelp Chile</strong> &mdash; Herramientas legales adaptadas a la legislación chilena vigente.</p>
+      <p style="margin-top:4px;">No constituye asesoría legal formal. Consulta con un abogado habilitado (Ley 18.120).</p>
+    </div>
+  </main>
+</body>
+</html>`;
+}
+
+// Calculadoras interactivas (prescripción y condonación)
+function renderCalculatorPage(calc: { slug: string; titleSEO: string; metaDescription: string; h1: string; description: string }) {
+  const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
+  const pageDate = process.env.SEO_PAGE_DATE || "2026-09-01";
+  const isPrescripcion = calc.slug.includes('prescripcion');
+  const calculatorJS = isPrescripcion ? `
+<script>
+function calcularPrescripcion() {
+  const input = document.getElementById('fecha-anotacion');
+  const resultado = document.getElementById('resultado');
+  const error = document.getElementById('error-msg');
+  if (!input.value) { error.textContent = 'Selecciona la fecha de anotación'; resultado.innerHTML = ''; return; }
+  error.textContent = '';
+  const fechaAnotacion = new Date(input.value);
+  const hoy = new Date();
+  const diffMs = hoy - fechaAnotacion;
+  const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffAnios = diffDias / 365.25;
+  const prescrita = diffAnios >= 1;
+  const diasRestantes = prescrita ? 0 : Math.ceil((365.25 - diffDias));
+  const mesesRestantes = Math.floor(diasRestantes / 30);
+  const diasFinales = diasRestantes % 30;
+  if (prescrita) {
+    resultado.innerHTML = '<div class="result-box result-green"><h3>✅ Tu multa YA PRESCRIBIÓ</h3><p>Desde el ' + fechaAnotacion.toLocaleDateString('es-CL') + ' han pasado <strong>' + Math.floor(diffAnios) + ' años</strong>.</p><p>Según el art. 2497 del Código Civil chileno, tu multa prescribió el <strong>' + new Date(fechaAnotacion.getTime() + 365.25*24*60*60*1000).toLocaleDateString('es-CL') + '</strong>.</p><p><strong>Puedes solicitar la eliminación de esta multa.</strong></p><a href="https://wa.me/56967658939?text=Hola%2C+mi+multa+TAG+ya+prescribió.+Fecha+de+anotaci%C3%B3n%3A+' + input.value + '" class="cta-whatsapp" target="_blank">💬 Consultar Gratis por WhatsApp</a></div>';
+  } else {
+    resultado.innerHTML = '<div class="result-box result-yellow"><h3>⏳ Tu multa AÚN NO prescribe</h3><p>Desde el ' + fechaAnotacion.toLocaleDateString('es-CL') + ' han pasado <strong>' + Math.floor(diffAnios) + ' años y ' + Math.floor((diffAnios % 1) * 12) + ' meses</strong>.</p><p>Tu multa prescribirá el <strong>' + new Date(fechaAnotacion.getTime() + 365.25*24*60*60*1000).toLocaleDateString('es-CL') + '</strong>.</p><p><strong>Faltan ' + mesesRestantes + ' meses y ' + diasFinales + ' días.</strong></p><a href="https://wa.me/56967658939?text=Hola%2C+quiero+saber+cuando+prescribe+mi+multa+TAG.+Fecha%3A+' + input.value + '" class="cta-whatsapp" target="_blank">💬 Consultar Gratis por WhatsApp</a></div>';
+  }
+}
+</script>` : `
+<script>
+function calcularCondonacion() {
+  const input = document.getElementById('monto-original');
+  const resultado = document.getElementById('resultado');
+  const error = document.getElementById('error-msg');
+  if (!input.value || parseFloat(input.value) <= 0) { error.textContent = 'Ingresa un monto válido'; resultado.innerHTML = ''; return; }
+  error.textContent = '';
+  const monto = parseFloat(input.value);
+  const descuento = monto * 0.8;
+  const final = monto * 0.2;
+  const ahorro = descuento;
+  resultado.innerHTML = '<div class="result-box result-green"><h3>💰 Con el 80% de descuento pagas</h3><div class="monto-final">$' + Math.round(final).toLocaleString('es-CL') + ' CLP</div><div class="detail-row"><span>Monto original:</span><span>$' + monto.toLocaleString('es-CL') + '</span></div><div class="detail-row"><span>Descuento (80%):</span><span class="ahorro">-$' + Math.round(ahorro).toLocaleString('es-CL') + '</span></div><div class="detail-row"><span>Fecha límite:</span><span>30 de septiembre 2026</span></div><p style="margin-top:16px;font-size:13px;color:#475569;">El 80% de descuento se aplica al valor total de la multa. Solo pagas el 20% restante.</p><a href="https://wa.me/56967658939?text=Hola%2C+quiero+aplicar+el+80%25+de+condonaci%C3%B3n+de+mi+multa+TAG.+Monto%3A+$' + monto + '" class="cta-whatsapp" target="_blank">💬 Aplicar Descuento por WhatsApp</a></div>';
+}
+</script>`;
+
+  return `<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${calc.titleSEO}</title>
+  <meta name="description" content="${calc.metaDescription}" />
+  <link rel="canonical" href="${baseUrl}${calc.slug}" />
+  <meta property="og:title" content="${calc.titleSEO}" />
+  <meta property="og:description" content="${calc.metaDescription}" />
+  <meta property="og:url" content="${baseUrl}${calc.slug}" />
+  <meta property="og:type" content="website" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "${calc.h1}",
+    "operatingSystem": "Web",
+    "applicationCategory": "LegalApplication",
+    "url": "${baseUrl}${calc.slug}",
+    "description": "${calc.metaDescription}",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CLP" },
+    "datePublished": "${pageDate}",
+    "dateModified": "${pageDate}",
+    "provider": { "@type": "Organization", "name": "LegalHelp Chile", "url": "https://legalhelp.cl" }
+  }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #0f172a; line-height: 1.6; }
+    .nav-bar { background: #0b1f3a; padding: 16px 24px; display: flex; align-items: center; gap: 10px; }
+    .nav-bar .logo { color: #fff; font-weight: 800; font-size: 18px; text-decoration: none; display: flex; align-items: center; gap: 8px; }
+    .nav-bar .logo span.blue { color: #60a5fa; }
+    .main-wrap { max-width: 720px; margin: 0 auto; padding: 40px 20px 60px; }
+    .breadcrumb { font-size: 13px; color: #94a3b8; margin-bottom: 24px; }
+    .breadcrumb a { color: #64748b; text-decoration: none; }
+    h1 { font-size: 1.8rem; font-weight: 800; color: #0f172a; margin-bottom: 12px; line-height: 1.2; }
+    .subtitle { font-size: 15px; color: #475569; margin-bottom: 28px; }
+    .calc-box { background: #fff; border: 2px solid #e2e8f0; border-radius: 16px; padding: 28px; margin-bottom: 28px; }
+    .calc-box label { display: block; font-size: 14px; font-weight: 700; color: #334155; margin-bottom: 8px; }
+    .calc-box input { width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 16px; margin-bottom: 8px; transition: border-color 0.15s; }
+    .calc-box input:focus { outline: none; border-color: #2563eb; }
+    .error-msg { color: #dc2626; font-size: 13px; margin-bottom: 12px; min-height: 20px; }
+    .btn-calc { width: 100%; background: #2563eb; color: #fff; border: none; border-radius: 10px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+    .btn-calc:hover { background: #1d4ed8; }
+    .result-box { border-radius: 12px; padding: 24px; margin-top: 20px; }
+    .result-green { background: #f0fdf4; border: 2px solid #86efac; }
+    .result-yellow { background: #fefce8; border: 2px solid #fde047; }
+    .result-box h3 { font-size: 18px; margin-bottom: 12px; }
+    .result-box p { font-size: 14px; color: #334155; margin-bottom: 8px; }
+    .monto-final { font-size: 2.5rem; font-weight: 800; color: #16a34a; margin: 16px 0; }
+    .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+    .detail-row .ahorro { color: #16a34a; font-weight: 700; }
+    .cta-whatsapp { display: block; background: #25d366; color: #fff; text-align: center; padding: 14px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; margin-top: 16px; transition: background 0.15s; }
+    .cta-whatsapp:hover { background: #1fb855; }
+    .info-section { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-top: 28px; }
+    .info-section h2 { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-bottom: 12px; }
+    .info-section p { font-size: 14px; color: #475569; margin-bottom: 12px; line-height: 1.7; }
+    .info-section ul { margin-left: 20px; margin-bottom: 12px; }
+    .info-section li { font-size: 14px; color: #475569; margin-bottom: 6px; line-height: 1.6; }
+    .footer-bar { border-top: 1px solid #e2e8f0; padding: 24px; text-align: center; font-size: 12px; color: #94a3b8; margin-top: 40px; }
+    .footer-bar strong { color: #64748b; }
+    @media (max-width: 640px) { h1 { font-size: 1.4rem; } .main-wrap { padding: 24px 16px 40px; } .monto-final { font-size: 2rem; } }
+  </style>
+</head>
+<body>
+  <nav class="nav-bar">
+    <span style="font-size:22px;">⚖️</span>
+    <a href="/" class="logo">Diagnóstico<span class="blue">Legal</span> Chile</a>
+  </nav>
+  <main class="main-wrap">
+    <div class="breadcrumb"><a href="/">Inicio</a> &rsaquo; <a href="/herramientas">Herramientas</a> &rsaquo; ${calc.h1}</div>
+    <h1>${calc.h1}</h1>
+    <p class="subtitle">${calc.description}</p>
+
+    <div class="calc-box">
+      ${isPrescripcion ? `
+      <label for="fecha-anotacion">Fecha de anotación de la multa:</label>
+      <input type="date" id="fecha-anotacion" />
+      <div id="error-msg" class="error-msg"></div>
+      <button class="btn-calc" onclick="calcularPrescripcion()">Calcular Prescripción</button>
+      ` : `
+      <label for="monto-original">Monto original de la multa (CLP):</label>
+      <input type="number" id="monto-original" placeholder="Ej: 80000" min="1" />
+      <div id="error-msg" class="error-msg"></div>
+      <button class="btn-calc" onclick="calcularCondonacion()">Calcular Descuento 80%</button>
+      `}
+      <div id="resultado"></div>
+    </div>
+
+    <div class="info-section">
+      ${isPrescripcion ? `
+      <h2>¿Cómo funciona la prescripción de multas TAG?</h2>
+      <p>Según el art. 2497 del Código Civil chileno, las multas de tránsito prescriben a <strong>1 año</strong> desde su anotación en el Registro de Vehículos Recuperados o en el Registro Nacional de Vehículos Motorizados.</p>
+      <ul>
+        <li>El plazo de 1 año es improrrogable</li>
+        <li>La prescripción se cuenta desde la fecha de anotación, no desde la fecha de la infracción</li>
+        <li>Una vez prescrita, la multa no puede ser cobrada</li>
+        <li>Puedes solicitar la eliminación ante el Juzgado de Policía Local</li>
+      </ul>
+      <p><strong>Artículo 2497 del Código Civil:</strong> "Las acciones prescriben por el transcurso del tiempo señalado por la ley."</p>
+      <h2 style="margin-top:20px;">¿Qué hacer si tu multa ya prescribió?</h2>
+      <ul>
+        <li>Obtén el certificado de anotaciones vigentes en <a href="https://www.registrocivil.cl" target="_blank">registrocivil.cl</a></li>
+        <li>Identifica la fecha exacta de anotación de cada multa</li>
+        <li>Si han pasado más de 12 meses, la multa prescribió</li>
+        <li>Presenta un recurso de apelación ante el Juzgado de Policía Local</li>
+        <li>O solicita la eliminación directa en la Municipalidad</li>
+      </ul>
+      ` : `
+      <h2>¿Cómo funciona el 80% de condonación de multas TAG?</h2>
+      <p>El Decreto Supremo del Ministerio Público de Transito y Telecomunicaciones establece un <strong>80% de descuento</strong> sobre el valor total de multas de tránsito para pagos realizados antes del <strong>30 de septiembre de 2026</strong>.</p>
+      <ul>
+        <li>El descuento es del 80% sobre el monto original</li>
+        <li>Solo pagas el 20% restante</li>
+        <li>Aplica a multas de tránsito y TAG</li>
+        <li>La fecha límite es el 30 de septiembre de 2026</li>
+        <li>Se puede pagar en cualquier Banco o portal de pago autorizado</li>
+      </ul>
+      <p><strong>Ejemplo:</strong> Si tu multa es de $80.000, con el 80% de descuento pagas solo $16.000.</p>
+      <h2 style="margin-top:20px;">¿Cómo aplicar el descuento?</h2>
+      <ul>
+        <li>Ingresa a <a href="https://consultas.mtt.cl" target="_blank">consultas.mtt.cl</a> con tu RUT</li>
+        <li>Selecciona las multas que quieres pagar</li>
+        <li>El sistema aplicará automáticamente el 80% de descuento</li>
+        <li>Elige el medio de pago y completa la transacción</li>
+        <li>Guarda el comprobante de pago</li>
+      </ul>
+      `}
+    </div>
+
+    <div class="info-section" style="margin-top:20px;">
+      <h2>¿Necesitas ayuda profesional?</h2>
+      <p>Nuestro equipo de abogados puede ayudarte con el proceso completo de prescripción o condonación de multas TAG. Consulta gratis por WhatsApp.</p>
+      <a href="https://wa.me/56967658939?text=Hola%2C+necesito+ayuda+con+mis+multas+TAG" class="cta-whatsapp" target="_blank">💬 Consultar Gratis por WhatsApp</a>
+    </div>
+
+    <div class="footer-bar">
+      <p><strong>LegalHelp Chile</strong> &mdash; Herramienta de orientación legal adaptada a la legislación chilena vigente.</p>
+      <p style="margin-top:4px;">No constituye asesoría legal formal. Consulta con un abogado habilitado (Ley 18.120).</p>
+    </div>
+  </main>
+  ${calculatorJS}
+</body>
+</html>`;
+}
+
 // Homepage SSR: static crawlable content inside #root (React replaces it on hydration)
 function serveHomePage(_req: express.Request, res: express.Response) {
   const indexPath = path.join(distPath, "index.html");
@@ -756,6 +1046,19 @@ function registerSEORoutes() {
     app.get(page.slug, (_req, res) => {
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.send(renderSEOPage(page));
+    });
+  }
+
+  // Herramientas / calculadoras interactivas
+  app.get("/herramientas", (_req, res) => {
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(renderHerramientasPage());
+  });
+
+  for (const calc of CALCULATOR_PAGES) {
+    app.get(calc.slug, (_req, res) => {
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(renderCalculatorPage(calc));
     });
   }
 
@@ -789,11 +1092,11 @@ function registerSEORoutes() {
 </sitemapindex>`);
   });
 
-  // Sitemap: new SEO pages (87)
+  // Sitemap: new SEO pages + calculadoras
   app.get("/sitemap-new.xml", (_req, res) => {
     const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
     const lastmod = process.env.SEO_PAGE_DATE || "2026-08-19";
-    const urls = ALL_SEO_PAGES.map(p => {
+    const seoUrls = ALL_SEO_PAGES.map(p => {
       const priority = p.slug === '/' ? '1.0' : '0.8';
       return `  <url>
     <loc>${baseUrl}${p.slug}</loc>
@@ -802,10 +1105,24 @@ function registerSEORoutes() {
     <priority>${priority}</priority>
   </url>`;
     }).join('\n');
+    const calcUrls = CALCULATOR_PAGES.map(c => `  <url>
+    <loc>${baseUrl}${c.slug}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>`).join('\n');
+    const herramientasUrl = `  <url>
+    <loc>${baseUrl}/herramientas</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>`;
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls}
+${seoUrls}
+${herramientasUrl}
+${calcUrls}
 </urlset>`);
   });
 
