@@ -1042,6 +1042,13 @@ function registerSEORoutes() {
     res.redirect(301, resolvePseoRedirect(req.params.slug));
   });
 
+  // Página estática: prescripción multas TAG (reemplaza la dinámica)
+  app.get("/prescripcion-multas-tag", (_req, res) => {
+    const htmlPath = path.join(__dirname, "public", "prescripcion-multas-tag.html");
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.sendFile(htmlPath);
+  });
+
   for (const page of ALL_SEO_PAGES) {
     app.get(page.slug, (_req, res) => {
       res.setHeader("Content-Type", "text/html; charset=utf-8");
