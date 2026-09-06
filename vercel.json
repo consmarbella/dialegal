@@ -4,6 +4,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/prescripcion-multas-tag", "destination": "/prescripcion-multas-tag.html" },
     { "source": "/(.*)", "destination": "/api/index" }
   ],
   "headers": [
