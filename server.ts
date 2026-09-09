@@ -1438,40 +1438,9 @@ ${comunasUrls}
   });
 
   // Sitemap: old /p/* URLs (708 redirects) — helps Google discover the 301s
+  // DEPRECATED: sitemap-redirects.xml removed from index. Return 404 to stop Google crawling.
   app.get("/sitemap-redirects.xml", (_req, res) => {
-    const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
-    // Import redirects data
-    const fs = require("fs");
-    const pathMod = require("path");
-    const redirectsPath = pathMod.join(process.cwd(), "dist", "redirects.json");
-    let redirectEntries: Array<[string, string]> = [];
-    try {
-      const raw = fs.readFileSync(redirectsPath, "utf-8");
-      const data = JSON.parse(raw);
-      redirectEntries = Object.entries(data) as Array<[string, string]>;
-    } catch {
-      // Fallback: read from source
-      try {
-        const srcPath = pathMod.join(process.cwd(), "src", "data", "redirects.ts");
-        const src = fs.readFileSync(srcPath, "utf-8");
-        const matches = src.matchAll(/"([^"]+)"\s*:\s*"([^"]+)"/g);
-        for (const m of matches) {
-          redirectEntries.push([m[1], m[2]]);
-        }
-      } catch { /* skip */ }
-    }
-    const urls = redirectEntries.map(([oldSlug, dest]) => {
-      return `  <url>
-    <loc>${baseUrl}/p/${oldSlug}</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
-  </url>`;
-    }).join('\n');
-    res.setHeader("Content-Type", "application/xml; charset=utf-8");
-    res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls}
-</urlset>`);
+    res.status(404).send("Not found");
   });
 
   // Sitemap: home only
