@@ -1357,15 +1357,19 @@ function registerSEORoutes() {
     next();
   });
 
-  // Sitemap Index: pointing to 3 sub-sitemaps
+  // Sitemap Index: pointing to 4 sub-sitemaps
   app.get("/sitemap.xml", (_req, res) => {
     const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
-    const lastmod = process.env.SEO_PAGE_DATE || "2026-08-19";
+    const lastmod = process.env.SEO_PAGE_DATE || "2026-09-08";
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
     <loc>${baseUrl}/sitemap-new.xml</loc>
+    <lastmod>${lastmod}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-comunas.xml</loc>
     <lastmod>${lastmod}</lastmod>
   </sitemap>
   <sitemap>
@@ -1379,10 +1383,10 @@ function registerSEORoutes() {
 </sitemapindex>`);
   });
 
-  // Sitemap: new SEO pages + calculadoras
+  // Sitemap: new SEO pages + calculadoras (sin comunas)
   app.get("/sitemap-new.xml", (_req, res) => {
     const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
-    const lastmod = process.env.SEO_PAGE_DATE || "2026-08-19";
+    const lastmod = process.env.SEO_PAGE_DATE || "2026-09-08";
     const seoUrls = ALL_SEO_PAGES.map(p => {
       const priority = p.slug === '/' ? '1.0' : '0.8';
       return `  <url>
@@ -1404,6 +1408,19 @@ function registerSEORoutes() {
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>`;
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${seoUrls}
+${herramientasUrl}
+${calcUrls}
+</urlset>`);
+  });
+
+  // Sitemap: 24 páginas pSEO de comunas (embudo de conversión)
+  app.get("/sitemap-comunas.xml", (_req, res) => {
+    const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
+    const lastmod = process.env.SEO_PAGE_DATE || "2026-09-08";
     const comunasUrls = COMUNAS_RM.map(c => `  <url>
     <loc>${baseUrl}/prescripcion-multas/${c.slug}</loc>
     <lastmod>${lastmod}</lastmod>
@@ -1413,9 +1430,6 @@ function registerSEORoutes() {
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${seoUrls}
-${herramientasUrl}
-${calcUrls}
 ${comunasUrls}
 </urlset>`);
   });
@@ -1460,7 +1474,7 @@ ${urls}
   // Sitemap: home only
   app.get("/sitemap-home.xml", (_req, res) => {
     const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
-    const lastmod = process.env.SEO_PAGE_DATE || "2026-08-19";
+    const lastmod = process.env.SEO_PAGE_DATE || "2026-09-08";
     res.setHeader("Content-Type", "application/xml; charset=utf-8");
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
