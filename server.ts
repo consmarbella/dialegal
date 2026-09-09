@@ -1036,14 +1036,17 @@ function serveHomePage(_req: express.Request, res: express.Response) {
   res.send(withContent);
 }
 
-// Renderiza página de prescripción por comuna (pSEO anti-thin content)
+// Renderiza página de prescripción por comuna — embudo de conversión
 function renderTribunalPage(comuna: typeof COMUNAS_RM[0]) {
   const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
   const slug = `/prescripcion-multas/${comuna.slug}`;
   const titleSEO = `Prescripción de Multas y TAG en ${comuna.comuna} | LegalHelp Chile`;
-  const metaDescription = `Prescripción de multas y TAG en ${comuna.comuna}. JPLs: ${comuna.juzgados.map(j => j.nombre).join(', ')}. Canal: ${comuna.juzgados[0].canalIngreso}. Escrito $25.000. Consulta gratis.`;
-  const h1 = `Prescripción de Multas y TAG en ${comuna.comuna}: Trámite ante ${comuna.juzgados[0].nombre}`;
+  const metaDescription = `Servicio de prescripción de multas y TAG en ${comuna.comuna}. Análisis + redacción de escritos ante ${comuna.juzgados[0].nombre}. Tarifa fija $15.000 análisis + $10.000 por escrito. Consulta gratis por WhatsApp.`;
+  const h1 = `Prescripción de Multas y TAG en ${comuna.comuna}: Servicio ante ${comuna.juzgados[0].nombre}`;
   const pageDate = process.env.SEO_PAGE_DATE || "2026-08-01";
+  const numJuzgados = comuna.juzgados.length;
+  const whatsappMsg = `Hola, tengo multas en ${comuna.comuna} y quiero contratar el análisis de mis multas y redacción de escritos de prescripción.`;
+  const whatsappUrl = `https://wa.me/56967658939?text=${encodeURIComponent(whatsappMsg)}`;
 
   // Detectar tipo de canal principal
   const canales = comuna.juzgados.map(j => j.canalIngreso);
@@ -1051,143 +1054,21 @@ function renderTribunalPage(comuna: typeof COMUNAS_RM[0]) {
   const tienePresencial = canales.includes('PRESENCIAL');
   const tieneHibrido = canales.includes('HÍBRIDO');
 
-  // Generar contenido único según tipo de canal
-  let canalBloque = '';
-  let procesoPasos = '';
-  let erroresComunes = '';
-  let faqEspecificas: { q: string; a: string }[] = [];
-
+  // Generar bloque de canal adaptado (solo info del canal, sin tutorial)
+  let canalInfoCorta = '';
   if (tieneOnline && !tienePresencial) {
-    // Todas las jpl son ONLINE
-    canalBloque = `
-      <h2>Cómo Presentar tu Escrito de Prescripción en ${comuna.comuna}</h2>
-      <p>Los Juzgados de Policía Local de ${comuna.comuna} aceptan escritos de prescripción <strong>exclusivamente por vía digital</strong>. Esto significa que no necesitas acudir presencialmente al tribunal.</p>
-      <p>Para presentar tu escrito, debes utilizar la plataforma oficial que cada JPL habilita. En el caso del ${comuna.juzgados[0].nombre}, el canal de ingreso es ${comuna.juzgados[0].detalleCanal.toLowerCase()}.</p>
-      <h3>Requisitos para el canal digital</h3>
-      <ul>
-        <li><strong>Firma electrónica:</strong> Debes contar con firma electrónica avanzada o certificado digital vigente. La firma simple no es aceptada para escritos de prescripción.</li>
-        <li><strong>Formato del escrito:</strong> El documento debe estar en formato PDF con firma electrónica incluida. No se aceptan archivos Word ni imágenes.</li>
-        <li><strong>Plataforma:</strong> ${comuna.juzgados[0].correo.startsWith('http') ? 'Utiliza la plataforma de Clave Única (claveunica.gob.cl)' : `Envía tu escrito a la dirección de correo electrónico: ${comuna.juzgados[0].correo}`}</li>
-        <li><strong>Confirmación:</strong> Después de enviar, debes conservar el comprobante de envío y la respuesta de recepción del tribunal.</li>
-      </ul>`;
-    procesoPasos = `
-      <h2>Proceso de Prescripción de Multas en ${comuna.comuna} (Canal Digital)</h2>
-      <ol>
-        <li><strong>Verifica tus multas:</strong> Ingresa a la página de la Juzgado de Policía Local de ${comuna.comuna} con tu RUT y revisa las multas vigentes associadas a tu patente o RUT de conductor.</li>
-        <li><strong>Identifica las prescribibles:</strong> Las multas de tránsito prescriben a 1 año desde la fecha de la infracción. Las multas de TAG (autopista) prescriben a 3 años. Las de permiso de circulación prescriben a 3 años.</li>
-        <li><strong>Redacta tu escrito:</strong> El escrito debe indicar: tu nombre completo, RUT, patente del vehículo, número de la multa, fecha de la infracción y la causal de prescripción (Art. 24 Ley 18.287).</li>
-        <li><strong>Firma electrónicamente:</strong> Utiliza tu certificado digital o firma electrónica avanzada para firmar el documento PDF.</li>
-        <li><strong>Envía por la plataforma:</strong> ${comuna.juzgados[0].correo.startsWith('http') ? 'Ingresa a la plataforma de Clave Única y sube tu escrito firmado' : 'Envía tu escrito a ' + comuna.juzgados[0].correo + ' con el asunto "Solicitud de Prescripción de Multa"'}</li>
-        <li><strong>Guarda el comprobante:</strong> Descarga o captura el comprobante de envío y la respuesta de recepción del tribunal.</li>
-        <li><strong>Espera la resolución:</strong> El juez resolverá tu solicitud en un plazo de 1 a 3 meses. Si es favorable, la multa quedará prescrita y no podrás ser ejecutada.</li>
-      </ol>`;
-    erroresComunes = `
-      <h2>Errores Comunes al Prescribir Multas en ${comuna.comuna}</h2>
-      <ul>
-        <li><strong>Enviar sin firma electrónica:</strong> El escrito será rechazado si no tiene firma electrónica avanzada. La firma manuscrita escaneada no es válida.</li>
-        <li><strong>No verificar la prescripción:</strong> Si la multa aún no ha cumplido el plazo de prescripción (1 año para tránsito, 3 años para TAG), el juez rechazará tu solicitud.</li>
-        <li><strong>Confundir plazos:</strong> Las multas de tránsito (conductor) prescriben a 1 año. Las de TAG/autopista prescriben a 3 años. No son iguales.</li>
-        <li><strong>No adjuntar antecedentes:</strong> Debes adjuntar copia de la multa, tu cédula de identidad y cualquier documento que acredite la fecha de la infracción.</li>
-        <li><strong>Enviar al juzgado incorrecto:</strong> Verifica que estás enviando al JPL correcto según la comuna donde se cometió la infracción.</li>
-      </ul>`;
-    faqEspecificas = [
-      { q: `¿Puedo prescribir multas de TAG en ${comuna.comuna} por internet?`, a: `Sí. Los JPL de ${comuna.comuna} aceptan escritos de prescripción por canal digital. Debes enviar tu escrito firmado electrónicamente a la dirección de correo o plataforma habilitada.` },
-      { q: `¿Cuánto cuesta prescribir multas en ${comuna.comuna}?`, a: `Nuestro servicio de prescripción tiene un costo de $25.000 CLP por el primer escrito y $5.000 CLP por cada escrito adicional por juzgado. La consulta inicial es gratuita.` },
-      { q: `¿Cuánto tarda el proceso de prescripción en ${comuna.comuna}?`, a: `El proceso completo tarda entre 1 y 3 meses desde la presentación del escrito hasta la resolución del juez. El plazo depende de la carga de trabajo del tribunal.` },
-      { q: `¿Qué pasa si me rechazan la solicitud de prescripción?`, a: `Si el juez rechaza tu solicitud, puedes apelar dentro de 5 días hábiles. Las causales de rechazo más comunes son: multa no prescrita, escrito sin firma electrónica, o juzgado incorrecto.` },
-    ];
+    canalInfoCorta = `<p>Los JPL de ${comuna.comuna} aceptan escritos <strong>por vía digital</strong>. Nuestro equipo conoce los requisitos exactos de firma electrónica y plataforma para cada juzgado.</p>`;
   } else if (tienePresencial && !tieneOnline) {
-    // Todas las jpl son PRESENCIAL
-    canalBloque = `
-      <h2>Cómo Presentar tu Escrito de Prescripción en ${comuna.comuna}</h2>
-      <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:16px;margin-bottom:20px;">
-        <p style="font-weight:700;color:#92400e;margin-bottom:8px;">⚠️ IMPORTANTE</p>
-        <p style="color:#92400e;font-size:14px;">Los Juzgados de Policía Local de ${comuna.comuna} <strong>NO aceptan escritos por correo electrónico</strong>. Debes presentar tu escrito presencialmente en el buzón de partes del tribunal. Enviar por correo resultará en un rechazo automático.</p>
-      </div>
-      <p>Para prescribir tus multas de tránsito o TAG en ${comuna.comuna}, debes acudir físicamente al Juzgado de Policía Local correspondiente y depositar tu escrito en el buzón de partes.</p>
-      <h3>¿Qué necesitas llevar?</h3>
-      <ul>
-        <li><strong>Escrito impreso:</strong> Tu solicitud de prescripción debe estar en formato papel, firmada a mano. No se aceptan copias digitales.</li>
-        <li><strong>Cédula de identidad:</strong> Lleva tu cédula de identidad vigente (original y copia).</li>
-        <li><strong>Copia de la multa:</strong> Si tienes la notificación de la multa, adjúntala. Si no la tienes, el juzgado puede consultarla.</li>
-        <li><strong>Copia sellada:</strong> Pide que sellen una copia de tu escrito como constancia de presentación.</li>
-      </ul>`;
-    procesoPasos = `
-      <h2>Proceso de Prescripción de Multas en ${comuna.comuna} (Canal Presencial)</h2>
-      <ol>
-        <li><strong>Verifica tus multas:</strong> Acude al JPL de ${comuna.comuna} o consulta en línea (si tienen portal) para revisar las multas vigentes.</li>
-        <li><strong>Identifica las prescribibles:</strong> Las multas de tránsito prescriben a 1 año. Las de TAG prescriben a 3 años. Las de permiso de circulación prescriben a 3 años.</li>
-        <li><strong>Redacta tu escrito:</strong> El escrito debe incluir: nombre completo, RUT, patente, número de la multa, fecha de infracción y causal de prescripción (Art. 24 Ley 18.287).</li>
-        <li><strong>Imprime y firma:</strong> Imprime tu escrito en papel A4 y fírmalo a mano. No se aceptan firmas digitales en el canal presencial.</li>
-        <li><strong>Acude al buzón de partes:</strong> Ve al JPL de ${comuna.comuna} y deposita tu escrito en el buzón de partes. Verifica el horario de atención.</li>
-        <li><strong>Pide constancia:</strong> Solicita que sellen una copia de tu escrito como comprobante de presentación.</li>
-        <li><strong>Espera la resolución:</strong> El juez resolverá en 1 a 3 meses. Si es favorable, la multa quedará prescrita.</li>
-      </ol>`;
-    erroresComunes = `
-      <h2>Errores Comunes al Prescribir Multas en ${comuna.comuna}</h2>
-      <ul>
-        <li><strong>Enviar por correo electrónico:</strong> ⚠️ Los JPL de ${comuna.comuna} NO aceptan escritos por correo. Enviar por email resultará en rechazo automático.</li>
-        <li><strong>No llevar cédula:</strong> Sin tu cédula de identidad no te recibirán el escrito.</li>
-        <li><strong>No pedir sello:</strong> Sin la constancia sellada no tienes prueba de que presentaste el escrito a tiempo.</li>
-        <li><strong>Ir fuera de horario:</strong> Verifica los horarios de atención del buzón de partes antes de acudir.</li>
-        <li><strong>Confundir el juzgado:</strong> Asegúrate de ir al JPL correcto según la comuna donde se cometió la infracción.</li>
-      </ul>`;
-    faqEspecificas = [
-      { q: `¿Puedo enviar mi escrito de prescripción por correo en ${comuna.comuna}?`, a: `No. Los JPL de ${comuna.comuna} NO aceptan escritos por correo electrónico. Debes presentar tu escrito presencialmente en el buzón de partes del tribunal.` },
-      { q: `¿Cuánto cuesta prescribir multas en ${comuna.comuna}?`, a: `Nuestro servicio tiene un costo de $25.000 CLP por el primer escrito y $5.000 CLP por cada escrito adicional. La consulta es gratuita.` },
-      { q: `¿Dónde está el buzón del JPL de ${comuna.comuna}?`, a: `El buzón de partes se encuentra en la dirección oficial del Juzgado de Policía Local de ${comuna.comuna}. Te recomendamos verificar la dirección exacta en el sitio web de la municipalidad antes de acudir.` },
-      { q: `¿Cuánto tarda el proceso de prescripción en ${comuna.comuna}?`, a: `El proceso completo tarda entre 1 y 3 meses desde la presentación del escrito hasta la resolución del juez.` },
-    ];
+    canalInfoCorta = `
+      <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:14px 16px;margin-bottom:16px;">
+        <p style="font-weight:700;color:#92400e;margin-bottom:4px;">⚠️ Este juzgado NO acepta correos electrónicos</p>
+        <p style="color:#92400e;font-size:13px;">Los JPL de ${comuna.comuna} solo reciben escritos presencialmente en el buzón de partes. Enviar por correo provoca rechazo automático.</p>
+      </div>`;
   } else if (tieneHibrido) {
-    // JPLs HÍBRIDOS
-    canalBloque = `
-      <h2>Cómo Presentar tu Escrito de Prescripción en ${comuna.comuna}</h2>
-      <p>Los Juzgados de Policía Local de ${comuna.comuna} operan en <strong>modalidad híbrida</strong>. Esto significa que aceptan notificaciones por correo electrónico, pero los escritos de prescripción deben ser presentados presencialmente en el buzón de partes.</p>
-      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin-bottom:20px;">
-        <p style="font-weight:700;color:#1d4ed8;margin-bottom:8px;">📋 Diferencia importante</p>
-        <p style="color:#1e40af;font-size:14px;">El <strong>correo electrónico</strong> sirve para notificaciones y comunicaciones, pero el <strong>escrito de prescripción</strong> debe ser depositado en el buzón físico del tribunal.</p>
-      </div>
-      <h3>¿Qué puedes hacer por correo?</h3>
-      <ul>
-        <li>Notificar tu dirección de correo para recibir actualizaciones del caso.</li>
-        <li>Enviar consultas sobre el estado de tu trámite.</li>
-        <li>Solicitar información sobre el JPL.</li>
-      </ul>
-      <h3>¿Qué debes hacer presencialmente?</h3>
-      <ul>
-        <li>Presentar el escrito original de prescripción en el buzón de partes.</li>
-        <li>Entregar la cédula de identidad (original y copia).</li>
-        <li>Pedir constancia sellada de presentación.</li>
-      </ul>`;
-    procesoPasos = `
-      <h2>Proceso de Prescripción de Multas en ${comuna.comuna} (Canal Híbrido)</h2>
-      <ol>
-        <li><strong>Verifica tus multas:</strong> Consulta las multas vigentes en el portal del JPL o acude presencialmente.</li>
-        <li><strong>Identifica las prescribibles:</strong> Multas de tránsito: 1 año. Multas de TAG: 3 años. Permiso de circulación: 3 años.</li>
-        <li><strong>Redacta tu escrito:</strong> Incluye: nombre, RUT, patente, número de multa, fecha de infracción y causal de prescripción (Art. 24 Ley 18.287).</li>
-        <li><strong>Imprime y firma a mano:</strong> El escrito debe estar en papel, firmado manuscritamente.</li>
-        <li><strong>Acude al buzón de partes:</strong> Ve al JPL de ${comuna.comuna} y deposita tu escrito. Verifica horarios.</li>
-        <li><strong>Pide constancia sellada:</strong> Solicita que sellen una copia como comprobante.</li>
-        <li><strong>Registra tu correo:</strong> Si aún no lo has hecho, envía un correo al JPL para registrar tu dirección y recibir notificaciones.</li>
-        <li><strong>Espera la resolución:</strong> El juez resolverá en 1 a 3 meses.</li>
-      </ol>`;
-    erroresComunes = `
-      <h2>Errores Comunes al Prescribir Multas en ${comuna.comuna}</h2>
-      <ul>
-        <li><strong>Enviar el escrito por correo:</strong> Aunque el JPL acepta correos para notificaciones, el escrito de prescripción DEBE ser presentado en el buzón físico.</li>
-        <li><strong>No registrar correo:</strong> Si no registras tu correo, no recibirás notificaciones importantes sobre el estado de tu trámite.</li>
-        <li><strong>No pedir sello:</strong> Sin constancia sellada no tienes prueba de presentación.</li>
-        <li><strong>Olvidar la cédula:</strong> Sin cédula no te recibirán el escrito.</li>
-      </ul>`;
-    faqEspecificas = [
-      { q: `¿Puedo enviar mi escrito de prescripción por correo en ${comuna.comuna}?`, a: `No. Aunque el JPL acepta correos para notificaciones, el escrito de prescripción debe ser presentado presencialmente en el buzón de partes.` },
-      { q: `¿Cuánto cuesta prescribir multas en ${comuna.comuna}?`, a: `Nuestro servicio tiene un costo de $25.000 CLP por el primer escrito y $5.000 CLP por cada escrito adicional. La consulta es gratuita.` },
-      { q: `¿Cómo registro mi correo en el JPL de ${comuna.comuna}?`, a: `Envía un correo al JPL desde tu dirección de correo electrónico con tu nombre, RUT y número de causa (si lo tienes). El JPL registrará tu dirección para notificaciones futuras.` },
-      { q: `¿Cuánto tarda el proceso de prescripción en ${comuna.comuna}?`, a: `El proceso completo tarda entre 1 y 3 meses desde la presentación del escrito hasta la resolución del juez.` },
-    ];
+    canalInfoCorta = `<p>Los JPL de ${comuna.comuna} operan en <strong>modalidad híbrida</strong>: aceptan notificaciones por correo, pero el escrito de prescripción debe depositarse en el buzón físico. Manejamos ambos canales según corresponda.</p>`;
   }
 
-  // Generar tabla de JPLs
+  // Generar tabla de JPLs (se mantiene para SEO local)
   const tablaJplRows = comuna.juzgados.map(j => {
     const canalIcon = j.canalIngreso === 'ONLINE' ? '🟢' : j.canalIngreso === 'HÍBRIDO' ? '🟡' : '🔴';
     const canalLabel = j.canalIngreso === 'ONLINE' ? 'Online' : j.canalIngreso === 'HÍBRIDO' ? 'Híbrido' : 'Presencial';
@@ -1206,18 +1087,19 @@ function renderTribunalPage(comuna: typeof COMUNAS_RM[0]) {
   let comparacionBloque = '';
   if (tieneOnline && tienePresencial) {
     comparacionBloque = `
-      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:16px;margin:20px 0;">
-        <p style="font-weight:700;color:#166534;margin-bottom:8px;">💡 Dato importante para ${comuna.comuna}</p>
-        <p style="color:#166534;font-size:14px;">En ${comuna.comuna}, algunos JPL aceptan escritos por correo electrónico mientras que otros solo operan de forma presencial. Si tienes multas asignadas a diferentes juzgados, es posible que necesites presentar escritos separados por cada canal. Verifica en la tabla anterior cuál es el canal de cada JPL.</p>
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:14px 16px;margin:20px 0;">
+        <p style="font-weight:700;color:#166534;margin-bottom:4px;">💡 Dato importante para ${comuna.comuna}</p>
+        <p style="color:#166534;font-size:13px;">En ${comuna.comuna}, algunos JPL aceptan escritos por correo electrónico mientras que otros solo operan de forma presencial. Si tienes multas asignadas a diferentes juzgados, es posible que necesites escritos separados por cada canal. Nosotros gestionamos cada uno según las reglas del tribunal.</p>
       </div>`;
   }
 
-  // FAQs generales
+  // FAQs (enfocadas en contratación, no en tutorial)
   const faqs = [
-    { q: `¿Qué es la prescripción de multas de tránsito?`, a: `La prescripción es un derecho legal que extingue la obligación de pagar una multa de tránsito después de un plazo determinado (1 año para multas de conductor, 3 años para TAG y permiso de circulación). Una vez prescrita, la multa no puede ser cobrada ni ejecutada.` },
-    { q: `¿Cuánto cuesta el servicio de prescripción de multas?`, a: `El costo es de $25.000 CLP por el primer escrito de prescripción y $5.000 CLP por cada escrito adicional por cada juzgado con multas agrupadas. La consulta inicial es gratuita.` },
-    { q: `¿Puedo prescribir multas de TAG junto con multas de tránsito?`, a: `Sí. Nuestro servicio cubre tanto multas de tránsito (conductor) como multas de TAG (autopista) y permiso de circulación. Cada tipo de multa tiene un plazo de prescripción diferente.` },
-    ...faqEspecificas
+    { q: `¿Qué incluye el servicio de prescripción de multas en ${comuna.comuna}?`, a: `El servicio incluye: (1) Análisis técnico de tu certificado de multas para identificar cuáles son prescribibles, y (2) Redacción del escrito de prescripción adaptado a cada JPL de ${comuna.comuna}, respetando el canal de ingreso (digital, presencial o híbrido).` },
+    { q: `¿Cuánto cuesta prescribir multas en ${comuna.comuna}?`, a: `El costo tiene dos partes: $15.000 CLP por el análisis técnico inicial del certificado de multas, y $10.000 CLP por cada escrito redactado por juzgado. Si tienes 10 multas en un mismo juzgado, se agrupan en un solo escrito: solo pagas un cargo de redacción.` },
+    { q: `¿Cuánto tarda el proceso completo?`, a: `El análisis y redacción se entregan en 2 a 5 días hábiles. La resolución del juez tarda entre 1 y 3 meses desde la presentación del escrito.` },
+    { q: `¿Qué pasa si el juez rechaza mi solicitud?`, a: `Nuestro servicio incluye revisión previa para minimizar el riesgo de rechazo. Si aun así occurriese, te asesoramos sobre los pasos a seguir (apelación dentro de 5 días hábiles).` },
+    { q: `¿Puedo hacerlo yo mismo sin contratar el servicio?`, a: `Sí, puedes intentarlo. Sin embargo, un error en el cómputo de plazos o en los requisitos formales del escrito provoca el rechazo automático del tribunal y la ejecución de la deuda. Nuestro servicio elimina ese riesgo.` },
   ];
 
   const faqSchema = faqs.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } }));
@@ -1312,7 +1194,7 @@ function renderTribunalPage(comuna: typeof COMUNAS_RM[0]) {
     .cta-box:hover { background: #1d4ed8; }
     .cta-box .arrow { display: inline-block; margin-left: 6px; transition: transform 0.15s; }
     .cta-box:hover .arrow { transform: translateX(3px); }
-    .cta-whatsapp { display: block; background: #25d366; color: #fff; text-align: center; padding: 14px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; margin-top: 16px; transition: background 0.15s; }
+    .cta-whatsapp { display: block; background: #25d366; color: #fff; text-align: center; padding: 16px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 24px 0; transition: background 0.15s; box-shadow: 0 4px 14px rgba(37,99,235,0.15); }
     .cta-whatsapp:hover { background: #1fb855; }
     .jpl-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
     .jpl-table th { background: #f1f5f9; padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #64748b; border-bottom: 2px solid #e2e8f0; }
@@ -1339,6 +1221,11 @@ function renderTribunalPage(comuna: typeof COMUNAS_RM[0]) {
   <main class="main-wrap">
     <div class="breadcrumb"><a href="/">Inicio</a> &rsaquo; <a href="/prescripcion-multas-tag">Prescripción de Multas</a> &rsaquo; ${comuna.comuna}</div>
     <h1>${h1}</h1>
+
+    <!-- CTA WhatsApp inmediato bajo el H1 -->
+    <a href="${whatsappUrl}" class="cta-whatsapp">📱 Contratar análisis y redacción de escritos de prescripción en ${comuna.comuna}</a>
+
+    <!-- Ficha técnica del JPL (SEO local) -->
     <p class="section-label">Ficha del Juzgado de Policía Local</p>
     <div class="diagnos-text">
       <table class="jpl-table">
@@ -1355,39 +1242,63 @@ function renderTribunalPage(comuna: typeof COMUNAS_RM[0]) {
           ${tablaJplRows}
         </tbody>
       </table>
+      ${canalInfoCorta}
     </div>
     ${comparacionBloque}
-    <div class="diagnos-text">
-      ${canalBloque}
-    </div>
-    <div class="diagnos-text">
-      ${procesoPasos}
-    </div>
-    <div class="diagnos-text">
-      <h2>Marcos Legales Aplicables</h2>
+
+    <!-- MURO DE FRICCIÓN: Riesgo jurídico -->
+    <div class="diagnos-text" style="border-left:4px solid #dc2626;">
+      <h2 style="color:#dc2626;margin-top:0;">⚠️ Evite el rechazo del Juzgado de Policía Local</h2>
+      <p>Presentar un escrito de prescripción con errores formales provoca el <strong>rechazo automático</strong> del tribunal. Las causales más comunes de rechazo son:</p>
       <ul>
-        <li><strong>Art. 24 Ley 18.287:</strong> Plazo de prescripción de 1 año para multas de tránsito asociadas al conductor.</li>
-        <li><strong>Ley 21.241:</strong> Prescripción de 3 años para multas de TAG y permiso de circulación.</li>
-        <li><strong>Ley 20.886:</strong> Normalización de documentos y tramitación digital en Chile.</li>
-        <li><strong>Código Civil Art. 2516:</strong> Prescripción adquisitiva de obligaciones.</li>
+        <li><strong>Confusión de plazos:</strong> Las multas de tránsito (conductor) prescriben a <strong>1 año</strong>. Las de TAG y permiso de circulación prescriben a <strong>3 años</strong>. Aplicar el plazo incorrecto en el escrito es causal de rechazo inmediato.</li>
+        <li><strong>Falla en el canal de ingreso:</strong> Enviar un escrito por correo electrónico a un JPL que solo acepta buzón presencial (o viceversa) resulta en rechazo ipso facto. Cada juzgado tiene reglas distintas.</li>
+        <li><strong>Error en la firma:</strong> Los canales digitales exigen firma electrónica avanzada o Clave Única. Una firma simple o manuscrita escaneada no es aceptada.</li>
+        <li><strong>Datos incompletos:</strong> Omisión de RUT, patente, número de multa o fecha de infracción. El juez declarará el escrito incompleto y lo devolverá.</li>
       </ul>
+      <p style="font-weight:700;color:#0f172a;">Un rechazo no es solo un trámite extra: significa que la multa vuelve a estar vigente y puede ser ejecutada coactivamente por el Fisco.</p>
     </div>
-    <div class="diagnos-text">
-      ${erroresComunes}
+
+    <!-- BLOQUE DE OFERTA COMERCIAL -->
+    <div class="diagnos-text" style="background:#f0fdf4;border:2px solid #22c55e;">
+      <h2 style="color:#166534;margin-top:0;">Servicio de Prescripción de Multas en ${comuna.comuna}</h2>
+      <p>Nuestro equipo se encarga de todo el proceso técnico. Tú solo nos envías tu certificado de multas y nosotros gestionamos la prescripción ante cada JPL.</p>
+
+      <h3 style="color:#166534;">¿Qué incluye el servicio?</h3>
+      <ol>
+        <li><strong>Análisis Técnico Inicial ($15.000 CLP):</strong> Revisión exhaustiva de tu certificado de multas para identificar qué infracciones son prescribibles según el plazo legal aplicable (1 año tránsito, 3 años TAG/permiso de circulación).</li>
+        <li><strong>Redacción por Juzgado ($10.000 CLP por escrito):</strong> Confección del escrito de prescripción adaptado a las reglas específicas de cada JPL de ${comuna.comuna} — respetando si es canal digital, presencial o híbrido.</li>
+      </ol>
+
+      <div style="background:#fff;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;margin:16px 0;">
+        <p style="font-weight:700;color:#166534;margin-bottom:4px;">💡 Ahorro por agrupación de multas</p>
+        <p style="color:#166534;font-size:14px;">No se cobra por cada multa individual. Si tienes, por ejemplo, <strong>10 multas en el mismo juzgado</strong>, todas se agrupan en un <strong>único escrito</strong>. Solo pagas un cargo de redacción de $10.000 para ese juzgado, independientemente de la cantidad de infracciones agrupadas.</p>
+      </div>
+
+      <p style="font-size:14px;color:#334155;"><strong>Ejemplo:</strong> 5 multas de tránsito + 3 multas de TAG en ${numJuzgados > 1 ? numJuzgados + ' juzgados distintos' : '1 juzgado'} = $15.000 (análisis) + $${numJuzgados * 10000}.toLocaleString('es-CL') (redacción) = <strong>$${(15000 + numJuzgados * 10000).toLocaleString('es-CL')} CLP total</strong>.</p>
+
+      <a href="${whatsappUrl}" class="cta-box" style="margin-top:20px;">Solicitar análisis de mis multas por WhatsApp <span class="arrow">→</span></a>
     </div>
-    <a href="https://wa.me/56967658939?text=Hola,%20necesito%20prescribir%20mis%20multas%20y%20TAG%20para%20el%20Juzgado%20de%20${encodeURIComponent(comuna.comuna)}.%20¿Me%20ayudan?" class="cta-whatsapp">📱 Consultar prescripción de multas en ${comuna.comuna} por WhatsApp</a>
+
+    <!-- CTA WhatsApp secundario -->
+    <a href="${whatsappUrl}" class="cta-whatsapp">📱 Consultar prescripción de multas en ${comuna.comuna} por WhatsApp</a>
+
+    <!-- FAQs (enfocadas en contratación) -->
     <section class="faq-section">
       <h2>Preguntas frecuentes sobre prescripción de multas en ${comuna.comuna}</h2>
       ${faqs.map(f => `<div class="faq-item"><p class="q">${f.q}</p><p class="a">${f.a}</p></div>`).join('')}
     </section>
+
+    <!-- Comunas relacionadas -->
     <section style="margin-top:36px;">
       <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:16px;color:#0f172a;">Otras comunas de la Región Metropolitana</h2>
       <div class="comunas-grid">
         ${comunasRelacionadas.map(c => `<a href="/prescripcion-multas/${c.slug}">${c.comuna}</a>`).join('')}
       </div>
     </section>
+
     <div class="footer-bar">
-      <p><strong>LegalHelp Chile</strong> &mdash; Prescripción de multas y TAG, orientación legal adaptada a la legislación chilena.</p>
+      <p><strong>LegalHelp Chile</strong> &mdash; Prescripción de multas y TAG, servicio legal automatizado adaptado a la legislación chilena.</p>
       <p style="margin-top:4px;">No constituye asesoría legal formal. Consulta con un abogado habilitado (Ley 18.120).</p>
       <p style="margin-top:4px;">Datos de JPL verificados en ${pageDate}. Fuente: <a href="https://www.bcn.cl/leychile/navegar?idNorma=1170498" style="color:#64748b;">Ley Chile BCN</a>.</p>
     </div>
