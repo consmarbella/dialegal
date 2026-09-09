@@ -44,9 +44,9 @@ export const EXACT_REDIRECTS: Record<string, string> = {
   "carta-cobranza-deuda-san-bernardo": "/que-hacer-si-me-cobran-una-deuda-que-no-reconozco",
   "carta-cobranza-deuda-santiago": "/que-hacer-si-me-cobran-una-deuda-que-no-reconozco",
   "carta-cobranza-deuda-santiago-centro": "/que-hacer-si-me-cobran-una-deuda-que-no-reconozco",
-  "carta-cobro-arriendo-impago-nunoa": "/como-demandar-por-no-pago-de-arriendo",
-  "carta-cobro-arriendo-impago-pudahuel": "/como-demandar-por-no-pago-de-arriendo",
-  "carta-cobro-arriendo-impago-san-miguel": "/como-demandar-por-no-pago-de-arriendo",
+  "carta-cobro-arriendo-impago-nunoa": "/juicio-de-arriendo",
+  "carta-cobro-arriendo-impago-pudahuel": "/juicio-de-arriendo",
+  "carta-cobro-arriendo-impago-san-miguel": "/juicio-de-arriendo",
   "carta-despido": "/abogado-laboral",
   "carta-despido-incumplimiento-grave": "/abogado-laboral",
   "carta-despido-mutuo-acuerdo": "/abogado-laboral",
@@ -111,9 +111,9 @@ export const EXACT_REDIRECTS: Record<string, string> = {
   "carta-renuncia-laboral-santiago-centro": "/como-hacer-carta-de-renuncia",
   "carta-renuncia-laboral-talca": "/como-hacer-carta-de-renuncia",
   "carta-renuncia-laboral-temuco": "/como-hacer-carta-de-renuncia",
-  "carta-termino-contrato-arriendo": "/como-terminar-contrato-de-arriendo",
-  "carta-termino-contrato-arriendo-penalolen": "/como-terminar-contrato-de-arriendo",
-  "carta-termino-contrato-arriendo-providencia": "/como-terminar-contrato-de-arriendo",
+  "carta-termino-contrato-arriendo": "/juicio-de-arriendo",
+  "carta-termino-contrato-arriendo-penalolen": "/juicio-de-arriendo",
+  "carta-termino-contrato-arriendo-providencia": "/juicio-de-arriendo",
   "certificado-de-antecedentes-para-fines-especiales": "/",
   "certificado-de-antecedentes-para-fines-especiales-antofagasta": "/",
   "certificado-de-antecedentes-para-fines-especiales-arica": "/",
@@ -283,8 +283,8 @@ export const EXACT_REDIRECTS: Record<string, string> = {
   "demanda-alimentos-temuco": "/como-demandar-por-pension-alimenticia",
   "demanda-dano-moral-derechos": "/como-demandar-por-danos-y-perjuicios",
   "demanda-de-alimentos": "/como-demandar-por-pension-alimenticia",
-  "demanda-de-desalojo-por-no-pago": "/como-demandar-por-no-pago-de-arriendo",
-  "demanda-desalojo": "/como-demandar-por-arriendo",
+  "demanda-de-desalojo-por-no-pago": "/juicio-de-arriendo",
+  "demanda-desalojo": "/juicio-de-arriendo",
   "demanda-desalojo-concepcion": "/como-demandar-por-arriendo",
   "demanda-desalojo-las-condes": "/como-demandar-por-arriendo",
   "demanda-desalojo-maipu": "/como-demandar-por-arriendo",
@@ -697,6 +697,32 @@ export const EXACT_REDIRECTS: Record<string, string> = {
   "solicitud-visitas-reguladas-vina-del-mar": "/como-demandar-por-regimen-de-visitas",
   "testamento": "/testamento-en-chile",
   "testamento-olografo": "/testamento-en-chile",
+
+  // ── Deduplicación: páginas thin / duplicadas consolidadas (Sep 2026) ──
+  // Cluster arriendo demandante → maestro juicio-de-arriendo
+  "como-demandar-por-arriendo": "/juicio-de-arriendo",
+  "como-demandar-por-no-pago-de-arriendo": "/juicio-de-arriendo",
+  "como-recuperar-casa-arrendada": "/juicio-de-arriendo",
+  "como-terminar-contrato-de-arriendo": "/juicio-de-arriendo",
+  // Cluster arriendo demandado → maestro defensa
+  "me-demandaron-por-arriendo": "/como-defenderse-de-un-juicio-de-arriendo",
+  // Cluster contestar demanda laboral → maestro contestar
+  "me-demandaron-por-despido": "/como-contestar-demanda-laboral",
+  "que-hago-si-me-demandaron": "/como-contestar-demanda-laboral",
+  // Cluster abogado urgente/gratis → maestro acceder gratis
+  "necesito-abogado-urgente": "/como-acceder-a-un-abogado-gratis-en-chile",
+  "abogado-urgente": "/como-acceder-a-un-abogado-gratis-en-chile",
+  "abogado-gratis-online": "/como-acceder-a-un-abogado-gratis-en-chile",
+  "fundacion-pro-bono-y-abogados-gratuitos-chile": "/como-acceder-a-un-abogado-gratis-en-chile",
+  // Cluster pensiones espejo → maestro aumentar
+  "como-rebajar-la-pension-alimenticia": "/como-aumentar-la-pension-alimenticia",
+  // Demandante duplicadas → maestros
+  "me-demandaron-por-cotizaciones": "/como-demandar-por-cotizaciones-impagas",
+  "me-demandaron-por-pension-de-alimentos": "/como-demandar-por-pension-alimenticia",
+  "como-demandar-por-incumplimiento-de-un-contrato": "/como-demandar-por-incumplimiento-de-contrato",
+  "como-demandar-por-dano-material": "/como-demandar-por-danos-y-perjuicios",
+  // Página 404 huérfana → página similar
+  "saber-si-tengo-una-demanda": "/como-saber-si-tengo-una-demanda",
 };
 
 const PREFIX_REDIRECTS: Record<string, string> = {
@@ -708,12 +734,12 @@ const PREFIX_REDIRECTS: Record<string, string> = {
   "carta": "/",
   "carta-amonestacion": "/abogado-laboral",
   "carta-cobranza": "/que-hacer-si-me-cobran-una-deuda-que-no-reconozco",
-  "carta-cobro-arriendo": "/como-demandar-por-no-pago-de-arriendo",
+  "carta-cobro-arriendo": "/juicio-de-arriendo",
   "carta-despido": "/abogado-laboral",
   "carta-prescripcion": "/prescripcion-de-deudas-chile",
   "carta-reclamo": "/derechos-del-consumidor-chile",
   "carta-renuncia": "/como-hacer-carta-de-renuncia",
-  "carta-termino-contrato-arriendo": "/como-terminar-contrato-de-arriendo",
+  "carta-termino-contrato-arriendo": "/juicio-de-arriendo",
   "certificado-de-antecedentes": "/",
   "como-hacer-una-demanda": "/necesito-orientacion-legal",
   "como-redactar": "/abogado-civil",
@@ -728,7 +754,7 @@ const PREFIX_REDIRECTS: Record<string, string> = {
   "demanda-accidente": "/como-demandar-por-danos-y-perjuicios",
   "demanda-alimentos": "/como-demandar-por-pension-alimenticia",
   "demanda-dano": "/como-demandar-por-danos-y-perjuicios",
-  "demanda-desalojo": "/como-demandar-por-arriendo",
+  "demanda-desalojo": "/juicio-de-arriendo",
   "denuncia": "/",
   "denuncia-acoso": "/acoso-laboral-ley-karin",
   "denuncia-despido": "/como-demandar-por-despido-injustificado",

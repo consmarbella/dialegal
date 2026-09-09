@@ -595,6 +595,13 @@ app.post("/api/payment/confirm-test", (req, res) => {
 
 // ========== SEO LANDING PAGES (Long-Tail) ==========
 function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
+  const NOINDEX_SLUGS = new Set([
+    '/abogado-para-arriendos', '/abogado-gratis-online', '/abogado-urgente',
+    '/abogado-accidentes', '/abogado-laboral', '/abogado-de-familia',
+    '/abogado-civil', '/abogado-de-deudas', '/abogado-penal',
+    '/calculadora-prescripcion-multas', '/calculadora-condonacion-multas',
+  ]);
+  const robotsContent = NOINDEX_SLUGS.has(page.slug) ? 'noindex, follow' : 'index, follow';
   const roleLabel = page.role === 'demandante' ? 'Quiero demandar' : page.role === 'demandado' ? 'Me demandaron' : 'Consulta legal';
   const roleColor = page.role === 'demandante' ? '#2563eb' : page.role === 'demandado' ? '#dc2626' : '#0891b2';
   const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
@@ -609,7 +616,7 @@ function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${page.titleSEO}</title>
   <meta name="description" content="${page.metaDescription}" />
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="${robotsContent}" />
   <link rel="canonical" href="${baseUrl}${page.slug}" />
   <meta property="og:locale" content="es_CL" />
   <meta property="og:title" content="${page.titleSEO}" />
