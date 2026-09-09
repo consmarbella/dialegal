@@ -1380,10 +1380,6 @@ function registerSEORoutes() {
     <lastmod>${lastmod}</lastmod>
   </sitemap>
   <sitemap>
-    <loc>${baseUrl}/sitemap-redirects.xml</loc>
-    <lastmod>${lastmod}</lastmod>
-  </sitemap>
-  <sitemap>
     <loc>${baseUrl}/sitemap-home.xml</loc>
     <lastmod>${lastmod}</lastmod>
   </sitemap>
@@ -1500,6 +1496,7 @@ ${urls}
     res.send(`User-Agent: *
 Allow: /
 Disallow: /api/
+Disallow: /p/
 Disallow: /*?*
 
 User-Agent: GPTBot
