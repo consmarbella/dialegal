@@ -1275,7 +1275,7 @@ function renderTribunalPage(comuna: typeof COMUNAS_RM[0]) {
         <p style="color:#166534;font-size:14px;">No se cobra por cada multa individual. Si tienes, por ejemplo, <strong>10 multas en el mismo juzgado</strong>, todas se agrupan en un <strong>único escrito</strong>. Solo pagas un cargo de redacción de $10.000 para ese juzgado, independientemente de la cantidad de infracciones agrupadas.</p>
       </div>
 
-      <p style="font-size:14px;color:#334155;"><strong>Ejemplo:</strong> 5 multas de tránsito + 3 multas de TAG en ${numJuzgados > 1 ? numJuzgados + ' juzgados distintos' : '1 juzgado'} = $15.000 (análisis) + $${numJuzgados * 10000}.toLocaleString('es-CL') (redacción) = <strong>$${(15000 + numJuzgados * 10000).toLocaleString('es-CL')} CLP total</strong>.</p>
+      <p style="font-size:14px;color:#334155;"><strong>Ejemplo:</strong> 5 multas de tránsito + 3 multas de TAG en ${numJuzgados > 1 ? numJuzgados + ' juzgados distintos' : '1 juzgado'} = $15.000 (análisis) + $${(numJuzgados * 10000).toLocaleString('es-CL')} (redacción) = <strong>$${(15000 + numJuzgados * 10000).toLocaleString('es-CL')} CLP total</strong>.</p>
 
       <a href="${whatsappUrl}" class="cta-box" style="margin-top:20px;">Solicitar análisis de mis multas por WhatsApp <span class="arrow">→</span></a>
     </div>
