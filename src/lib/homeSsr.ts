@@ -37,6 +37,12 @@ export function renderHomeContent(baseUrl: string) {
     <p style="font-size:1.05rem;color:#334155;">Analiza tu demanda o citación, calcula tus plazos fatales y recibe orientación legal para arriendo, laboral, deudas, familia, civil y penal. Sin costo inicial y sin reemplazar el patrocinio de un abogado.</p>
     <h2 style="font-size:1.3rem;margin-top:32px;">Guías y consultas legales frecuentes</h2>
     ${sections}
+    <h2 style="font-size:1.3rem;margin-top:32px;color:#dc2626;">Prescripción de multas y TAG</h2>
+    <ul style="list-style:none;padding:0;">
+      <li><a href="${baseUrl}/prescripcion-multas-tag" style="color:#2563eb;font-weight:600;">Prescripción de multas TAG — Guía completa 2026</a></li>
+      <li><a href="${baseUrl}/prescripcion-de-multas-de-transito" style="color:#2563eb;font-weight:600;">Cómo eliminar multas de tránsito por prescripción</a></li>
+      <li><a href="${baseUrl}/herramientas" style="color:#2563eb;font-weight:600;">Calculadoras de prescripción y condonación 80%</a></li>
+    </ul>
     <p style="margin-top:32px;font-size:0.85rem;color:#64748b;">Herramienta de orientación legal adaptada a la legislación chilena (CPC, Código del Trabajo, Ley 19.968). No constituye asesoría legal formal.</p>
   </main>`;
 }

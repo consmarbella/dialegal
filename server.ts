@@ -1287,6 +1287,17 @@ function renderTribunalPage(comuna: typeof COMUNAS_RM[0]) {
       <a href="${whatsappUrl}" class="cta-box" style="margin-top:20px;">Solicitar análisis de mis multas por WhatsApp <span class="arrow">→</span></a>
     </div>
 
+    <!-- Enlaces internos a guía y herramientas -->
+    <div class="diagnos-text" style="background:#eff6ff;border:1px solid #bfdbfe;">
+      <h2 style="color:#1d4ed8;margin-top:0;font-size:1rem;">Recursos sobre prescripción de multas</h2>
+      <ul style="margin:8px 0;padding-left:20px;">
+        <li><a href="/prescripcion-multas-tag" style="color:#2563eb;font-weight:600;">Guía completa de prescripción multas TAG Chile 2026</a> — Plazos, requisitos y paso a paso</li>
+        <li><a href="/prescripcion-de-multas-de-transito" style="color:#2563eb;font-weight:600;">Cómo eliminar multas de tránsito por prescripción</a> — Art. 2497 Código Civil</li>
+        <li><a href="/calculadora-prescripcion-multas" style="color:#2563eb;font-weight:600;">Calculadora de prescripción</a> — Verifica si tu multa ya prescribió</li>
+        <li><a href="/calculadora-condonacion-multas" style="color:#2563eb;font-weight:600;">Calculadora de condonación 80%</a> — Descubre cuánto pagas con el descuento</li>
+      </ul>
+    </div>
+
     <!-- CTA WhatsApp secundario -->
     <a href="${whatsappUrl}" class="cta-whatsapp">📱 Consultar prescripción de multas en ${comuna.comuna} por WhatsApp</a>
 

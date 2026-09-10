@@ -1043,7 +1043,27 @@ Firma: _______________
 2. No adjuntar el certificado de multas: sin este documento, el Juzgado no puede verificar la fecha de anotación.
 3. Confundir plazos: 1 año para multas del conductor, 3 años para multas de patente/TAG. Si presentas la solicitud antes de tiempo, la rechazarán.
 4. No verificar si hay cobro judicial: si la empresa inició un juicio antes de que prescribiera, la prescripción no aplica.
-5. Olvidar presentar la resolución en el Registro Civil: el Juzgado ordena la eliminación, pero el trámite final lo haces tú en el Registro Civil.`,
+5. Olvidar presentar la resolución en el Registro Civil: el Juzgado ordena la eliminación, pero el trámite final lo haces tú en el Registro Civil.
+
+## Servicio de prescripción de multas
+
+Si no quieres arriesgarte a cometer errores en el escrito, nuestro equipo se encarga de todo el proceso. Analizamos tu certificado de multas, identificamos cuáles son prescribibles y redactamos el escrito adaptado a las reglas de cada Juzgado de Policía Local.
+
+- [Prescripción de multas TAG — Servicio completo](/prescripcion-multas-tag): Guía del servicio, costos ($15.000 análisis + $10.000 por escrito) y proceso paso a paso.
+- [Calculadora de prescripción](/calculadora-prescripcion-multas): Verifica si tu multa ya prescribió ingresando la fecha de anotación.
+- [Calculadora de condonación 80%](/calculadora-condonacion-multas): Calcula cuánto pagas con el descuento del 80%.
+
+### Servicio por comuna
+
+Atendemos en todos los Juzgados de Policía Local de la Región Metropolitana. Selecciona tu comuna para ver los juzgados específicos y el canal de ingreso:
+
+- [Prescripción de multas en Santiago](/prescripcion-multas/santiago)
+- [Prescripción de multas en Providencia](/prescripcion-multas/providencia)
+- [Prescripción de multas en Las Condes](/prescripcion-multas/las-condes)
+- [Prescripción de multas en Ñuñoa](/prescripcion-multas/nunoa)
+- [Prescripción de multas en La Florida](/prescripcion-multas/la-florida)
+- [Prescripción de multas en Maipú](/prescripcion-multas/maipu)
+- [Ver todas las comunas](/prescripcion-multas-tag)`,
     ctaText: 'Revisamos tu multa y te creamos el escrito de prescripción',
     bullets: [
       'Multas del conductor (sin licencia, velocidad, ebriedad): prescriben a 1 año desde que quedaron firmes (Ley 15.231 Art. 54). Si no se cobran judicialmente en ese plazo, la acción se extingue.',
@@ -1270,7 +1290,14 @@ Depende de la causal. Si tienes una defensa sólida con pruebas claras, sí vale
 
 ## Consulta gratis
 
-Si recibiste una multa de tránsito y no sabes si tienes defensa, consulta gratis por WhatsApp. Nuestro equipo de abogados analizará tu caso sin compromiso.`,
+Si recibiste una multa de tránsito y no sabes si tienes defensa, consulta gratis por WhatsApp. Nuestro equipo de abogados analizará tu caso sin compromiso.
+
+## Servicios relacionados
+
+- [Prescripción de multas TAG](/prescripcion-multas-tag): Si tu multa ya prescribió (1 año conductor, 3 años TAG), podemos eliminarla sin que pagues nada.
+- [Calculadora de prescripción](/calculadora-prescripcion-multas): Verifica si tu multa ya prescribió.
+- [Calculadora de condonación 80%](/calculadora-condonacion-multas): Si la multa no prescribió, calcula cuánto pagas con el descuento.
+- [Servicio de prescripción por comuna](/prescripcion-multas/santiago): Atendemos en todos los JPL de la Región Metropolitana.`,
     ctaText: 'Analizar mi defensa de tránsito',
     bullets: [
       'Plazo para impugnar: 15 días hábiles desde la notificación de la multa. Si no impugas a tiempo, la multa queda firme y no hay recurso.',
