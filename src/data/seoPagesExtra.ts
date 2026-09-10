@@ -1049,7 +1049,9 @@ Firma: _______________
 
 Si no quieres arriesgarte a cometer errores en el escrito, nuestro equipo se encarga de todo el proceso. Analizamos tu certificado de multas, identificamos cuáles son prescribibles y redactamos el escrito adaptado a las reglas de cada Juzgado de Policía Local.
 
-- [Prescripción de multas TAG — Servicio completo](/prescripcion-multas-tag): Guía del servicio, costos ($15.000 análisis + $10.000 por escrito) y proceso paso a paso.
+**Precio:** Análisis técnico $15.000 CLP + redacción de escrito $10.000 CLP por juzgado. Multas del mismo tribunal se agrupan en un solo escrito.
+
+- [Prescripción de multas TAG — Servicio completo](/prescripcion-multas-tag): Guía del servicio y proceso paso a paso.
 - [Calculadora de prescripción](/calculadora-prescripcion-multas): Verifica si tu multa ya prescribió ingresando la fecha de anotación.
 - [Calculadora de condonación 80%](/calculadora-condonacion-multas): Calcula cuánto pagas con el descuento del 80%.
 
@@ -1288,13 +1290,13 @@ Las multas municipales por vías exclusivas (carriles exclusivos de bus) y TAG s
 
 Depende de la causal. Si tienes una defensa sólida con pruebas claras, sí vale la pena. Si la multa es legítima y no tienes argumentos, es mejor pagar con el 80% de descuento antes del 30 de septiembre de 2026.
 
-## Consulta gratis
+## Consulta por WhatsApp
 
-Si recibiste una multa de tránsito y no sabes si tienes defensa, consulta gratis por WhatsApp. Nuestro equipo de abogados analizará tu caso sin compromiso.
+Si recibiste una multa de tránsito y no sabes si tienes defensa, escríbenos por WhatsApp.
 
 ## Servicios relacionados
 
-- [Prescripción de multas TAG](/prescripcion-multas-tag): Si tu multa ya prescribió (1 año conductor, 3 años TAG), podemos eliminarla sin que pagues nada.
+- [Prescripción de multas TAG](/prescripcion-multas-tag): Si tu multa ya prescribió (1 año conductor, 3 años TAG), podemos eliminarla. Análisis $15.000 + escrito $10.000 por juzgado.
 - [Calculadora de prescripción](/calculadora-prescripcion-multas): Verifica si tu multa ya prescribió.
 - [Calculadora de condonación 80%](/calculadora-condonacion-multas): Si la multa no prescribió, calcula cuánto pagas con el descuento.
 - [Servicio de prescripción por comuna](/prescripcion-multas/santiago): Atendemos en todos los JPL de la Región Metropolitana.`,
@@ -1516,9 +1518,9 @@ Al contratar un seguro de auto, la aseguradora verificará tu hoja de vida. Mult
 - **Aumentar la prima**: más multas = mayor riesgo = mayor precio.
 - **Rechazar el seguro**: en casos extremos, la aseguradora puede rechazarte.
 
-## Consulta gratis
+## Consulta por WhatsApp
 
-Si tienes dudas sobre tu hoja de vida del conductor o necesitas ayuda para limpiarla, consulta gratis por WhatsApp. Nuestro equipo de abogados analizará tu caso sin compromiso.`,
+Si tienes dudas sobre tu hoja de vida del conductor o necesitas ayuda para limpiarla, escríbenos por WhatsApp.`,
     ctaText: 'Analizar mi hoja de vida',
     bullets: [
       'Qué contiene: infracciones de tránsito, multas impagas, accidentes y antecedentes como conductor. Se consulta gratuitamente en el Registro Civil.',
@@ -1762,9 +1764,9 @@ Si apelas una sentencia sobre arriendo, el Juzgado Civil revisará si el JPL res
 
 Si apelas una sentencia sobre derecho del consumidor, el Juzgado Civil revisará si el JPL aplicó correctamente la Ley 19.496.
 
-## Consulta gratis
+## Consulta por WhatsApp
 
-Si perdiste en el Juzgado de Policía Local y quieres apelar, consulta gratis por WhatsApp. Nuestro equipo de abogados analizará tu caso sin compromiso.`,
+Si perdiste en el Juzgado de Policía Local y quieres apelar, escríbenos por WhatsApp.`,
     ctaText: 'Analizar mi recurso de apelación',
     bullets: [
       'Plazo fatal: 8 días hábiles desde la notificación de la sentencia para presentar el recurso de apelación. No hay prórroga ni ampliación.',
@@ -1980,7 +1982,7 @@ Puedes consultar en el Poder Judicial (oficinajudicialvirtual.pjud.cl) con tu RU
 
 La prescripción de multas TAG es un derecho que la ley chilena reconoce a los conductores. Si tu multa TAG tiene más de 3 años anotada en el Registro Civil, puedes solicitar su eliminación sin pagar nada. El trámite es gratis, no requiere abogado, y se hace en el Juzgado de Policía Local.
 
-Si necesitas ayuda con el trámite, escríbenos por WhatsApp al +56 9 6765 8939. Te orientamos sin costo.`,
+Si necesitas ayuda con el trámite, escríbenos por WhatsApp al +56 9 6765 8939.`,
     ctaText: 'Analizamos tu multa TAG y te creamos el escrito gratis',
     bullets: [
       'La deuda civil con la concesionaria (Autopista Central, Costanera Norte) prescribe a los 5 años (Código Civil Art. 2515), pero la concesionaria puede demandarte antes yerruptir la prescripción.',

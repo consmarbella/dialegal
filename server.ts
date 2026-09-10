@@ -752,7 +752,7 @@ function renderHerramientasPage() {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Herramientas Legales Gratis Chile 2026 | Calculadoras y Verificadores</title>
-  <meta name="description" content="Herramientas legales gratis para Chile: calculadora de prescripción de multas, calculadora de condonación 80%, verificador de multas TAG. Actualizado 2026." />
+  <meta name="description" content="Herramientas legales para Chile: calculadora de prescripción de multas, calculadora de condonación 80%, verificador de multas TAG. Actualizado 2026." />
   <link rel="canonical" href="${baseUrl}/herramientas" />
   <script type="application/ld+json">
   {
@@ -760,7 +760,7 @@ function renderHerramientasPage() {
     "@type": "CollectionPage",
     "name": "Herramientas Legales Gratis Chile 2026",
     "url": "${baseUrl}/herramientas",
-    "description": "Herramientas legales gratis para Chile: calculadoras de prescripción y condonación de multas TAG.",
+    "description": "Herramientas legales para Chile: calculadoras de prescripción y condonación de multas TAG.",
     "isPartOf": { "@type": "WebSite", "name": "LegalHelp Chile", "url": "${baseUrl}/" }
   }
   </script>
@@ -1018,8 +1018,8 @@ function calcularCondonacion() {
 
     <div class="info-section" style="margin-top:20px;">
       <h2>¿Necesitas ayuda profesional?</h2>
-      <p>Nuestro equipo de abogados puede ayudarte con el proceso completo de prescripción o condonación de multas TAG. Consulta gratis por WhatsApp.</p>
-      <a href="https://wa.me/56967658939?text=Hola%2C+necesito+ayuda+con+mis+multas+TAG" class="cta-whatsapp" target="_blank">💬 Consultar Gratis por WhatsApp</a>
+      <p>Servicio de prescripción de multas: análisis técnico $15.000 CLP + redacción de escrito $10.000 CLP por juzgado. Multas del mismo tribunal se agrupan en un solo escrito.</p>
+      <a href="https://wa.me/56967658939?text=Hola%2C+necesito+ayuda+con+mis+multas+TAG" class="cta-whatsapp" target="_blank">💬 Consultar por WhatsApp</a>
     </div>
 
     <div class="footer-bar">
@@ -1048,7 +1048,7 @@ function renderTribunalPage(comuna: typeof COMUNAS_RM[0]) {
   const baseUrl = process.env.APP_URL?.replace(/\/$/, '') || 'https://legalhelp.cl';
   const slug = `/prescripcion-multas/${comuna.slug}`;
   const titleSEO = `Prescripción de Multas y TAG en ${comuna.comuna} | LegalHelp Chile`;
-  const metaDescription = `Servicio de prescripción de multas y TAG en ${comuna.comuna}. Análisis + redacción de escritos ante ${comuna.juzgados[0].nombre}. Tarifa fija $15.000 análisis + $10.000 por escrito. Consulta gratis por WhatsApp.`;
+  const metaDescription = `Servicio de prescripción de multas y TAG en ${comuna.comuna}. Análisis técnico $15.000 CLP + redacción de escrito $10.000 CLP por juzgado. Multas del mismo tribunal se agrupan en un solo escrito. Atención vía WhatsApp.`;
   const h1 = `Prescripción de Multas y TAG en ${comuna.comuna}: Servicio ante ${comuna.juzgados[0].nombre}`;
   const pageDate = process.env.SEO_PAGE_DATE || "2026-08-01";
   const numJuzgados = comuna.juzgados.length;
