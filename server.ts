@@ -668,7 +668,21 @@ function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
       { "@type": "ListItem", "position": 1, "name": "Inicio", "item": "${baseUrl}/" },
       { "@type": "ListItem", "position": 2, "name": "${page.h1}", "item": "${baseUrl}${page.slug}" }
     ]
-  }
+  }${page.diagnosText.includes('Paso 1') ? `,
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "${page.h1}",
+    "description": "${page.metaDescription}",
+    "step": [
+      { "@type": "HowToStep", "name": "Verificar prescripción", "text": "Obtén tu certificado de multas en el Registro Civil y verifica la fecha de anotación." },
+      { "@type": "HowToStep", "name": "Verificar cobro judicial", "text": "Consulta en el Poder Judicial si hay juicio de cobro pendiente." },
+      { "@type": "HowToStep", "name": "Redactar escrito", "text": "Elabora el escrito de solicitud de prescripción con tus datos y fundamento legal." },
+      { "@type": "HowToStep", "name": "Presentar en Juzgado", "text": "Presenta el escrito en el Juzgado de Policía Local que dictó la multa." },
+      { "@type": "HowToStep", "name": "Esperar resolución", "text": "El juez dicta resolución en 1-4 semanas. Si aprueba, ordina la eliminación del Registro Civil." }
+    ],
+    "totalTime": "P4W"
+  }` : ''}
   ]
   </script>
   <style>

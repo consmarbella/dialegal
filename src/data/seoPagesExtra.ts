@@ -928,7 +928,17 @@ export const SEO_PAGES_EXTRA: SEOPage[] = [
   {
     slug: '/prescripcion-de-multas-de-transito',
     h1: 'Prescripción de multas de tránsito y TAG en Chile',
-    diagnosText: `¿Tienes multas de tránsito o TAG que crees que ya no deberías pagar? En Chile, las multas prescriben. Esto significa que si la municipalidad o la concesionaria no cobran judicialmente dentro de ciertos plazos, la obligación de pagar se extingue por completo. Este artículo te explica todo lo que necesitas saber: plazos exactos, diferencia entre multas del conductor y multas de patente, cómo solicitar la prescripción paso a paso, formato de escrito incluido, y los errores más comunes que cometen los conductores al intentar prescribir sus multas.
+    diagnosText: `**Contenido de esta página:** [Tipos de multas y plazos](#tipos-de-multas-y-plazos-de-prescripción) → [Multas del conductor (1 año)](#multas-asociadas-al-conductor-prescriben-a-1-año) → [Multas patente/TAG (3 años)](#multas-asociadas-a-la-patente-o-tag-prescriben-a-3-años) → [Condonación 80%](#condonación-del-80-de-multas-tag) → [Paso a paso](#cómo-solicitar-la-prescripción-de-una-multa-de-tránsito-paso-a-paso) → [Formato de escrito](#formato-de-escrito-de-solicitud-de-prescripción) → [Errores comunes](#errores-comunes-al-solicitar-la-prescripción)
+
+---
+
+**Fuentes consultadas:** Ley 15.231 Art. 54 (prescripción multas conductor), Ley 18.287 Art. 24 (prescripción multas patente/TAG), Código Civil Art. 2497 (prescripción), Registro Civil de Chile (registrocivil.cl), Juzgados de Policía Local.
+
+---
+
+¿Tienes multas de tránsito o TAG que crees que ya no deberías pagar? En Chile, las multas prescriben. Esto significa que si la municipalidad o la concesionaria no cobran judicialmente dentro de ciertos plazos, la obligación de pagar se extingue por completo. Este artículo te explica todo lo que necesitas saber: plazos exactos, diferencia entre multas del conductor y multas de patente, cómo solicitar la prescripción paso a paso, formato de escrito incluido, y los errores más comunes que cometen los conductores al intentar prescribir sus multas.
+
+> **Transparencia:** LegalHelp Chile es una herramienta de orientación legal con IA, no un estudio de abogados. El contenido de esta página es informativo y no constituye asesoría legal formal. Para casos complejos, consulta con un abogado habilitado (Ley 18.120).
 
 ## Tipos de multas y plazos de prescripción
 
@@ -1096,8 +1106,8 @@ Atendemos en todos los Juzgados de Policía Local de la Región Metropolitana. S
       { q: '¿Qué diferencia hay entre prescripción y condonación de multas TAG?', a: 'La prescripción extingue la deuda completa (no pagas nada) pero requiere esperar 3 años. La condonación del 80% te permite pagar solo el 20% del monto pero no elimina la deuda, solo la reduce.' },
       { q: '¿Puedo conducir mientras espero la resolución de prescripción?', a: 'Sí. La solicitud de prescripción no afecta tu licencia de conducir ni tu ability para manejar. La multa sigue vigente hasta que el juez dicta resolución, pero no te impide conducir.' },
     ],
-    titleSEO: 'Prescripción Multa TAG Chile 2026 | Cómo Eliminar Multas sin Pagar',
-    metaDescription: 'Prescripción de multas de tránsito y TAG en Chile: plazos 1 y 3 años, paso a paso, formato de escrito, condonación 80%. Guía completa 2026.',
+    titleSEO: 'Prescripción Multas de Tránsito Chile 2026 | Guía Paso a Paso',
+    metaDescription: 'Prescripción de multas de tránsito en Chile: plazos 1 y 3 años, formato de escrito, condonación 80%. Guía completa con paso a paso.',
     intent: 'Quiero saber si mi multa de tránsito o TAG ya prescribió y cómo solicitar la prescripción.',
     caseType: 'deuda',
     role: 'consulta',
@@ -1797,9 +1807,19 @@ Si perdiste en el Juzgado de Policía Local y quieres apelar, escríbenos por Wh
   {
     slug: '/prescripcion-multas-tag',
     h1: 'Prescripción de multas TAG en Chile',
-    diagnosText: `Si circulaste por autopistas concesionadas (Autopista Central, Costanera Norte, Vespucio Norte, Autopista del Sol) sin TAG habilitado, con TAG inhabilitado o sin contratar pase diario, la concesionaria te cobra la tarifa del peaje con un recargo, y además la municipalidad puede aplicar una multa de tránsito. Pero estas multas no duran para siempre. Existe la prescripción, que extingue la deuda completamente si la concesionaria no cobra judicialmente dentro de 3 años.
+    diagnosText: `**Contenido de esta página:** [¿Qué son las multas TAG?](#multas-tag-qué-son-exactamente) → [Prescripción deuda civil (5 años)](#prescripción-de-la-deuda-civil-con-la-concesionaria-5-años) → [Prescripción multa tránsito (3 años)](#prescripción-de-la-multa-de-tránsito-tag-3-años) → [Condonación 80%](#condonación-del-80-de-multas-tag) → [Paso a paso](#cómo-solicitar-la-prescripción-de-multa-tag-paso-a-paso) → [Errores comunes](#errores-comunes-al-prescribir-multas-tag) → [Formato de escrito](#formato-de-escrito-de-solicitud-de-prescripción-de-multa-tag) → [Preguntas frecuentes](#preguntas-frecuentes-sobre-prescripción-de-multas-tag)
+
+---
+
+**Fuentes consultadas:** Ley 18.287 Art. 24 (prescripción multas), Código Civil Art. 2515 (prescripción deudas civiles), Ley 15.231 Art. 54 (prescripción multas conductor), Registro Civil de Chile (registrocivil.cl), Juzgados de Policía Local.
+
+---
+
+Si circulaste por autopistas concesionadas (Autopista Central, Costanera Norte, Vespucio Norte, Autopista del Sol) sin TAG habilitado, con TAG inhabilitado o sin contratar pase diario, la concesionaria te cobra la tarifa del peaje con un recargo, y además la municipalidad puede aplicar una multa de tránsito. Pero estas multas no duran para siempre. Existe la prescripción, que extingue la deuda completamente si la concesionaria no cobra judicialmente dentro de 3 años.
 
 En este artículo te explicamos todo sobre la prescripción de multas TAG: el plazo exacto, cómo se calcula, qué diferencia hay entre la deuda civil con la concesionaria y la multa de tránsito, cómo solicitar la prescripción paso a paso, y cuál es la diferencia con la condonación del 80%.
+
+> **Transparencia:** LegalHelp Chile es una herramienta de orientación legal con IA, no un estudio de abogados. El contenido de esta página es informativo y no constituye asesoría legal formal. Para casos complejos, consulta con un abogado habilitado (Ley 18.120).
 
 ## Multas TAG: ¿qué son exactamente?
 
@@ -2010,8 +2030,8 @@ Si necesitas ayuda con el trámite, escríbenos por WhatsApp al +56 9 6765 8939.
       { q: '¿Puedo circular mientras espero la resolución de prescripción?', a: 'Sí. La solicitud de prescripción no afecta tu licencia ni tu ability para manejar. La multa sigue vigente hasta que el juez dicta resolución.' },
       { q: '¿La prescripción de multa TAG aplica si ya pagué parcialmente?', a: 'No. Si realizaste un pago parcial, la prescripción no aplica porque reconociste la deuda. La prescripción solo aplica a multas completamente impagas y no cobradas judicialmente.' },
     ],
-    titleSEO: 'Prescripción Multa TAG Chile 2026 | Plazo 3 Años y Cómo Solicitarla',
-    metaDescription: 'Prescripción de multas TAG en Chile: plazo de 3 años, paso a paso, diferencia con condonación 80%, formato de escrito. Guía completa 2026.',
+    titleSEO: 'Prescripción Multa TAG Chile 2026 | Servicio con Escrito Incluido',
+    metaDescription: 'Prescripción de multas TAG en Chile: plazo de 3 años, diferencia con condonación 80%, formato de escrito. Análisis $15.000 + escrito $10.000.',
     intent: 'Quiero saber si mi multa TAG ya prescribió y cómo eliminarla del Registro Civil.',
     caseType: 'deuda',
     role: 'consulta',
