@@ -2036,4 +2036,239 @@ Si necesitas ayuda con el trámite, escríbenos por WhatsApp al +56 9 6765 8939.
     caseType: 'deuda',
     role: 'consulta',
   },
+
+  // ══════════ CONSULTAR MULTAS TAG (keyword alta búsqueda) ══════════
+  {
+    slug: '/consultar-multas-tag',
+    h1: 'Cómo consultar tus multas TAG en Chile paso a paso',
+    diagnosText: `**Contenido:** [Consultar en PasasteSinTag](#consultar-en-pastesintag) → [Consultar en municipalidad](#consultar-en-la-municipalidad) → [Consultar en Registro Civil](#consultar-en-el-registro-civil) → [Consultar en Juzgado de Policía Local](#consultar-en-el-juzgado-de-policía-local) → [Consultar por patente](#consultar-por-patente) → [Qué hacer si tienes multas](#qué-hacer-si-tienes-multas-tag)
+
+---
+
+**Fuentes:** PasasteSinTag.cl, Registro Civil (registrocivil.cl), Ley 18.287, Ley 18.290 Art. 118 bis.
+
+---
+
+Si circulaste por autopistas concesionadas (Autopiste Central, Costanera Norte, Vespucio Norte, Autopiste del Sol) sin TAG habilitado o con TAG inhabilitado, es probable que tengas multas pendientes. En Chile existen varios donde puedes consultar el estado de tus multas TAG. Este artículo te explica cada uno, con links directos y paso a paso.
+
+### Consultar en PasasteSinTag
+
+[PasasteSinTag.cl](https://www.pastesintag.cl) es el portal oficial donde puedes consultar si tienes tránsitos sin TAG habilitado. Ingresa tu patente o RUT y el sistema te muestra:
+
+- Tránsitos pendientes de pago
+- Monto adeudado por peaje + recargo
+- Estado de la denuncia (si fue multada por la municipalidad)
+- Plazo para pagar antes de que derive en cobranza judicial
+
+### Consultar en la municipalidad
+
+Cada municipalidad tiene un sistema propio para consultar multas de tránsito. Puedes hacerlo:
+
+- **En línea:** busca "[nombre municipalidad] multas de tránsito" en Google
+- **Presencialmente:** ve a la Dirección de Obras Municipales con tu patente
+- **Por teléfono:** llama a la municipalidad y solicita información por patente
+
+### Consultar en el Registro Civil
+
+El Registro Civil lleva el Registro de Multas por Infracciones de Tránsito No Pagadas. Para consultar:
+
+1. Ve a [registrocivil.cl](https://www.registrocivil.cl) con tu clave Única
+2. O ve presencialmente a cualquier sucursal con tu cédula de identidad
+3. Solicita tu "certificado de multas de tránsito no pagadas"
+
+El certificado muestra: número de infracción, fecha, monto, estado (pagada/impaga/prescrita), fecha de anotación.
+
+### Consultar en el Juzgado de Policía Local
+
+Si tu multa ya fue derivada a cobro judicial, debes consultar directamente en el Juzgado de Policía Local que dictó la multa. Puedes hacerlo:
+
+- **Presencialmente:** en la secretaría del Juzgado
+- **En línea:** a través del [Poder Judicial](https://oficinajudicialvirtual.pjud.cl) con tu RUT
+
+### Consultar por patente
+
+Si no sabes si tu vehículo tiene multas TAG, puedes consultar por patente en:
+
+- PasasteSinTag.cl (tránsitos sin TAG)
+- Municipalidad del sector donde circularon las autopistas
+- Registro Civil (certificado de multas)
+
+### Qué hacer si tienes multas TAG
+
+Si al consultar descubres que tienes multas TAG, tienes tres opciones:
+
+1. **Pagar:** si la multa es reciente, puedes pagar el monto completo o aprovechar la condonación del 80% (si está vigente)
+2. **Prescribir:** si han pasado más de 3 años desde la anotación en el Registro Civil, puedes solicitar la prescripción y eliminar la multa sin pagar
+3. **Impugnar:** si la multa tiene errores (notificación defectuosa, patente incorrecta, falta de señales), puedes impugnarla ante el Juzgado de Policía Local
+
+> **Transparencia:** LegalHelp Chile es una herramienta de orientación legal con IA, no un estudio de abogados. Consulta con un abogado habilitado para casos complejos.`,
+    ctaText: 'Te ayudamos a consultar y resolver tus multas TAG',
+    bullets: [
+      'PasasteSinTag.cl: portal oficial para consultar tránsitos sin TAG. Ingresa tu patente o RUT.',
+      'Municipalidad: cada municipalidad tiene su sistema de consulta de multas de tránsito.',
+      'Registro Civil: certificado de multas no pagadas en registrocivil.cl con clave Única.',
+      'Juzgado de Policía Local: consulta en la secretaría del Juzgado que dictó la multa.',
+      'Si tienes multas TAG con más de 3 años, puedes prescribirlas y eliminarlas sin pagar.',
+      'Si la multa es reciente, puedes pagar con condonación del 80% (tope 100 UTM).',
+      'Consulta gratis por WhatsApp si necesitas ayuda con tus multas TAG.',
+    ],
+    faqs: [
+      { q: '¿Cómo saber si tengo multas TAG en Chile?', a: 'Consulta en PasasteSinTag.cl con tu patente o RUT. También puedes solicitar tu certificado de multas en el Registro Civil (registrocivil.cl) con tu clave Única.' },
+      { q: '¿Dónde puedo consultar mis multas de tránsito?', a: 'En la municipalidad que emitió la multa, en el Registro Civil (registrocivil.cl), en PasasteSinTag.cl para multas TAG, o en el Juzgado de Policía Local si ya están en cobro judicial.' },
+      { q: '¿Las multas TAG aparecen en el Registro Civil?', a: 'Sí. El Registro Civil lleva el Registro de Multas por Infracciones de Tránsito No Pagadas. Puedes obtener tu certificado en registrocivil.cl con tu clave Única.' },
+      { q: '¿Qué pasa si no pago mis multas TAG?', a: 'Las multas TAG pueden impedir la renovación del permiso de circulación, la transferencia del vehículo y generar cobranza judicial con embargo. Es mejor resolverlas a tiempo.' },
+      { q: '¿Puedo consultar multas TAG por patente?', a: 'Sí. En PasasteSinTag.cl puedes consultar por patente o RUT. En la municipalidad también puedes consultar por patente.' },
+    ],
+    titleSEO: 'Consultar Multas TAG Chile 2026 | Dónde Revisar tus Multas',
+    metaDescription: 'Consulta tus multas TAG en Chile: PasasteSinTag.cl, Registro Civil, municipalidad y Juzgado de Policía Local. Paso a paso y links directos.',
+    intent: 'Quiero saber si tengo multas TAG y dónde consultarlas.',
+    caseType: 'deuda',
+    role: 'consulta',
+  },
+
+  // ══════════ CONDONACIÓN MULTAS TAG 2026 (keyword temporal/alta búsqueda) ══════════
+  {
+    slug: '/condonacion-multas-tag-2026',
+    h1: 'Condonación del 80% de multas TAG en Chile 2026',
+    diagnosText: `**Contenido:** [¿Qué es la condonación?](#qué-es-la-condonación-del-80) → [Requisitos](#requisitos-para-acceder-a-la-condonación) → [Cuánto pagas](#cuánto-pagas-con-la-condonación) → [Paso a paso](#cómo-acceder-a-la-condonación-paso-a-paso) → [Diferencia con prescripción](#diferencia-entre-condonación-y-prescripción) → [Fecha límite](#fecha-límite-de-la-condonación)
+
+---
+
+**Fuentes:** Ley 21.547 (Condonación multas TAG), Registro Civil de Chile, Juzgados de Policía Local.
+
+---
+
+La Ley 21.547 establece la condonación del 80% de las multas por circular sin TAG habilitado en Chile. Esto significa que si debes multas TAG, puedes pagar solo el 20% del monto original. Este artículo te explica todo: requisitos, cuánto pagas, cómo acceder y la diferencia con la prescripción.
+
+### ¿Qué es la condonación del 80%?
+
+La condonación del 80% es un beneficio fiscal que permite reducir el monto de multas TAG al 20%. La ley tiene un tope de 100 UTM, lo que significa que el máximo que puedes pagar es 100 UTM ($7.164.900 aproximadamente).
+
+**Ejemplos:**
+- Multa de 50 UTM → pagas 10 UTM (20%)
+- Multa de 100 UTM → pagas 20 UTM (20%)
+- Multa de 200 UTM → pagas 100 UTM (tope máximo)
+
+### Requisitos para acceder a la condonación
+
+1. La multa debe ser por circular sin TAG habilitado (Art. 118 bis Ley de Tránsito)
+2. La multa debe estar registrada en el Registro de Multas por Infracciones de Tránsito No Pagadas
+3. No debe existir resolución judicial firme de pago
+4. Debe estar dentro del plazo de vigencia de la ley
+
+### Cuánto pagas con la condonación
+
+El cálculo es simple: pagas el 20% del monto original, con un tope de 100 UTM.
+
+### Cómo acceder a la condonación: paso a paso
+
+1. Consulta tus multas en PasasteSinTag.cl o en el Registro Civil
+2. Ve al Juzgado de Policía Local que dictó la multa
+3. Solicita la condonación del 80% presentando tu certificado de multas
+4. Paga el 20% del monto
+5. El Juzgado emite resolución de condonación
+
+### Diferencia entre condonación y prescripción
+
+| | Condonación | Prescripción |
+|---|---|---|
+| **Qué hace** | Reduce el monto al 20% | Extingue la deuda completa |
+| **Cuánto pagas** | El 20% del monto | No pagas nada |
+| **Requisito** | Que la multa esté vigente | Que hayan pasado 3+ años |
+| **Plazo** | Según la ley vigente | 3 años desde anotación |
+
+### Fecha límite de la condonación
+
+La condonación tiene fecha de vigencia según la ley. Consulta en el Juzgado de Policía Local si tu multa califica actualmente.
+
+> **Transparencia:** LegalHelp Chile es una herramienta de orientación legal con IA, no un estudio de abogados. Consulta con un abogado habilitado para casos complejos.`,
+    ctaText: 'Te ayudamos a aplicar la condonación del 80%',
+    bullets: [
+      'La condonación del 80% reduce tu multa TAG al 20% del monto original (tope 100 UTM).',
+      'La condonación es diferente a la prescripción: la condonación reduce, la prescripción elimina.',
+      'Si tu multa tiene más de 3 años, puede prescribir (no pagas nada) en vez de condonar.',
+      'Consulta tus multas en PasasteSinTag.cl o en el Registro Civil.',
+      'Ve al Juzgado de Policía Local que dictó la multa para solicitar la condonación.',
+      'Paga el 20% del monto y el Juzgado emite resolución de condonación.',
+      'Consulta gratis por WhatsApp si necesitas ayuda con multas TAG.',
+    ],
+    faqs: [
+      { q: '¿Qué es la condonación del 80% de multas TAG?', a: 'Es un beneficio de la Ley 21.547 que permite pagar solo el 20% del monto de multas TAG, con un tope de 100 UTM. Si debes 100 UTM, pagas solo 20 UTM.' },
+      { q: '¿Cuánto pagó con la condonación del 80%?', a: 'Pagas el 20% del monto original. Ejemplo: si debes 50 UTM, pagas 10 UTM. El tope es 100 UTM, así que el máximo que pagas es 20 UTM (20% de 100 UTM).' },
+      { q: '¿Cuál es la fecha límite de la condonación?', a: 'La condonación tiene vigencia según la ley. Consulta en el Juzgado de Policía Local si tu multa califica actualmente.' },
+      { q: '¿Puedo condonar y prescribir la misma multa?', a: 'No. Son opciones excluyentes. Si prescribes, no pagas nada. Si condonas, pagas el 20%. Elige la que te convenga más.' },
+      { q: '¿Dónde solicito la condonación?', a: 'En el Juzgado de Policía Local que dictó la multa. Lleva tu certificado de multas del Registro Civil y tu cédula de identidad.' },
+    ],
+    titleSEO: 'Condonación 80% Multas TAG Chile 2026 | Cuánto Pagas y Cómo Solicitarla',
+    metaDescription: 'Condonación del 80% de multas TAG en Chile 2026: cuánto pagas, requisitos, paso a paso y diferencia con prescripción. Ley 21.547.',
+    intent: 'Quiero saber cuánto pago con la condonación del 80% de multas TAG.',
+    caseType: 'deuda',
+    role: 'consulta',
+  },
+
+  // ══════════ MULTAS AUTOPISTA CENTRAL (keyword de ubicación específica) ══════════
+  {
+    slug: '/multas-autopista-central',
+    h1: 'Multas de Autopista Central en Chile: cómo consultarlas y eliminarlas',
+    diagnosText: `**Contenido:** [¿Qué son las multas?](#multas-de-autopista-central) → [Consultar multas](#cómo-consultar-tus-multas-de-autopista-central) → [Tipos de multas](#tipos-de-multas-autopista-central) → [Condonación 80%](#condonación-del-80) → [Prescripción](#prescripción-de-multas-autopista-central) → [Errores comunes](#errores-comunes)
+
+---
+
+**Fuentes:** Ley 18.290 Art. 118 bis, Ley 18.287 Art. 24, PasasteSinTag.cl, Autopiste Central.
+
+---
+
+Si circulas por Autopiste Central sin TAG habilitado, puedes recibir multas de tránsito y cobros de peaje. En este artículo te explicamos cómo consultar tus multas, cuánto puedes pagar con la condonación del 80%, y cómo prescribirlas si ya pasó el plazo legal.
+
+### Multas de Autopista Central
+
+Autopiste Central es la concesionaria que administra la autopista que cruza Santiago de Este a Oeste. Cuando circulas sin TAG habilitado:
+
+1. La concesionaria te cobra la tarifa del peaje + recargo (deuda civil)
+2. La municipalidad puede aplicarte una multa de tránsito (Art. 118 bis)
+
+Son dos obligaciones distintas: la deuda civil con la concesionaria y la multa de tránsito.
+
+### Cómo consultar tus multas de Autopiste Central
+
+1. **PasasteSinTag.cl:** ingresa tu patente y revisa los tránsitos pendientes
+2. **Autopiste Central:** consulta directamente en el portal de la concesionaria
+3. **Registro Civil:** solicita tu certificado de multas no pagadas
+4. **Municipalidad:** consulta en la municipalidad del sector
+
+### Tipos de multas Autopiste Central
+
+- **Multas por circular sin TAG:** Art. 118 bis de la Ley de Tránsito
+- **Cobro de peaje:** deuda civil con la concesionaria (prescribe a 5 años)
+- **Recargos:** intereses y recargos por pago tardío
+
+### Condonación del 80%
+
+Si tienes multas TAG de Autopiste Central, puedes condonar el 80% pagando solo el 20% (tope 100 UTM).
+
+### Prescripción de multas Autopiste Central
+
+Si han pasado más de 3 años desde la anotación en el Registro Civil, puedes prescribir la multa de tránsito. La deuda civil con la concesionaria prescribe a 5 años.
+
+> **Transparencia:** LegalHelp Chile es una herramienta de orientación legal con IA, no un estudio de abogados.`,
+    ctaText: 'Te ayudamos con multas de Autopiste Central',
+    bullets: [
+      'Autopiste Central cobra peaje + recargo si circulas sin TAG habilitado.',
+      'Consulta en PasasteSinTag.cl con tu patente para ver tránsitos pendientes.',
+      'La multa de tránsito prescribe a 3 años (Ley 18.287 Art. 24).',
+      'La deuda civil con la concesionaria prescribe a 5 años (Código Civil Art. 2515).',
+      'Puedes condonar el 80% de la multa pagando solo el 20% (tope 100 UTM).',
+      'Consulta gratis por WhatsApp si necesitas ayuda con multas de Autopiste Central.',
+    ],
+    faqs: [
+      { q: '¿Cómo consultar multas de Autopiste Central?', a: 'En PasasteSinTag.cl con tu patente, en el portal de Autopiste Central, en el Registro Civil o en la municipalidad.' },
+      { q: '¿Cuánto tiempo prescribe una multa de Autopiste Central?', a: 'La multa de tránsito prescribe a 3 años desde la anotación en el Registro Civil. La deuda civil prescribe a 5 años.' },
+      { q: '¿Puedo condonar las multas de Autopiste Central?', a: 'Sí, si son multas TAG puedes condonar el 80% pagando solo el 20% (tope 100 UTM).' },
+    ],
+    titleSEO: 'Multas Autopiste Central Chile 2026 | Consultar, Condonar y Prescribir',
+    metaDescription: 'Multas de Autopiste Central en Chile: consultar, condonar 80% y prescribir. Guía completa con links y paso a paso.',
+    intent: 'Tengo multas de Autopiste Central y quiero saber cómo resolverlas.',
+    caseType: 'deuda',
+    role: 'consulta',
+  },
 ];
