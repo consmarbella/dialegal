@@ -660,7 +660,17 @@ function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "mainEntity": ${JSON.stringify(faqSchema)}
-  },
+  },${page.slug === '/prescripcion-multas-tag' ? `
+  {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "Prescripción Multa TAG",
+    "description": "Análisis $15.000 + escrito $10.000 por juzgado. Atención vía WhatsApp +56967658939",
+    "offers": [
+      { "@type": "Offer", "price": "15000", "priceCurrency": "CLP", "availability": "https://schema.org/InStock", "url": "${baseUrl}${page.slug}" },
+      { "@type": "Offer", "price": "10000", "priceCurrency": "CLP", "availability": "https://schema.org/InStock", "url": "${baseUrl}${page.slug}" }
+    ]
+  },` : ''}
   {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -1355,13 +1365,6 @@ function registerSEORoutes() {
   // Redirecciones 301 para URLs legadas /p/* (SEO histórico) hacia páginas actuales
   app.get("/p/:slug", (req, res) => {
     res.redirect(301, resolvePseoRedirect(req.params.slug));
-  });
-
-  // Página estática: prescripción multas TAG (reemplaza la dinámica)
-  app.get("/prescripcion-multas-tag", (_req, res) => {
-    const htmlPath = path.join(process.cwd(), "public", "prescripcion-multas-tag.html");
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.sendFile(htmlPath);
   });
 
   // Páginas programáticas: prescripción de multas por comuna (RM)
