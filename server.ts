@@ -659,6 +659,16 @@ function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
   },
   {
     "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "LegalHelp Chile",
+    "telephone": "+56967658939",
+    "email": "contacto@legalhelp.cl",
+    "url": "https://legalhelp.cl",
+    "address": { "@type": "PostalAddress", "addressLocality": "Santiago", "addressRegion": "Región Metropolitana", "addressCountry": "CL" },
+    "priceRange": "$$"
+  },
+  {
+    "@context": "https://schema.org",
     "@type": "FAQPage",
     "mainEntity": ${JSON.stringify(faqSchema)}
   },${page.slug === '/prescripcion-multas-tag' ? `
