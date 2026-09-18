@@ -643,8 +643,9 @@ function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
     "isPartOf": { "@type": "WebSite", "name": "LegalHelp Chile", "url": "${baseUrl}/" },
     "datePublished": "${pageDate}",
     "dateModified": "${pageDate}",
-    "author": { "@type": "Organization", "name": "LegalHelp Chile", "url": "https://legalhelp.cl" },
-    "publisher": { "@type": "Organization", "name": "LegalHelp Chile", "url": "https://legalhelp.cl" }
+    "author": { "@type": "Person", "name": "Equipo LegalHelp Chile", "jobTitle": "Orientación Legal", "url": "https://legalhelp.cl" },
+    "reviewedBy": { "@type": "Organization", "name": "LegalHelp Chile", "url": "https://legalhelp.cl" },
+    "publisher": { "@type": "Organization", "name": "LegalHelp Chile", "url": "https://legalhelp.cl", "logo": { "@type": "ImageObject", "url": "${baseUrl}/og-image.png" } }
   },
   {
     "@context": "https://schema.org",
@@ -739,6 +740,7 @@ function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
     <div class="breadcrumb"><a href="/">Inicio</a> &rsaquo; ${page.caseType === 'arriendo' ? 'Arriendo' : page.caseType === 'laboral' ? 'Laboral' : page.caseType === 'deuda' ? 'Deudas' : page.caseType === 'civil' ? 'Civil' : page.caseType === 'familia' ? 'Familia' : page.caseType === 'penal' ? 'Penal' : 'Legal'}</div>
     <span class="role-badge" style="background:${roleColor}15;color:${roleColor}">${roleLabel}</span>
     <h1>${page.h1}</h1>
+    <p style="font-size:12px;color:#64748b;margin:-16px 0 16px;">Por <strong>Equipo LegalHelp Chile</strong> · Actualizado ${pageDate} · Revisado · <a href="https://wa.me/56967658939" style="color:#2563eb;text-decoration:none;">WhatsApp +56 9 6765 8939</a></p>
     <p class="section-label">Diagnóstico del caso</p>
     <div class="diagnos-text">${page.diagnosText}</div>
     <a href="/" class="cta-box">${page.ctaText} <span class="arrow">→</span></a>
