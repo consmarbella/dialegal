@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, ShieldCheck, CheckCircle2, CreditCard, Building, ArrowRight, Sparkles } from 'lucide-react';
+import { X, Lock, ShieldCheck, CheckCircle2, MessageCircle, ArrowRight } from 'lucide-react';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -8,20 +8,17 @@ interface PaymentModalProps {
   areaLabel: string;
 }
 
+const WHATSAPP_NUMBER = '56967658939';
+
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
   areaLabel,
 }) => {
-  const [paymentMethod, setPaymentMethod] = useState<'webpay' | 'mercadopago' | 'transferencia'>('webpay');
-  const [rut, setRut] = useState('');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [adminCode, setAdminCode] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [statusMsg, setStatusMsg] = useState('');
 
   if (!isOpen) return null;
 
@@ -29,7 +26,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     setAdminCode(code);
     if (code === atob('NDMyMQ==')) {
       setIsProcessing(true);
-      setStatusMsg('Código Administrador validado. Saltando pago...');
       setTimeout(() => {
         setIsProcessing(false);
         setIsSuccess(true);
@@ -41,66 +37,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsProcessing(true);
-    setStatusMsg('Conectando con la pasarela de pago segura...');
-
-    try {
-      const response = await fetch('/api/payment/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          rut,
-          email,
-          amount: 19990,
-          title: 'Dictamen Técnico Legal Completo',
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.checkoutUrl) {
-        setStatusMsg('Redirigiendo al formulario de pago seguro con tarjeta...');
-        // Open checkout
-        window.location.href = data.checkoutUrl;
-        return;
-      }
-
-      // If in sandbox/demo environment without active MP token key, confirm test payment
-      if (data.orderId) {
-        setStatusMsg('Procesando transacción ($19.990 CLP)...');
-        await fetch('/api/payment/confirm-test', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId: data.orderId }),
-        });
-      }
-
-      setTimeout(() => {
-        setIsProcessing(false);
-        setIsSuccess(true);
-
-        setTimeout(() => {
-          onSuccess();
-          setIsSuccess(false);
-        }, 1200);
-      }, 1500);
-
-    } catch (err) {
-      console.error('Error procesando pago:', err);
-      // Fallback approval for seamless user experience
-      setTimeout(() => {
-        setIsProcessing(false);
-        setIsSuccess(true);
-        setTimeout(() => {
-          onSuccess();
-          setIsSuccess(false);
-        }, 1200);
-      }, 1500);
-    }
-  };
+  const whatsappMessage = encodeURIComponent(
+    `Hola, solicito el link de pago para desbloquear mi Dictamen Técnico Legal Completo (${areaLabel}) por $19.990 CLP.`
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-200">
@@ -114,12 +53,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base text-white">Pasarela de Pago Segura</h3>
+                <h3 className="font-bold text-base text-white">Desbloqueo de Diagnóstico</h3>
                 <span className="text-[10px] uppercase font-bold bg-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded border border-emerald-400/30">
-                  Tarjeta Bancaria SSL 256-bit
+                  Respuesta inmediata
                 </span>
               </div>
-              <p className="text-xs text-slate-300">Desbloqueo de Diagnóstico Legal Completo ({areaLabel})</p>
+              <p className="text-xs text-slate-300">Diagnóstico Legal Completo ({areaLabel})</p>
             </div>
           </div>
           <button
@@ -171,8 +110,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <div className="py-12 text-center space-y-4">
               <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
               <div>
-                <h4 className="text-base font-bold text-slate-900">Conectando con la Pasarela Bancaria...</h4>
-                <p className="text-xs text-slate-500 mt-1">{statusMsg || 'Validando transacción de $19.990 CLP (Pago Único).'}</p>
+                <h4 className="text-base font-bold text-slate-900">Validando código...</h4>
+                <p className="text-xs text-slate-500 mt-1">Desbloqueando tu dictamen legal.</p>
               </div>
             </div>
           ) : (
@@ -190,84 +129,36 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 </div>
               </div>
 
-              {/* Payment Method Selected Banner */}
-              <div className="border border-blue-200 bg-blue-50/80 rounded-lg p-3.5 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
-                  <CreditCard className="w-5 h-5" />
+              {/* Payment Method Banner */}
+              <div className="border border-green-200 bg-green-50/80 rounded-lg p-3.5 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-green-600 text-white flex items-center justify-center shrink-0">
+                  <MessageCircle className="w-5 h-5" />
                 </div>
                 <div className="flex-1">
-                  <span className="text-xs font-extrabold text-blue-900 block">Medio de Pago: Tarjeta Bancaria</span>
-                  <span className="text-[11px] text-blue-700 font-medium">Acepta tarjetas de Débito (Redcompra / CuentaRUT) y Crédito (Visa, Mastercard)</span>
+                  <span className="text-xs font-extrabold text-green-900 block">Link de pago por WhatsApp</span>
+                  <span className="text-[11px] text-green-700 font-medium">Te enviamos un link seguro de pago (Débito, Crédito o transferencia) al instante</span>
                 </div>
               </div>
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
-
-                {/* User Info Fields */}
-                <div className="space-y-3 pt-1">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Nombre Completo del Titular
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Ej: María González Pérez"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        RUT Titular
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={rut}
-                        onChange={(e) => setRut(e.target.value)}
-                        placeholder="Ej: 15.432.890-K"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Correo para Recibo y Copia
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="ejemplo@correo.cl"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-
+              <div className="space-y-4">
                 {/* Security Guarantee */}
                 <div className="flex items-center gap-2 text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded border border-slate-200">
                   <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Cifrado de grado bancario. Acceso inmediato permanente tras autorizar el pago.</span>
+                  <span>Te enviamos el link oficial de pago. Tras confirmar el pago, tu dictamen se desbloquea al instante.</span>
                 </div>
 
-                {/* Submit Action Button */}
-                <button
-                  type="submit"
-                  className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm rounded-lg transition-all shadow-sm flex items-center justify-center gap-2 mt-2"
+                {/* WhatsApp CTA */}
+                <a
+                  href={`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3.5 px-4 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold text-sm rounded-lg transition-all shadow-sm flex items-center justify-center gap-2"
                 >
-                  <CreditCard className="w-4 h-4" />
-                  <span>Pagar con Tarjeta Bancaria ($19.990 CLP)</span>
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Solicitar link de pago al WhatsApp ($19.990 CLP)</span>
                   <ArrowRight className="w-4 h-4" />
-                </button>
-
-              </form>
+                </a>
+              </div>
             </>
           )}
 
