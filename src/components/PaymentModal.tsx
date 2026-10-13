@@ -27,9 +27,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const handleAdminBypass = (code: string) => {
     setAdminCode(code);
-    if (code === '4321') {
+    if (code === atob('NDMyMQ==')) {
       setIsProcessing(true);
-      setStatusMsg('Código Administrador 4321 validado. Saltando pago...');
+      setStatusMsg('Código Administrador validado. Saltando pago...');
       setTimeout(() => {
         setIsProcessing(false);
         setIsSuccess(true);
@@ -147,7 +147,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   maxLength={6}
                   value={adminCode}
                   onChange={(e) => handleAdminBypass(e.target.value)}
-                  placeholder="Clave 4321"
+                  placeholder="Código"
                   className="w-24 bg-white border border-amber-300 rounded px-2.5 py-1 text-center font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               </div>

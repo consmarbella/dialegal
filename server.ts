@@ -66,6 +66,36 @@ const getGeminiClient = () => {
   });
 };
 
+// Reintento + modelo de respaldo ante errores transitorios de Gemini (429/500/503 UNAVAILABLE "high demand")
+const GEMINI_MODEL_CHAIN = ["gemini-3.6-flash", "gemini-3.5-flash"];
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503]);
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function generateWithFallback(
+  ai: GoogleGenAI,
+  payload: { contents: any; config?: any }
+) {
+  let lastErr: any;
+  for (const model of GEMINI_MODEL_CHAIN) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await ai.models.generateContent({ model, ...payload } as any);
+      } catch (err: any) {
+        lastErr = err;
+        const status = Number(err?.status ?? err?.code);
+        const retryable =
+          RETRYABLE_STATUS.has(status) ||
+          /UNAVAILABLE|high demand|overloaded|503/i.test(String(err?.message || ""));
+        console.warn(`[gemini] ${model} intento ${attempt + 1}/3 falló (status=${status}): ${err?.message}`);
+        if (!retryable) break; // error no transitorio -> probar siguiente modelo
+        await sleep(1200 * 2 ** attempt); // 1.2s, 2.4s, 4.8s
+      }
+    }
+  }
+  throw lastErr;
+}
+
 const SYSTEM_INSTRUCTION_LAWYER = `Eres un Abogado Litigante Senior en Chile, experto en derecho civil, laboral, penal y de familia, con profundo conocimiento del funcionamiento del Poder Judicial (PJUD) y la Oficina Judicial Virtual (OJV).
 
 Tu objetivo es analizar los documentos legales (resoluciones, demandas, notificaciones) subidos por el usuario, cruzar esa información con el relato de su problema, y entregar un diagnóstico legal preciso, estructurado y en lenguaje comprensible para una persona sin estudios de derecho.
@@ -162,8 +192,7 @@ Incluye: individualización de la resolución recurrida, fundamentos de hecho y 
 
     const prompt = templatePrompts[templateId] || templatePrompts.contestacion_civil;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+    const response = await generateWithFallback(ai, {
       contents: { parts: [{ text: prompt }] },
       config: {
         systemInstruction: SYSTEM_INSTRUCTION_DOCUMENT_GENERATOR,
@@ -287,8 +316,7 @@ app.post("/api/analyze", async (req, res) => {
 
     parts.push({ text: promptContent });
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+    const response = await generateWithFallback(ai, {
       contents: { parts },
       config: {
         systemInstruction: SYSTEM_INSTRUCTION_LAWYER,
@@ -345,8 +373,7 @@ app.post("/api/chat", async (req, res) => {
 
     contents.push({ role: "user", parts: [{ text: fullPrompt }] });
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+    const response = await generateWithFallback(ai, {
       contents,
       config: {
         systemInstruction:
