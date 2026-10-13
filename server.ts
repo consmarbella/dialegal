@@ -779,10 +779,10 @@ function mdLite(src: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
-  // Links: [texto](/url) o [texto](https://...) -> <a href>
+  // Links: [texto](/url) o [texto](https://...) o [texto](#ancla) -> <a href>
   s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, text, url) => {
-    // Solo permitir rutas relativas o https
-    if (url.startsWith("/") || url.startsWith("https://")) {
+    // Solo permitir rutas relativas, https o anclas
+    if (url.startsWith("/") || url.startsWith("https://") || url.startsWith("#")) {
       return `<a href="${url}">${text}</a>`;
     }
     return text;
