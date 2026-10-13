@@ -66,17 +66,62 @@ const getGeminiClient = () => {
   });
 };
 
-// Reintento + modelo de respaldo ante errores transitorios de Gemini (429/500/503 UNAVAILABLE "high demand")
-const GEMINI_MODEL_CHAIN = ["gemini-3.6-flash", "gemini-3.5-flash"];
-const RETRYABLE_STATUS = new Set([429, 500, 502, 503]);
+// Reintento + cadena de modelos de respaldo ante errores de Gemini.
+// Cada modelo free-tier tiene su propia cuota DIARIA (20 req/día). Si uno se agota,
+// saltamos al siguiente al instante (reintentar el mismo es inútil hasta ~5h después).
+const GEMINI_MODEL_CHAIN = [
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
+  "gemini-2.0-flash",
+];
+const RETRYABLE_STATUS = new Set([500, 502, 503]);
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Error lanzado cuando TODOS los modelos agotaron su cuota diaria. */
+class GeminiQuotaExhaustedError extends Error {
+  retryAfterSeconds: number;
+  constructor(retryAfterSeconds: number) {
+    super("Cuota diaria de IA agotada en todos los modelos.");
+    this.name = "GeminiQuotaExhaustedError";
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+function isDailyQuotaError(err: any): boolean {
+  const msg = String(err?.message || "");
+  return (
+    /RESOURCE_EXHAUSTED/i.test(msg) ||
+    /quota exceeded/i.test(msg) ||
+    /generate_content_free_tier_requests/i.test(msg) ||
+    /per_day|PerDay|per project per model/i.test(msg)
+  );
+}
+
+/** Extrae el retryDelay (segundos) que Google sugiere para cuotas diarias. */
+function parseRetryDelaySeconds(err: any): number {
+  const msg = String(err?.message || "");
+  const m = msg.match(/retry(?:Delay)?[":\s]+(\d+)\s*s/i) || msg.match(/Please retry in (\d+)h/);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    // Si matcheó "Nh" convertir a segundos
+    if (/Please retry in/i.test(msg) && /h/.test(m[0])) return n * 3600;
+    return n;
+  }
+  // Fallback conservador: ~5 horas
+  return 5 * 3600;
+}
 
 async function generateWithFallback(
   ai: GoogleGenAI,
   payload: { contents: any; config?: any }
 ) {
   let lastErr: any;
+  let quotaErrors = 0;
+  let maxRetryAfter = 0;
+
   for (const model of GEMINI_MODEL_CHAIN) {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
@@ -84,16 +129,75 @@ async function generateWithFallback(
       } catch (err: any) {
         lastErr = err;
         const status = Number(err?.status ?? err?.code);
-        const retryable =
-          RETRYABLE_STATUS.has(status) ||
-          /UNAVAILABLE|high demand|overloaded|503/i.test(String(err?.message || ""));
-        console.warn(`[gemini] ${model} intento ${attempt + 1}/3 falló (status=${status}): ${err?.message}`);
-        if (!retryable) break; // error no transitorio -> probar siguiente modelo
-        await sleep(1200 * 2 ** attempt); // 1.2s, 2.4s, 4.8s
+        const msg = String(err?.message || "");
+        console.warn(`[gemini] ${model} intento ${attempt + 1}/3 falló (status=${status}): ${msg.slice(0, 300)}`);
+
+        // Cuota DIARIA agotada: no reintentar este modelo, saltar al siguiente al instante.
+        if (status === 429 && isDailyQuotaError(err)) {
+          quotaErrors++;
+          maxRetryAfter = Math.max(maxRetryAfter, parseRetryDelaySeconds(err));
+          console.warn(`[gemini] ${model}: cuota diaria agotada, saltando al siguiente modelo.`);
+          break; // sale del loop de intentos -> pasa al siguiente modelo del chain
+        }
+
+        // 429 transitorio (rate limit por minuto): backoff corto y reintentar.
+        if (status === 429) {
+          await sleep(1500 * (attempt + 1));
+          continue;
+        }
+
+        // Errores 5xx transitorios: backoff exponencial.
+        if (RETRYABLE_STATUS.has(status) || /UNAVAILABLE|high demand|overloaded/i.test(msg)) {
+          await sleep(1200 * 2 ** attempt);
+          continue;
+        }
+
+        // Error no transitorio (400/404 modelo inexistente, etc.): probar siguiente modelo.
+        break;
       }
     }
   }
+
+  // Si el fallo fue mayoritariamente por cuota diaria, lanzar error tipado
+  // para que los endpoints respondan 429 con mensaje amigable.
+  if (quotaErrors > 0 && quotaErrors >= GEMINI_MODEL_CHAIN.length - 1) {
+    throw new GeminiQuotaExhaustedError(maxRetryAfter || 5 * 3600);
+  }
   throw lastErr;
+}
+
+// ========== CACHÉ DE RESPUESTAS IDENTÍCTICAS (ahorra cuota free-tier) ==========
+const responseCache = new Map<string, { text: string; expires: number }>();
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+
+function cacheKey(parts: string[]): string {
+  return crypto.createHash("sha256").update(parts.join("||")).digest("hex").slice(0, 32);
+}
+
+function getCached(key: string): string | null {
+  const hit = responseCache.get(key);
+  if (!hit) return null;
+  if (Date.now() > hit.expires) {
+    responseCache.delete(key);
+    return null;
+  }
+  return hit.text;
+}
+
+function setCached(key: string, text: string) {
+  // Evitar que el caché crezca sin límite
+  if (responseCache.size > 500) {
+    const now = Date.now();
+    for (const [k, v] of responseCache) {
+      if (v.expires < now) responseCache.delete(k);
+    }
+    // Si sigue lleno, borrar las entradas más antiguas
+    if (responseCache.size > 500) {
+      const first = responseCache.keys().next().value;
+      if (first) responseCache.delete(first);
+    }
+  }
+  responseCache.set(key, { text, expires: Date.now() + CACHE_TTL_MS });
 }
 
 const SYSTEM_INSTRUCTION_LAWYER = `Eres un Abogado Litigante Senior en Chile, experto en derecho civil, laboral, penal y de familia, con profundo conocimiento del funcionamiento del Poder Judicial (PJUD) y la Oficina Judicial Virtual (OJV).
@@ -142,6 +246,20 @@ REGLAS OBLIGATORIAS:
 7. DESCARGO: Al final del documento incluye la advertencia de que este es un modelo generado por IA que debe ser revisado y firmado por un abogado habilitado.
 
 Responde ÚNICAMENTE con el documento legal redactado en markdown, sin comentarios adicionales ni introducciones.`;
+
+// Helper: respuesta amigable cuando la cuota diaria de IA se agota en todos los modelos.
+function sendQuotaExhausted(res: any, err: any) {
+  if (err instanceof GeminiQuotaExhaustedError) {
+    const minutes = Math.max(5, Math.round(err.retryAfterSeconds / 60));
+    res.status(429).json({
+      error: `El servicio de IA está temporalmente saturado (cuota diaria agotada). Puede tardar hasta ~${minutes} min en restablecerse. Si tu caso es urgente, escríbenos por WhatsApp y te atendemos directamente: https://wa.me/56967658939`,
+      retryAfter: err.retryAfterSeconds,
+      whatsapp: "https://wa.me/56967658939",
+    });
+    return true;
+  }
+  return false;
+}
 
 // ========== DOCUMENT GENERATION ENDPOINT ==========
 app.post("/api/generate-document", async (req, res) => {
@@ -206,8 +324,9 @@ Incluye: individualización de la resolución recurrida, fundamentos de hecho y 
     res.json({ document, templateId });
   } catch (err: any) {
     console.error("Error en /api/generate-document:", err);
+    if (sendQuotaExhausted(res, err)) return;
     res.status(500).json({
-      error: "Error generando el documento legal: " + (err.message || "Error interno"),
+      error: "Error generando el documento legal. Intenta nuevamente en unos minutos.",
     });
   }
 });
@@ -316,6 +435,17 @@ app.post("/api/analyze", async (req, res) => {
 
     parts.push({ text: promptContent });
 
+    // Caché: mismo relato + mismo documento = análisis cacheado (ahorra cuota diaria)
+    const filesSig = files && Array.isArray(files)
+      ? files.map((f: any) => `${f.name}:${(f.data || "").length}`).join(",")
+      : "";
+    const aKey = cacheKey([promptContent, filesSig]);
+    const cachedAnalysis = getCached(aKey);
+    if (cachedAnalysis) {
+      console.log("[cache] /api/analyze hit de caché");
+      return res.json({ analysis: cachedAnalysis, cached: true });
+    }
+
     const response = await generateWithFallback(ai, {
       contents: { parts },
       config: {
@@ -326,11 +456,13 @@ app.post("/api/analyze", async (req, res) => {
 
     const analysis = response.text || "No se pudo generar el análisis legal. Por favor intenta nuevamente.";
 
+    setCached(aKey, analysis);
     res.json({ analysis });
   } catch (err: any) {
     console.error("Error en /api/analyze:", err);
+    if (sendQuotaExhausted(res, err)) return;
     res.status(500).json({
-      error: "Error procesando el análisis legal: " + (err.message || "Error interno del servidor"),
+      error: "Error procesando el análisis legal. Intenta nuevamente en unos minutos.",
     });
   }
 });
@@ -342,6 +474,17 @@ app.post("/api/chat", async (req, res) => {
 
     if (!userMessage || typeof userMessage !== "string") {
       return res.status(400).json({ error: "Mensaje de usuario requerido." });
+    }
+
+    // Caché: misma pregunta + mismo contexto = respuesta cacheada (ahorra cuota diaria)
+    const cKey = cacheKey([
+      userMessage,
+      typeof currentCaseContext === "string" ? currentCaseContext.slice(0, 2000) : "",
+    ]);
+    const cached = getCached(cKey);
+    if (cached) {
+      console.log("[cache] /api/chat hit de caché");
+      return res.json({ reply: cached, cached: true });
     }
 
     const ai = getGeminiClient();
@@ -386,11 +529,14 @@ app.post("/api/chat", async (req, res) => {
     const reply =
       response.text ||
       "Estimado cliente, conforme a la legislación procesal chilena y los antecedentes aportados, le sugiero verificar la fecha exacta de notificación y revisar las actuaciones en la Oficina Judicial Virtual (OJV).";
+
+    setCached(cKey, reply);
     res.json({ reply });
   } catch (err: any) {
     console.error("Error en /api/chat:", err);
+    if (sendQuotaExhausted(res, err)) return;
     res.status(500).json({
-      error: "Error procesando la consulta: " + (err.message || "Error interno del servidor"),
+      error: "Error procesando la consulta. Intenta nuevamente en unos minutos.",
     });
   }
 });

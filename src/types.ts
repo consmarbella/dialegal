@@ -57,4 +57,6 @@ export interface ChatMessage {
   role: 'user' | 'model';
   content: string;
   timestamp: string;
+  isQuotaExhausted?: boolean;
+  whatsappUrl?: string;
 }

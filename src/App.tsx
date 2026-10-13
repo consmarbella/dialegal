@@ -87,6 +87,14 @@ export default function App() {
       const data = await response.json();
 
       if (!response.ok || data.error) {
+        // 429: cuota diaria de IA agotada -> mensaje amigable + CTA WhatsApp
+        if (response.status === 429) {
+          const msg = data.error || 'El servicio de IA está temporalmente saturado. Si tu caso es urgente, escríbenos por WhatsApp.';
+          if (window.confirm(msg + '\n\n¿Abrir WhatsApp ahora?')) {
+            window.open(data.whatsapp || 'https://wa.me/56967658939', '_blank', 'noopener');
+          }
+          return;
+        }
         alert(data.error || 'Ocurrió un problema al generar el diagnóstico legal.');
         return;
       }
