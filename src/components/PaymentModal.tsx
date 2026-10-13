@@ -54,7 +54,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           name,
           rut,
           email,
-          amount: 9990,
+          amount: 19990,
           title: 'Dictamen Técnico Legal Completo',
         }),
       });
@@ -70,7 +70,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
       // If in sandbox/demo environment without active MP token key, confirm test payment
       if (data.orderId) {
-        setStatusMsg('Procesando transacción ($9.990 CLP)...');
+        setStatusMsg('Procesando transacción ($19.990 CLP)...');
         await fetch('/api/payment/confirm-test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -172,7 +172,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
               <div>
                 <h4 className="text-base font-bold text-slate-900">Conectando con la Pasarela Bancaria...</h4>
-                <p className="text-xs text-slate-500 mt-1">{statusMsg || 'Validando transacción de $9.990 CLP (Pago Único).'}</p>
+                <p className="text-xs text-slate-500 mt-1">{statusMsg || 'Validando transacción de $19.990 CLP (Pago Único).'}</p>
               </div>
             </div>
           ) : (
@@ -185,7 +185,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   <p className="text-xs text-slate-500 mt-0.5">Desbloquea todos los puntos del análisis + Chat con Abogado IA</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-2xl font-black text-slate-900 tracking-tight">$9.990</span>
+                  <span className="text-2xl font-black text-slate-900 tracking-tight">$19.990</span>
                   <span className="text-xs text-slate-500 font-bold block">CLP</span>
                 </div>
               </div>
@@ -263,7 +263,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm rounded-lg transition-all shadow-sm flex items-center justify-center gap-2 mt-2"
                 >
                   <CreditCard className="w-4 h-4" />
-                  <span>Pagar con Tarjeta Bancaria ($9.990 CLP)</span>
+                  <span>Pagar con Tarjeta Bancaria ($19.990 CLP)</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 

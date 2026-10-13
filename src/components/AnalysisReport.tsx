@@ -192,7 +192,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                   ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
                   : 'bg-amber-100 text-amber-800 border-amber-200'
               }`}>
-                {isUnlocked ? 'Pago Confirmado ($9.990 CLP)' : 'Resumen Gratuito'}
+                {isUnlocked ? 'Pago Confirmado ($19.990 CLP)' : 'Resumen Gratuito'}
               </span>
             </div>
             {notificationDate && (
@@ -210,7 +210,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
               className="flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <CreditCard className="w-4 h-4 text-amber-300" />
-              <span>Desbloquear todo el informe por $9.990 CLP</span>
+              <span>Desbloquear todo el informe por $19.990 CLP</span>
             </button>
           )}
 
@@ -398,7 +398,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                       className="mt-2 px-7 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-extrabold text-xs sm:text-sm shadow-2xl flex items-center gap-2.5 transition-transform hover:scale-105 cursor-pointer border border-blue-400/40"
                     >
                       <CreditCard className="w-4 h-4 text-amber-300" />
-                      <span>Desbloquear diagnóstico completo por $9.990 CLP (Pago Único)</span>
+                      <span>Desbloquear diagnóstico completo por $19.990 CLP (Pago Único)</span>
                     </button>
                   </div>
                 </div>
@@ -429,7 +429,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
 
               <div className="text-left sm:text-right bg-white/10 px-4 py-2.5 rounded-lg border border-white/10">
                 <span className="text-xs text-slate-300 font-semibold block">Pago único de acceso</span>
-                <span className="text-2xl font-black text-amber-400">$9.990 CLP</span>
+                <span className="text-2xl font-black text-amber-400">$19.990 CLP</span>
               </div>
             </div>
 
@@ -460,7 +460,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                 className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-3 mx-auto border border-blue-400/40 cursor-pointer"
               >
                 <CreditCard className="w-5 h-5 text-amber-300" />
-                <span>Desbloquear todo el informe por $9.990 CLP</span>
+                <span>Desbloquear todo el informe por $19.990 CLP</span>
               </button>
               <p className="text-[11px] text-slate-400">
                 Acepta Webpay Plus (Débito/Crédito), Mercado Pago y Transferencias Bancarias Chilenas.
@@ -546,14 +546,14 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
               <span>Has alcanzado el límite de 4 consultas gratuitas de orientación</span>
             </div>
             <p className="text-xs text-slate-700">
-              Desbloquea el dictamen jurídico completo ($9.990 CLP) para continuar haciendo preguntas ilimitadas sobre tu causa.
+              Desbloquea el dictamen jurídico completo ($19.990 CLP) para continuar haciendo preguntas ilimitadas sobre tu causa.
             </p>
             <button
               onClick={() => setIsPaymentModalOpen(true)}
               className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-lg transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 mx-auto"
             >
               <CreditCard className="w-3.5 h-3.5 text-amber-300" />
-              <span>Desbloquear dictamen completo por $9.990 CLP</span>
+              <span>Desbloquear dictamen completo por $19.990 CLP</span>
             </button>
           </div>
         ) : (

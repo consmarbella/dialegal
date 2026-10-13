@@ -64,7 +64,7 @@ export const DeadlineCalculatorComponent: React.FC<DeadlineCalculatorProps> = ({
             className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-blue-600/30 transition-all inline-flex items-center gap-2 cursor-pointer"
           >
             <CreditCard className="w-4 h-4 text-amber-300" />
-            <span>Desbloquear todo el informe por $9.990 CLP</span>
+            <span>Desbloquear todo el informe por $19.990 CLP</span>
           </button>
         </div>
       )}

@@ -398,7 +398,7 @@ app.post("/api/chat", async (req, res) => {
 // MercadoPago Integration Endpoints (reference: legalhelp-chile)
 app.post("/api/payment/create", async (req, res) => {
   try {
-    const { name, rut, email, amount = 9990, title = "Dictamen Técnico Legal Completo" } = req.body;
+    const { name, rut, email, amount = 19990, title = "Dictamen Técnico Legal Completo" } = req.body;
     const orderId = crypto.randomUUID();
 
     // Determine correct public base URL from request or environment

@@ -454,7 +454,7 @@ export const SEO_PAGES: SEOPage[] = [
     ],
     faqs: [
       { q: '¿Esto reemplaza a un abogado?', a: 'No. Es una orientación legal inicial para que sepas qué hacer y no pierdas tiempo. Para presentar escritos en tribunales, necesitas patrocinio de abogado habilitado.' },
-      { q: '¿Es gratis?', a: 'La orientación inicial y la vista previa del diagnóstico son gratis. El informe completo tiene un costo único de $9.990 CLP.' },
+      { q: '¿Es gratis?', a: 'La orientación inicial y la vista previa del diagnóstico son gratis. El informe completo tiene un costo único de $19.990 CLP.' },
     ],
     titleSEO: 'Orientación Legal Urgente en Chile | Diagnóstico con IA',
     metaDescription: 'Necesitas orientación legal urgente. Sube tu documento o escribe tu caso y recibe un diagnóstico legal claro con plazos, riesgos y pasos a seguir hoy.',
