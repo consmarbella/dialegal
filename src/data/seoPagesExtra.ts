@@ -1059,7 +1059,7 @@ Firma: _______________
 
 Si no quieres arriesgarte a cometer errores en el escrito, nuestro equipo se encarga de todo el proceso. Analizamos tu certificado de multas, identificamos cuáles son prescribibles y redactamos el escrito adaptado a las reglas de cada Juzgado de Policía Local.
 
-**Precio:** Análisis técnico $15.000 CLP + redacción de escrito $10.000 CLP por juzgado. Multas del mismo tribunal se agrupan en un solo escrito.
+**Precio:** Diagnóstico legal $19.990 CLP (derivado a abogado habilitado). Multas del mismo tribunal se agrupan en un solo escrito.
 
 - [Prescripción de multas TAG — Servicio completo](/prescripcion-multas-tag): Guía del servicio y proceso paso a paso.
 - [Consultar multas TAG](/consultar-multas-tag): Dónde revisar si tienes multas pendientes.
@@ -1107,7 +1107,7 @@ Atendemos en todos los Juzgados de Policía Local de la Región Metropolitana. S
       { q: '¿La prescripción afecta mi hoja de vida del conductor?', a: 'Sí, positivamente. Una vez que el Registro Civil elimina la anotación, la multa desaparece de tu hoja de vida. Esto mejora tu historial como conductor y facilita la renovación de licencia y transferencia de vehículos.' },
       { q: '¿Puedo solicitar la prescripción de multas TAG que ya pagué?', a: 'No. La prescripción solo aplica a multas no pagadas y no cobradas judicialmente. Si ya pagaste la multa, no necesitas prescripción porque ya no adeudas nada.' },
       { q: '¿Qué diferencia hay entre prescripción y condonación de multas TAG?', a: 'La prescripción extingue la deuda completa (no pagas nada) pero requiere esperar 3 años. La condonación del 80% te permite pagar solo el 20% del monto pero no elimina la deuda, solo la reduce.' },
-      { q: '¿Puedo conducir mientras espero la resolución de prescripción?', a: 'Sí. La solicitud de prescripción no afecta tu licencia de conducir ni tu ability para manejar. La multa sigue vigente hasta que el juez dicta resolución, pero no te impide conducir.' },
+      { q: '¿Puedo conducir mientras espero la resolución de prescripción?', a: 'Sí. La solicitud de prescripción no afecta tu licencia de conducir ni tu capacidad para manejar. La multa sigue vigente hasta que el juez dicta resolución, pero no te impide conducir.' },
     ],
     titleSEO: 'Prescripción Multas de Tránsito Chile 2026 | Guía Paso a Paso',
     metaDescription: 'Prescripción de multas de tránsito en Chile: plazos 1 y 3 años, formato de escrito, condonación 80%. Guía completa con paso a paso.',
@@ -1309,7 +1309,7 @@ Si recibiste una multa de tránsito y no sabes si tienes defensa, escríbenos po
 
 ## Servicios relacionados
 
-- [Prescripción de multas TAG](/prescripcion-multas-tag): Si tu multa ya prescribió (1 año conductor, 3 años TAG), podemos eliminarla. Análisis $15.000 + escrito $10.000 por juzgado.
+- [Prescripción de multas TAG](/prescripcion-multas-tag): Si tu multa ya prescribió (1 año conductor, 3 años TAG), podemos eliminarla. Diagnóstico legal $19.990 CLP.
 - [Calculadora de prescripción](/calculadora-prescripcion-multas): Verifica si tu multa ya prescribió.
 - [Calculadora de condonación 80%](/calculadora-condonacion-multas): Si la multa no prescribió, calcula cuánto pagas con el descuento.
 - [Servicio de prescripción por comuna](/prescripcion-multas/santiago): Atendemos en todos los JPL de la Región Metropolitana.`,
@@ -1987,7 +1987,7 @@ La municipalidad no te demanda por la multa de tránsito. Pero la concesionaria 
 
 ### ¿Puedo manejar mientras espero la resolución de prescripción?
 
-Sí. La solicitud de prescripción no afecta tu licencia de conducir ni tu ability para manejar. La multa sigue vigente hasta que el juez dicta resolución, pero no te impide conducir.
+Sí. La solicitud de prescripción no afecta tu licencia de conducir ni tu capacidad para manejar. La multa sigue vigente hasta que el juez dicta resolución, pero no te impide conducir.
 
 ### ¿Necesito pagar algo para prescribir la multa?
 
@@ -2033,11 +2033,11 @@ Si necesitas ayuda con el trámite, escríbenos por WhatsApp al +56 9 6765 8939.
       { q: '¿Qué diferencia hay entre prescripción y condonación de multas TAG?', a: 'La prescripción extingue la deuda completa (no pagas nada) pero requiere esperar 3 años. La condonación del 80% te permite pagar solo el 20% del monto pero no elimina la deuda.' },
       { q: '¿Puedo prescribir varias multas TAG a la vez?', a: 'Sí. Puedes solicitar la prescripción de todas las multas TAG que cumplan el plazo de 3 años en un solo escrito, indicando los datos de cada una.' },
       { q: '¿Qué pasa si la concesionaria me demanda antes de que prescriba?', a: 'Si la concesionaria presenta una demanda de cobro antes de que se cumplan los 5 años, la prescripción de la deuda civil se interrumpe. Sin embargo, la multa de tránsito sigue su propio plazo de 3 años.' },
-      { q: '¿Puedo circular mientras espero la resolución de prescripción?', a: 'Sí. La solicitud de prescripción no afecta tu licencia ni tu ability para manejar. La multa sigue vigente hasta que el juez dicta resolución.' },
+      { q: '¿Puedo circular mientras espero la resolución de prescripción?', a: 'Sí. La solicitud de prescripción no afecta tu licencia ni tu capacidad para manejar. La multa sigue vigente hasta que el juez dicta resolución.' },
       { q: '¿La prescripción de multa TAG aplica si ya pagué parcialmente?', a: 'No. Si realizaste un pago parcial, la prescripción no aplica porque reconociste la deuda. La prescripción solo aplica a multas completamente impagas y no cobradas judicialmente.' },
     ],
     titleSEO: 'Prescripción Multas TAG Chile 2026',
-    metaDescription: 'Prescripción de multas TAG en Chile: plazo 3 años Ley 18.287, condonación 80%, formato escrito y paso a paso. Análisis $15.000 + escrito $10.000.',
+    metaDescription: 'Prescripción de multas TAG en Chile: plazo 3 años Ley 18.287, condonación 80%, formato escrito y paso a paso. Diagnóstico legal $19.990 CLP.',
     intent: 'Quiero saber si mi multa TAG ya prescribió y cómo eliminarla del Registro Civil.',
     caseType: 'deuda',
     role: 'consulta',
@@ -2110,7 +2110,7 @@ Si al consultar descubres que tienes multas TAG, tienes tres opciones:
 > **Transparencia:** LegalHelp Chile es una herramienta de orientación legal con IA, no un estudio de abogados. Consulta con un abogado habilitado para casos complejos.
 
 ---
-**Sigue leyendo:** [Prescripción multas TAG — Servicio $15.000 + $10.000](/prescripcion-multas-tag) · [Condonación 80% 2026](/condonacion-multas-tag-2026) · [Multas Autopista Central](/multas-autopista-central) · [Prescripción multas tránsito](/prescripcion-de-multas-de-transito) · [Calculadora prescripción](/calculadora-prescripcion-multas)`,
+**Sigue leyendo:** [Prescripción multas TAG — Servicio $19.990](/prescripcion-multas-tag) · [Condonación 80% 2026](/condonacion-multas-tag-2026) · [Multas Autopista Central](/multas-autopista-central) · [Prescripción multas tránsito](/prescripcion-de-multas-de-transito) · [Calculadora prescripción](/calculadora-prescripcion-multas)`,
     ctaText: 'Te ayudamos a consultar y resolver tus multas TAG',
     bullets: [
       'PasasteSinTag.cl: portal oficial para consultar tránsitos sin TAG. Ingresa tu patente o RUT.',
@@ -2193,7 +2193,7 @@ La condonación tiene fecha de vigencia según la ley. Consulta en el Juzgado de
 > **Transparencia:** LegalHelp Chile es una herramienta de orientación legal con IA, no un estudio de abogados. Consulta con un abogado habilitado para casos complejos.
 
 ---
-**Sigue leyendo:** [Prescripción multas TAG — Servicio $15.000 + $10.000](/prescripcion-multas-tag) · [Consultar multas TAG](/consultar-multas-tag) · [Multas Autopista Central](/multas-autopista-central) · [Prescripción multas tránsito](/prescripcion-de-multas-de-transito) · [Calculadora condonación 80%](/calculadora-condonacion-multas)`,
+**Sigue leyendo:** [Prescripción multas TAG — Servicio $19.990](/prescripcion-multas-tag) · [Consultar multas TAG](/consultar-multas-tag) · [Multas Autopista Central](/multas-autopista-central) · [Prescripción multas tránsito](/prescripcion-de-multas-de-transito) · [Calculadora condonación 80%](/calculadora-condonacion-multas)`,
     ctaText: 'Te ayudamos a aplicar la condonación del 80%',
     bullets: [
       'La condonación del 80% reduce tu multa TAG al 20% del monto original (tope 100 UTM).',
@@ -2265,7 +2265,7 @@ Si han pasado más de 3 años desde la anotación en el Registro Civil, puedes p
 > **Transparencia:** LegalHelp Chile es una herramienta de orientación legal con IA, no un estudio de abogados.
 
 ---
-**Sigue leyendo:** [Prescripción multas TAG — Servicio $15.000 + $10.000](/prescripcion-multas-tag) · [Consultar multas TAG](/consultar-multas-tag) · [Condonación 80% 2026](/condonacion-multas-tag-2026) · [Prescripción multas tránsito](/prescripcion-de-multas-de-transito) · [Defensa infracciones tránsito](/defensa-infracciones-transito)`,
+**Sigue leyendo:** [Prescripción multas TAG — Servicio $19.990](/prescripcion-multas-tag) · [Consultar multas TAG](/consultar-multas-tag) · [Condonación 80% 2026](/condonacion-multas-tag-2026) · [Prescripción multas tránsito](/prescripcion-de-multas-de-transito) · [Defensa infracciones tránsito](/defensa-infracciones-transito)`,
     ctaText: 'Te ayudamos con multas de Autopiste Central',
     bullets: [
       'Autopiste Central cobra peaje + recargo si circulas sin TAG habilitado.',

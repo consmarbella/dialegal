@@ -767,6 +767,86 @@ app.post("/api/payment/confirm-test", (req, res) => {
 });
 
 // ========== SEO LANDING PAGES (Long-Tail) ==========
+// Renderizador markdown ligero para contenido SEO (negritas, headings, links, listas, citas, hr).
+// Evita mostrar **texto** y [links](/url) como texto crudo en las páginas SSR.
+function mdLite(src: string): string {
+  if (!src) return "";
+  let s = String(src);
+
+  // Escape básico de HTML para evitar inyección (excepto lo que nosotros generamos después)
+  s = s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Links: [texto](/url) o [texto](https://...) -> <a href>
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, text, url) => {
+    // Solo permitir rutas relativas o https
+    if (url.startsWith("/") || url.startsWith("https://")) {
+      return `<a href="${url}">${text}</a>`;
+    }
+    return text;
+  });
+
+  // Negritas: **texto** -> <strong>
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+
+  // Cursiva: *texto* -> <em> (sin interferir con ** ya resuelto)
+  s = s.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, "<em>$1</em>");
+
+  // Blockquotes: > texto -> <blockquote>
+  s = s.replace(/^&gt;\s?(.+)$/gm, "<blockquote>$1</blockquote>");
+
+  // Horizontal rule: --- o *** en línea propia
+  s = s.replace(/^---+\s*$/gm, "<hr />");
+  s = s.replace(/^\*\*\*+\s*$/gm, "<hr />");
+
+  // Headings: ### y ## (con id para anclas TOC)
+  s = s.replace(/^###\s+(.+)$/gm, (_m, text) => {
+    const id = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    return `<h3 id="${id}">${text}</h3>`;
+  });
+  s = s.replace(/^##\s+(.+)$/gm, (_m, text) => {
+    const id = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    return `<h2 id="${id}">${text}</h2>`;
+  });
+  s = s.replace(/^#\s+(.+)$/gm, "<h2>$1</h2>");
+
+  // Listas con guiones o viñetas: - item / * item -> <ul><li>
+  // Agrupar líneas consecutivas en un solo <ul>
+  s = s.replace(/((?:^[-*]\s+.+\n?)+)/gm, (block) => {
+    const items = block.trim().split("\n").map((line) => {
+      const m = line.match(/^[-*]\s+(.+)$/);
+      return m ? `<li>${m[1]}</li>` : "";
+    }).filter(Boolean).join("");
+    return items ? `<ul>${items}</ul>` : block;
+  });
+
+  // Listas numeradas: 1. item -> <ol><li>
+  s = s.replace(/((?:^\d+\.\s+.+\n?)+)/gm, (block) => {
+    const items = block.trim().split("\n").map((line) => {
+      const m = line.match(/^\d+\.\s+(.+)$/);
+      return m ? `<li>${m[1]}</li>` : "";
+    }).filter(Boolean).join("");
+    return items ? `<ol>${items}</ol>` : block;
+  });
+
+  // Unir párrafos: doble salto de línea -> </p><p>, y envolver en <p>
+  s = s.replace(/\n{2,}/g, "</p><p>");
+  s = s.replace(/\n/g, " ");
+  s = `<p>${s}</p>`;
+
+  // Limpiar <p> vacíos y <p> que envuelvan bloques block-level
+  s = s.replace(/<p>\s*(<(?:h2|h3|ul|ol|hr|blockquote)[^>]*>)/g, "$1");
+  s = s.replace(/(<\/(?:h2|h3|ul|ol|blockquote)>)\s*<\/p>/g, "$1");
+  s = s.replace(/<p>\s*<\/p>/g, "");
+  s = s.replace(/<p>\s*(<hr \/>)\s*<\/p>/g, "$1");
+  // Cerrar <p> suelto al inicio si quedó abierto
+  s = s.replace(/^<p>(<h[23])/, "$1");
+
+  return s;
+}
+
 function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
   const NOINDEX_SLUGS = new Set([
     '/abogado-para-arriendos', '/abogado-gratis-online', '/abogado-urgente',
@@ -848,11 +928,10 @@ function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
   {
     "@context": "https://schema.org",
     "@type": "Product",
-    "name": "Prescripción Multa TAG",
-    "description": "Análisis $15.000 + escrito $10.000 por juzgado. Atención vía WhatsApp +56967658939",
+    "name": "Diagnóstico Legal Prescripción Multa TAG",
+    "description": "Diagnóstico legal con IA por $19.990 CLP, derivado a abogado habilitado. Atención vía WhatsApp +56967658939",
     "offers": [
-      { "@type": "Offer", "price": "15000", "priceCurrency": "CLP", "availability": "https://schema.org/InStock", "url": "${baseUrl}${page.slug}" },
-      { "@type": "Offer", "price": "10000", "priceCurrency": "CLP", "availability": "https://schema.org/InStock", "url": "${baseUrl}${page.slug}" }
+      { "@type": "Offer", "price": "19990", "priceCurrency": "CLP", "availability": "https://schema.org/InStock", "url": "${baseUrl}${page.slug}" }
     ]
   },` : ''}
   {
@@ -925,18 +1004,18 @@ function renderSEOPage(page: typeof ALL_SEO_PAGES[0]) {
     <h1>${page.h1}</h1>
     <p style="font-size:12px;color:#64748b;margin:-16px 0 16px;">Por <strong>Equipo LegalHelp Chile</strong> · Actualizado ${pageDate} · Revisado · <a href="https://wa.me/56967658939" style="color:#2563eb;text-decoration:none;">WhatsApp +56 9 6765 8939</a></p>
     <p class="section-label">Diagnóstico del caso</p>
-    <div class="diagnos-text">${page.diagnosText}</div>
+    <div class="diagnos-text">${mdLite(page.diagnosText)}</div>
     <a href="/" class="cta-box">${page.ctaText} <span class="arrow">→</span></a>
     <a href="https://wa.me/56967658939?text=Hola%20LegalHelp%2C%20necesito%20orientaci%C3%B3n%20legal" target="_blank" rel="noopener noreferrer" class="cta-whatsapp">
       <svg width="18" height="18" fill="#fff" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
       Consultar por WhatsApp
     </a>
     <ul class="bullets">
-      ${page.bullets.map(b => `<li>${b}</li>`).join('')}
+      ${page.bullets.map(b => `<li>${mdLite(b)}</li>`).join('')}
     </ul>
     <section class="faq-section">
       <h2>Preguntas frecuentes</h2>
-      ${page.faqs.map(f => `<div class="faq-item"><p class="q">${f.q}</p><p class="a">${f.a}</p></div>`).join('')}
+      ${page.faqs.map(f => `<div class="faq-item"><p class="q">${mdLite(f.q)}</p><p class="a">${mdLite(f.a)}</p></div>`).join('')}
     </section>
     ${related.length > 0 ? `<section style="margin-top:36px;"><h2 style="font-size:1.25rem;font-weight:700;margin-bottom:16px;color:#0f172a;">Casos relacionados</h2><div style="display:flex;flex-wrap:wrap;gap:8px;">${related.map(r => `<a href="${r.slug}" style="display:inline-block;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;text-decoration:none;">${r.h1}</a>`).join('')}</div></section>` : ''}
     <div class="footer-bar">
@@ -1493,16 +1572,15 @@ function renderTribunalPage(comuna: typeof COMUNAS_RM[0]) {
 
       <h3 style="color:#166534;">¿Qué incluye el servicio?</h3>
       <ol>
-        <li><strong>Análisis Técnico Inicial ($15.000 CLP):</strong> Revisión exhaustiva de tu certificado de multas para identificar qué infracciones son prescribibles según el plazo legal aplicable (1 año tránsito, 3 años TAG/permiso de circulación).</li>
-        <li><strong>Redacción por Juzgado ($10.000 CLP por escrito):</strong> Confección del escrito de prescripción adaptado a las reglas específicas de cada JPL de ${comuna.comuna} — respetando si es canal digital, presencial o híbrido.</li>
+        <li><strong>Diagnóstico Legal ($19.990 CLP):</strong> Revisión exhaustiva de tu certificado de multas para identificar qué infracciones son prescribibles según el plazo legal aplicable (1 año tránsito, 3 años TAG/permiso de circulación), derivado a un abogado habilitado.</li>
       </ol>
 
       <div style="background:#fff;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;margin:16px 0;">
         <p style="font-weight:700;color:#166534;margin-bottom:4px;">💡 Ahorro por agrupación de multas</p>
-        <p style="color:#166534;font-size:14px;">No se cobra por cada multa individual. Si tienes, por ejemplo, <strong>10 multas en el mismo juzgado</strong>, todas se agrupan en un <strong>único escrito</strong>. Solo pagas un cargo de redacción de $10.000 para ese juzgado, independientemente de la cantidad de infracciones agrupadas.</p>
+        <p style="color:#166534;font-size:14px;">No se cobra por cada multa individual. Si tienes, por ejemplo, <strong>10 multas en el mismo juzgado</strong>, todas se agrupan en un <strong>único escrito</strong>. Solo pagas un cargo único de diagnóstico de $19.990, independientemente de la cantidad de infracciones.</p>
       </div>
 
-      <p style="font-size:14px;color:#334155;"><strong>Ejemplo:</strong> 5 multas de tránsito + 3 multas de TAG en ${numJuzgados > 1 ? numJuzgados + ' juzgados distintos' : '1 juzgado'} = $15.000 (análisis) + $${(numJuzgados * 10000).toLocaleString('es-CL')} (redacción) = <strong>$${(15000 + numJuzgados * 10000).toLocaleString('es-CL')} CLP total</strong>.</p>
+      <p style="font-size:14px;color:#334155;"><strong>Ejemplo:</strong> 5 multas de tránsito + 3 multas de TAG en ${numJuzgados > 1 ? numJuzgados + ' juzgados distintos' : '1 juzgado'} = <strong>$19.990 CLP total</strong> (diagnóstico + derivación a abogado).</p>
 
       <a href="${whatsappUrl}" class="cta-box" style="margin-top:20px;">Solicitar análisis de mis multas por WhatsApp <span class="arrow">→</span></a>
     </div>
