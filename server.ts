@@ -50,33 +50,51 @@ const isMpConfigured = Boolean(mpAccessToken);
 const isSandbox = Boolean(mpAccessToken && mpAccessToken.startsWith("TEST-"));
 const mp = isMpConfigured && mpAccessToken ? new MercadoPagoConfig({ accessToken: mpAccessToken }) : null;
 
-// Initialize Gemini API
-const getGeminiClient = () => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+// Initialize Gemini API (soporta MÚLTIPLES keys: GEMINI_API_KEYS separadas por coma,
+// multiplica la cuota diaria free-tier por número de cuentas/proyectos).
+const getGeminiClients = (): GoogleGenAI[] => {
+  const raw = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || "";
+  const keys = raw
+    .split(",")
+    .map((k) => k.trim().replace(/^"|"$/g, ""))
+    .filter(Boolean);
+  if (!keys.length) {
     console.warn("GEMINI_API_KEY no configurada en las variables de entorno.");
+    return [new GoogleGenAI({ apiKey: "" })];
   }
-  return new GoogleGenAI({
-    apiKey: apiKey || "",
-    httpOptions: {
-      headers: {
-        "User-Agent": "aistudio-build",
-      },
-    },
-  });
+  if (keys.length > 1) {
+    console.warn(`[gemini] ${keys.length} API keys configuradas (cuota x${keys.length}).`);
+  }
+  return keys.map(
+    (apiKey) =>
+      new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            "User-Agent": "aistudio-build",
+          },
+        },
+      })
+  );
 };
 
 // Reintento + cadena de modelos de respaldo ante errores de Gemini.
-// Cada modelo free-tier tiene su propia cuota DIARIA (20 req/día). Si uno se agota,
+// Cada modelo free-tier tiene su propia cuota DIARIA (~20 req/día). Si uno se agota,
 // saltamos al siguiente al instante (reintentar el mismo es inútil hasta ~5h después).
-// NOTA: gemini-2.5-pro y gemini-2.0-flash fueron descontinuados por Google (404);
-// los reemplazos oficiales son gemini-3.1-pro-preview y gemini-3.8-flash.
+// Orden verificado empíricamente (2026-10-14): fuertes primero (saltan rápido si 429),
+// lites siempre disponibles, nuevos al final (suelen dar 503 "high demand").
+// NOTA: pro/omni NO tienen cuota free (limit: 0) y gemini-2.5-pro devolvió 404.
 const GEMINI_MODEL_CHAIN = [
   "gemini-3.6-flash",
   "gemini-3.5-flash",
-  "gemini-3.8-flash",
-  "gemini-3.1-pro-preview",
   "gemini-2.5-flash",
+  "gemini-3-flash-preview",
+  "gemini-3.5-flash-lite",
+  "gemini-2.5-flash-lite",
+  "gemini-flash-lite-latest",
+  "gemini-3.8-flash",
+  "gemini-flash-latest",
+  "gemini-3.7-flash",
 ];
 const RETRYABLE_STATUS = new Set([500, 502, 503]);
 
@@ -153,47 +171,66 @@ async function getAvailableChain(ai: GoogleGenAI): Promise<string[]> {
   }
 }
 
+// Cuota diaria agotada por modelo+key: evitamos re-reintentar hasta que Google la libere.
+const modelQuotaUntil = new Map<string, number>(); // `${keyIdx}:${model}` -> timestamp (ms)
+const MODEL_QUOTA_MAX_PAUSE_MS = 12 * 60 * 60 * 1000; // tope 12h por si el retryDelay viene raro
+
 async function generateWithFallback(
-  ai: GoogleGenAI,
+  clients: GoogleGenAI | GoogleGenAI[],
   payload: { contents: any; config?: any }
 ) {
-  const chain = await getAvailableChain(ai);
+  const clientList = Array.isArray(clients) ? clients : [clients];
+  const chain = await getAvailableChain(clientList[0]);
   let lastErr: any;
   let quotaErrors = 0;
   let maxRetryAfter = 0;
 
-  for (const model of chain) {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        return await ai.models.generateContent({ model, ...payload } as any);
-      } catch (err: any) {
-        lastErr = err;
-        const status = Number(err?.status ?? err?.code);
-        const msg = String(err?.message || "");
-        console.warn(`[gemini] ${model} intento ${attempt + 1}/3 falló (status=${status}): ${msg.slice(0, 300)}`);
+  for (let keyIdx = 0; keyIdx < clientList.length; keyIdx++) {
+    const ai = clientList[keyIdx];
+    for (const model of chain) {
+      // Modelo con cuota diaria pausada: saltar sin llamar (ahorra latencia).
+      const cacheKeyQM = `${keyIdx}:${model}`;
+      const until = modelQuotaUntil.get(cacheKeyQM) || 0;
+      if (until > Date.now()) {
+        quotaErrors++;
+        maxRetryAfter = Math.max(maxRetryAfter, Math.round((until - Date.now()) / 1000));
+        continue;
+      }
 
-        // Cuota DIARIA agotada: no reintentar este modelo, saltar al siguiente al instante.
-        if (status === 429 && isDailyQuotaError(err)) {
-          quotaErrors++;
-          maxRetryAfter = Math.max(maxRetryAfter, parseRetryDelaySeconds(err));
-          console.warn(`[gemini] ${model}: cuota diaria agotada, saltando al siguiente modelo.`);
-          break; // sale del loop de intentos -> pasa al siguiente modelo del chain
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          return await ai.models.generateContent({ model, ...payload } as any);
+        } catch (err: any) {
+          lastErr = err;
+          const status = Number(err?.status ?? err?.code);
+          const msg = String(err?.message || "");
+          console.warn(`[gemini] key${keyIdx} ${model} intento ${attempt + 1}/3 falló (status=${status}): ${msg.slice(0, 300)}`);
+
+          // Cuota DIARIA agotada: no reintentar este modelo, saltar al siguiente al instante.
+          if (status === 429 && isDailyQuotaError(err)) {
+            quotaErrors++;
+            const retryAfter = parseRetryDelaySeconds(err);
+            maxRetryAfter = Math.max(maxRetryAfter, retryAfter);
+            modelQuotaUntil.set(cacheKeyQM, Date.now() + Math.min(retryAfter * 1000, MODEL_QUOTA_MAX_PAUSE_MS));
+            console.warn(`[gemini] key${keyIdx} ${model}: cuota diaria agotada, saltando al siguiente modelo.`);
+            break; // sale del loop de intentos -> pasa al siguiente modelo del chain
+          }
+
+          // 429 transitorio (rate limit por minuto): backoff corto y reintentar.
+          if (status === 429) {
+            await sleep(1500 * (attempt + 1));
+            continue;
+          }
+
+          // Errores 5xx transitorios: backoff exponencial.
+          if (RETRYABLE_STATUS.has(status) || /UNAVAILABLE|high demand|overloaded/i.test(msg)) {
+            await sleep(1200 * 2 ** attempt);
+            continue;
+          }
+
+          // Error no transitorio (400/404 modelo inexistente, etc.): probar siguiente modelo.
+          break;
         }
-
-        // 429 transitorio (rate limit por minuto): backoff corto y reintentar.
-        if (status === 429) {
-          await sleep(1500 * (attempt + 1));
-          continue;
-        }
-
-        // Errores 5xx transitorios: backoff exponencial.
-        if (RETRYABLE_STATUS.has(status) || /UNAVAILABLE|high demand|overloaded/i.test(msg)) {
-          await sleep(1200 * 2 ** attempt);
-          continue;
-        }
-
-        // Error no transitorio (400/404 modelo inexistente, etc.): probar siguiente modelo.
-        break;
       }
     }
   }
@@ -326,7 +363,7 @@ app.post("/api/generate-document", async (req, res) => {
       });
     }
 
-    const ai = getGeminiClient();
+    const clients = getGeminiClients();
 
     const templatePrompts: Record<string, string> = {
       contestacion_civil: `Redacta una CONTESTACIÓN DE DEMANDA CIVIL en formato PJUD. 
@@ -356,7 +393,7 @@ Incluye: individualización de la resolución recurrida, fundamentos de hecho y 
 
     const prompt = templatePrompts[templateId] || templatePrompts.contestacion_civil;
 
-    const response = await generateWithFallback(ai, {
+    const response = await generateWithFallback(clients, {
       contents: { parts: [{ text: prompt }] },
       config: {
         systemInstruction: SYSTEM_INSTRUCTION_DOCUMENT_GENERATOR,
@@ -415,7 +452,7 @@ app.post("/api/analyze", async (req, res) => {
       });
     }
 
-    const ai = getGeminiClient();
+    const clients = getGeminiClients();
 
     const parts: any[] = [];
 
@@ -492,7 +529,7 @@ app.post("/api/analyze", async (req, res) => {
       return res.json({ analysis: cachedAnalysis, cached: true });
     }
 
-    const response = await generateWithFallback(ai, {
+    const response = await generateWithFallback(clients, {
       contents: { parts },
       config: {
         systemInstruction: SYSTEM_INSTRUCTION_LAWYER,
@@ -533,7 +570,7 @@ app.post("/api/chat", async (req, res) => {
       return res.json({ reply: cached, cached: true });
     }
 
-    const ai = getGeminiClient();
+    const clients = getGeminiClients();
 
     const contents: any[] = [];
 
@@ -562,7 +599,7 @@ app.post("/api/chat", async (req, res) => {
 
     contents.push({ role: "user", parts: [{ text: fullPrompt }] });
 
-    const response = await generateWithFallback(ai, {
+    const response = await generateWithFallback(clients, {
       contents,
       config: {
         systemInstruction:
