@@ -69,12 +69,14 @@ const getGeminiClient = () => {
 // Reintento + cadena de modelos de respaldo ante errores de Gemini.
 // Cada modelo free-tier tiene su propia cuota DIARIA (20 req/día). Si uno se agota,
 // saltamos al siguiente al instante (reintentar el mismo es inútil hasta ~5h después).
+// NOTA: gemini-2.5-pro y gemini-2.0-flash fueron descontinuados por Google (404);
+// los reemplazos oficiales son gemini-3.1-pro-preview y gemini-3.8-flash.
 const GEMINI_MODEL_CHAIN = [
   "gemini-3.6-flash",
   "gemini-3.5-flash",
+  "gemini-3.8-flash",
+  "gemini-3.1-pro-preview",
   "gemini-2.5-flash",
-  "gemini-2.5-pro",
-  "gemini-2.0-flash",
 ];
 const RETRYABLE_STATUS = new Set([500, 502, 503]);
 
@@ -86,6 +88,16 @@ class GeminiQuotaExhaustedError extends Error {
   constructor(retryAfterSeconds: number) {
     super("Cuota diaria de IA agotada en todos los modelos.");
     this.name = "GeminiQuotaExhaustedError";
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+/** Error lanzado cuando toda la cadena falló (saturación/indisponibilidad transitoria). */
+class GeminiUnavailableError extends Error {
+  retryAfterSeconds: number;
+  constructor(retryAfterSeconds = 30 * 60) {
+    super("Servicio de IA temporalmente no disponible en todos los modelos.");
+    this.name = "GeminiUnavailableError";
     this.retryAfterSeconds = retryAfterSeconds;
   }
 }
@@ -114,15 +126,43 @@ function parseRetryDelaySeconds(err: any): number {
   return 5 * 3600;
 }
 
+// Auto-detección de modelos vivos: consultamos la API qué modelos existen hoy
+// y filtramos la cadena. Evita fallar con 404 cuando Google descontinúa un modelo.
+let availableModelsCache: { names: Set<string> | null; expires: number } = { names: null, expires: 0 };
+const MODEL_LIST_TTL_MS = 6 * 60 * 60 * 1000; // 6h
+
+async function getAvailableChain(ai: GoogleGenAI): Promise<string[]> {
+  try {
+    if (availableModelsCache.names && Date.now() < availableModelsCache.expires) {
+      const ok = GEMINI_MODEL_CHAIN.filter((m) => availableModelsCache.names!.has(m));
+      return ok.length ? ok : GEMINI_MODEL_CHAIN;
+    }
+    const names = new Set<string>();
+    const pager = await ai.models.list();
+    for await (const m of pager) {
+      if (m?.name) names.add(String(m.name).replace(/^models\//, ""));
+    }
+    if (names.size === 0) return GEMINI_MODEL_CHAIN;
+    availableModelsCache = { names, expires: Date.now() + MODEL_LIST_TTL_MS };
+    const ok = GEMINI_MODEL_CHAIN.filter((m) => names.has(m));
+    console.warn(`[gemini] modelos de la cadena disponibles: ${ok.length}/${GEMINI_MODEL_CHAIN.length}`);
+    return ok.length ? ok : GEMINI_MODEL_CHAIN;
+  } catch (err: any) {
+    console.warn(`[gemini] no se pudo listar modelos, se usa la cadena completa: ${String(err?.message || err).slice(0, 200)}`);
+    return GEMINI_MODEL_CHAIN;
+  }
+}
+
 async function generateWithFallback(
   ai: GoogleGenAI,
   payload: { contents: any; config?: any }
 ) {
+  const chain = await getAvailableChain(ai);
   let lastErr: any;
   let quotaErrors = 0;
   let maxRetryAfter = 0;
 
-  for (const model of GEMINI_MODEL_CHAIN) {
+  for (const model of chain) {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         return await ai.models.generateContent({ model, ...payload } as any);
@@ -158,12 +198,17 @@ async function generateWithFallback(
     }
   }
 
-  // Si el fallo fue mayoritariamente por cuota diaria, lanzar error tipado
-  // para que los endpoints respondan 429 con mensaje amigable.
-  if (quotaErrors > 0 && quotaErrors >= GEMINI_MODEL_CHAIN.length - 1) {
+  // TODOS los modelos fallaron (el loop no hizo return en ninguno).
+  const finalStatus = Number(lastErr?.status ?? lastErr?.code);
+  // Error del cliente (payload inválido): propagar sin enmascarar.
+  if (finalStatus === 400 || finalStatus === 413) throw lastErr;
+  // Si hubo cuota diaria agotada en al menos un modelo -> 429 amigable con WhatsApp.
+  if (quotaErrors > 0) {
     throw new GeminiQuotaExhaustedError(maxRetryAfter || 5 * 3600);
   }
-  throw lastErr;
+  // Resto (404/5xx en toda la cadena): saturación transitoria -> 429 con CTA
+  // en vez del 500 generico "Error procesando...".
+  throw new GeminiUnavailableError();
 }
 
 // ========== CACHÉ DE RESPUESTAS IDENTÍCTICAS (ahorra cuota free-tier) ==========
@@ -247,12 +292,13 @@ REGLAS OBLIGATORIAS:
 
 Responde ÚNICAMENTE con el documento legal redactado en markdown, sin comentarios adicionales ni introducciones.`;
 
-// Helper: respuesta amigable cuando la cuota diaria de IA se agota en todos los modelos.
+// Helper: respuesta amigable cuando la cuota diaria de IA se agota en todos los modelos
+// (o toda la cadena está saturada/indisponible). Responde 429 + CTA de WhatsApp.
 function sendQuotaExhausted(res: any, err: any) {
-  if (err instanceof GeminiQuotaExhaustedError) {
+  if (err instanceof GeminiQuotaExhaustedError || err instanceof GeminiUnavailableError) {
     const minutes = Math.max(5, Math.round(err.retryAfterSeconds / 60));
     res.status(429).json({
-      error: `El servicio de IA está temporalmente saturado (cuota diaria agotada). Puede tardar hasta ~${minutes} min en restablecerse. Si tu caso es urgente, escríbenos por WhatsApp y te atendemos directamente: https://wa.me/56967658939`,
+      error: `El servicio de IA está temporalmente saturado. Puede tardar hasta ~${minutes} min en restablecerse. Si tu caso es urgente, escríbenos por WhatsApp y te atendemos directamente: https://wa.me/56967658939`,
       retryAfter: err.retryAfterSeconds,
       whatsapp: "https://wa.me/56967658939",
     });
