@@ -177,13 +177,23 @@ const MODEL_QUOTA_MAX_PAUSE_MS = 12 * 60 * 60 * 1000; // tope 12h por si el retr
 
 async function generateWithFallback(
   clients: GoogleGenAI | GoogleGenAI[],
-  payload: { contents: any; config?: any }
+  payload: { contents: any; config?: any },
+  opts?: {
+    /** Exige que la respuesta traiga groundingChunks (búsqueda ejecutada);
+     *  si un modelo responde sin búsqueda, se descarta y sigue la cadena. */
+    requireGrounding?: boolean;
+    /** Excluye los modelos *-lite (no ejecutan googleSearch → nunca dan fuentes). */
+    skipLite?: boolean;
+  }
 ) {
   const clientList = Array.isArray(clients) ? clients : [clients];
-  const chain = await getAvailableChain(clientList[0]);
+  const fullChain = await getAvailableChain(clientList[0]);
+  const chain = opts?.skipLite ? fullChain.filter((m) => !/lite/i.test(m)) : fullChain;
   let lastErr: any;
   let quotaErrors = 0;
   let maxRetryAfter = 0;
+  /** Respuesta válida pero SIN grounding: se conserva como fallback final. */
+  let degradedNoGrounding: any = null;
 
   for (let keyIdx = 0; keyIdx < clientList.length; keyIdx++) {
     const ai = clientList[keyIdx];
@@ -199,7 +209,24 @@ async function generateWithFallback(
 
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          return await ai.models.generateContent({ model, ...payload } as any);
+          const ok = await ai.models.generateContent({ model, ...payload } as any);
+          if (opts?.requireGrounding) {
+            const chunks = (ok as any)?.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+            if (chunks.length === 0) {
+              // El modelo respondió SIN invocar googleSearch (indeterminismo).
+              // Reintentar en el mismo modelo hasta 3 veces antes de pasar de modelo:
+              // en pruebas, 2 de 3 intentos sí ejecutaban la búsqueda.
+              console.warn(`[gemini] key${keyIdx} ${model}: groundingChunks=0 (no ejecutó la búsqueda), intento ${attempt + 1}/3.`);
+              if (!degradedNoGrounding) degradedNoGrounding = ok;
+              if (attempt < 2) {
+                await sleep(700);
+                continue; // reintenta mismo modelo
+              }
+              break; // modelo no busca ni reintentando: siguiente modelo
+            }
+          }
+          if (!process.env.GEMINI_QUIET_OK) console.warn(`[gemini] OK key${keyIdx} ${model}`);
+          return ok;
         } catch (err: any) {
           lastErr = err;
           const status = Number(err?.status ?? err?.code);
@@ -234,6 +261,10 @@ async function generateWithFallback(
       }
     }
   }
+
+  // Si todas las respuestas válidas carecían de grounding, devolver la mejor
+  // degradada en vez de fallar (el endpoint igual extraerá 0 fuentes).
+  if (degradedNoGrounding) return degradedNoGrounding;
 
   // TODOS los modelos fallaron (el loop no hizo return en ninguno).
   const finalStatus = Number(lastErr?.status ?? lastErr?.code);
@@ -296,7 +327,7 @@ ESTRUCTURA OBLIGATORIA DE TU RESPUESTA:
 Debes responder SIEMPRE utilizando estrictamente la siguiente estructura en formato Markdown:
 
 ## 1. Resumen de tu Situación Legal
-[Explica en 2-3 párrafos de qué se trata la demanda o resolución recibida, integrando el relato del usuario y los datos del documento (RIT/ROL, Tribunal, demandante, materia)].
+[Explica en 2-3 párrafos de qué se trata la demanda o resolución recibida, integrando el relato del usuario y los datos del documento (RIT/ROL, Tribunal, demandante, materia). NO uses saludos formales (ej: "Estimado cliente", "Estimado usuario", "Estimado/a cliente"); entra directo al contenido].
 
 ## 2. Normativa y Leyes Aplicables
 [Enumera en viñetas las leyes principales que rigen este caso en Chile. Ej: Ley 19.968 que crea los Tribunales de Familia, Código de Procedimiento Civil, Código del Trabajo, Ley 18.287, etc. Explica brevemente por qué aplican a su situación].
@@ -305,7 +336,7 @@ Debes responder SIEMPRE utilizando estrictamente la siguiente estructura en form
 [Identifica exactamente qué acciones deben tomarse y en cuánto tiempo. Cita los artículos legales exactos. Advierte explícitamente si son días hábiles (lunes a sábado según el CPC Art. 66, o lunes a viernes en laboral/administrativo) o corridos. Si hay riesgo de embargo, pérdida de derechos o rebeldía por inacción, destácalo en **negritas**].
 
 ## 4. Riesgos Actuales
-[Análisis objetivo y sin anestesia de lo que pasa si el usuario no hace nada o no actúa a tiempo].
+[Comienza ENUMERANDO EN VIÑETAS los 2 o 3 riesgos más severos identificados en la demanda o resolución, ordenados de mayor a menor gravedad (ej: embargo de cuentas y remate de bienes, nulidad del despido, declaración de rebeldía, lanzamiento). Luego añade el análisis objetivo y sin anestesia de lo que pasa si el usuario no hace nada o no actúa a tiempo].
 
 ## 5. Próximos Pasos Recomendados
 [Pasos accionables inmediatos: qué documentos extras debe reunir en OJV/PJUD con su ClaveÚnica, qué debe consultar urgentemente a un abogado o Corporación de Asistencia Judicial (CAJ), y cómo prepararse].
@@ -547,6 +578,190 @@ app.post("/api/analyze", async (req, res) => {
     res.status(500).json({
       error: "Error procesando el análisis legal. Intenta nuevamente en unos minutos.",
     });
+  }
+});
+
+// ========== CAPA PREMIUM CON GROUNDING WEB OFICIAL (solo local, detrás de flag) ==========
+// Prod (Vercel) no define PREMIUM_GROUNDING_ENABLED -> el endpoint responde 404.
+// La página final y /api/analyze NO se modifican con esta capa.
+const PREMIUM_GROUNDING_ENABLED = process.env.PREMIUM_GROUNDING_ENABLED === "true";
+
+const MATERIA_RULES: Array<{ materia: string; keywords: RegExp }> = [
+  { materia: "Tránsito y multas (Ley 18.290)", keywords: /multa|tag|permiso de circulaci[oó]n|tr[aá]nsito|colisi[oó]n|18\.290|alcoholemia|licencia de conducir/i },
+  { materia: "Laboral — despido, finiquito o autodespido", keywords: /despido|finiquito|autodespido|despido indirecto|trabajador|empleador|remuneraci[oó]n|cotizaciones|art[ií]culo 161|art[ií]culo 171|inspecci[oó]n del trabajo/i },
+  { materia: "Familia — alimentos, custodia o medidas de protección", keywords: /aliment|pensi[oó]n alimenticia|custodia|visitas|familia|medida de protecci[oó]n|violencia intrafamiliar|divorcio/i },
+  { materia: "Arriendo y desalojo (Ley 18.101)", keywords: /arriend|canon de arriendo|renta|desalojo|terminaci[oó]n de contrato|reconvenci[oó]n|ley 18\.101|predio urbano/i },
+  { materia: "Juicio ejecutivo y títulos ejecutivos (CPC)", keywords: /pagar[eé]|cheque|factura|t[ií]tulo ejecutivo|mandamiento de ejecuci[oó]n|juicio ejecutivo|excepciones|art[ií]culo 464|c[oó]digo de procedimiento civil/i },
+  { materia: "Cobranza, deudas y registros de morosidad", keywords: /deud|cobranza|dicom|equifax|moros|prescripci[oó]n|acreedor/i },
+  { materia: "Civil — demanda ordinaria y notificaciones", keywords: /demanda|notificaci[oó]n|rebeld[ií]a|exhorto|juzgado civil|contestaci[oó]n de la demanda/i },
+];
+
+function detectMateria(texto: string): string {
+  for (const rule of MATERIA_RULES) {
+    if (rule.keywords.test(texto)) return rule.materia;
+  }
+  return "Derecho procesal civil chileno (materia no determinada con certeza)";
+}
+
+const PREMIUM_SYSTEM_INSTRUCTION = `
+PROCEDIMIENTO OBLIGATORIO PREVIO (no negociable):
+ANTES de redactar UNA sola línea, DEBES invocar la herramienta de búsqueda de Google Search MÍNIMO 5 VECES con consultas distintas (cada artículo citado, cada plazo, cada requisito formal). Si tu respuesta llega sin haber ejecutado búsquedas, se descarta automáticamente. Primero busca, después escribe.
+
+Eres un auditor legal escéptico, especialista en Derecho Chileno, con más de 20 años de litigación en tribunales chilenos.
+El usuario ha PAGADO. Recibirás el DICTAMEN JURÍDICO ya emitido por nuestro sistema para su caso. Tu tarea NO es reescribirlo ni repetirlo: es AÑADIR un complemento de verificación con búsqueda web que eleve la calidad del dictamen ya entregado.
+
+Tienes acceso a Google Search. Realiza búsquedas y verifica el dictamen EXCLUSIVAMENTE contra fuentes OFICIALES chilenas:
+bcn.cl (Biblioteca del Congreso Nacional / Leychile), pjud.cl (Poder Judicial), dt.gob.cl / dti.gob.cl (Dirección del Trabajo),
+bcu.cl (Banco Central), mintrab.gob.cl, igm.cl, contraloria.cl, sernac.cl, diariooficial.interior.gob.cl,
+y fallos o resoluciones oficiales publicadas por tribunales chilenos.
+
+REGLAS ESTRICTAS:
+1. Verifica los artículos, leyes y plazos CITADOS en el dictamen: confírmalos con la fuente oficial o marca "no verificado" si no aparecen en tus búsquedas. NO inventes números de artículos.
+2. Aporta lo que el dictamen NO cubre: vicios de notificación, nulidades de todo género, plazos fatales fácilmente pasados por alto, requisitos formales estrictos y puntos ciegos que puedan hacer fracasar la estrategia.
+3. PRIORIZA EXCLUSIVAMENTE fuentes oficiales. NO cites estudios de abogados, blogs ni sitios comerciales aunque aparezcan en los resultados.
+4. Si un punto del dictamen contradice una fuente oficial que encontraste, dilo con claridad ("El dictamen indica X, pero la fuente oficial Y establece Z").
+5. Prohibido saludar o usar fórmulas de cortesía. Entra directo al análisis.
+6. No inventes fechas, montos ni hechos no entregados por el usuario.
+
+ESTRUCTURA OBLIGATORIA (usa exactamente estos títulos, en Markdown):
+## 1. Control de Nulidades y Puntos Ciegos
+(Revisión de notificaciones, feriados, plazos fatales y exigencias procedimentales del caso; identifica requisitos formales estrictos y posibles vicios que el dictamen pudo omitir.)
+
+## 2. Verificación de Artículos y Plazos Citados
+(Para cada artículo/ley/plazo citado en el dictamen, indícalo con viñeta y su estado: "verificado en [fuente oficial]" o "no verificado en las fuentes consultadas". Máximo 8 viñetas, las más relevantes.)
+
+## 3. Fuentes y Enlaces Oficiales Consultadas
+(Listado con la URL EXACTA de cada fuente oficial que consultaste, en formato:
+- Nombre del instrumento o página — URL completa (https://...)
+Sin URLs inventadas: usa solo las URLs que realmente aparecieron en tus resultados de búsqueda.)
+`.trim();
+
+app.post("/api/premium-report", async (req, res) => {
+  if (!PREMIUM_GROUNDING_ENABLED) {
+    // Prod no debe exponer esta capa: mismo 404 que una ruta inexistente.
+    return res.status(404).json({ error: "Not found" });
+  }
+  try {
+    const { userStory, documentText, area, notificationDate, dictamenMarkdown } = req.body;
+
+    if (!userStory && !documentText) {
+      return res.status(400).json({ error: "Se requiere relato o documento del caso." });
+    }
+
+    const combinedText = [userStory, documentText].filter(Boolean).join("\n");
+    const materia = detectMateria(combinedText);
+
+    let promptContent = `MATERIA DETECTADA: ${materia}\n`;
+    if (area) promptContent += `ÁREA DECLARADA: ${area}\n`;
+    if (notificationDate) promptContent += `FECHA DE NOTIFICACIÓN: ${notificationDate}\n`;
+    promptContent += `\nRELATO O DOCUMENTO DEL CASO:\n${combinedText.slice(0, 8000)}\n\n`;
+    if (dictamenMarkdown && typeof dictamenMarkdown === "string") {
+      promptContent += `DICTAMEN YA EMITIDO POR EL SISTEMA (verifícalo y complétalo, no lo repitas):\n"""${dictamenMarkdown.slice(0, 10000)}"""\n\n`;
+    }
+    promptContent += `Genera el COMPLEMENTO DE VERIFICACIÓN con búsqueda web del dictamen, con la estructura obligatoria de 3 secciones.`;
+
+    // Caché propia con sal premium-v4: no contamina la caché del dictamen normal.
+    // (v4 = instrucción con "PROCEDIMIENTO OBLIGATORIO" de búsqueda previa;
+    //  el sal cambia porque la caché NO incluye la system instruction.)
+    const pKey = cacheKey(["premium-v4", promptContent]);
+    const cached = getCached(pKey);
+    if (cached) {
+      try {
+        console.log("[cache] /api/premium-report hit de caché");
+        return res.json({ ...JSON.parse(cached), materia, cached: true });
+      } catch {
+        /* JSON corrupto: regenerar */
+      }
+    }
+
+    const clients = getGeminiClients();
+    const basePayload = {
+      contents: { parts: [{ text: promptContent }] },
+    };
+
+    let response: any;
+    let grounded = false;
+    try {
+      response = await generateWithFallback(
+        clients,
+        {
+          ...basePayload,
+          config: {
+            systemInstruction: PREMIUM_SYSTEM_INSTRUCTION,
+            temperature: 0.15,
+            maxOutputTokens: 8192,
+            tools: [{ googleSearch: {} }],
+          },
+        },
+        // El premium exige búsqueda real: nada de modelos lite ni respuestas sin grounding.
+        { requireGrounding: true, skipLite: true }
+      );
+      grounded = true;
+    } catch (toolErr: any) {
+      // Si el tool de búsqueda es rechazado (p.ej. billing no habilitado),
+      // retry SIN tool: la instrucción anti-inventario se mantiene igual.
+      const msg = String(toolErr?.message || toolErr);
+      console.warn(`[premium] grounding googleSearch falló (${msg.slice(0, 200)}), retry sin tool.`);
+      response = await generateWithFallback(
+        clients,
+        {
+          ...basePayload,
+          config: {
+            systemInstruction: PREMIUM_SYSTEM_INSTRUCTION,
+            temperature: 0.15,
+            maxOutputTokens: 8192,
+          },
+        },
+        { skipLite: true }
+      );
+    }
+
+    const report = response.text || "";
+    if (!report.trim()) {
+      return res.status(502).json({ error: "El modelo no devolvió contenido para la auditoría premium." });
+    }
+
+    // Extraer fuentes oficiales reales del grounding de Gemini.
+    // Nota: `uri` puede ser un redirect de Vertex (vertexaisearch...); `title`
+    // suele ser el dominio real (p.ej. "leychile.cl", "bcn.cl").
+    const sources: Array<{ title: string; uri: string; domain: string }> = [];
+    try {
+      const cand0 = (response as any)?.candidates?.[0];
+      const chunks = cand0?.groundingMetadata?.groundingChunks || [];
+      if (chunks.length === 0) {
+        // DEBUG temporal: por qué vino sin chunks
+        console.warn(
+          "[premium][debug] 0 groundingChunks | candidates=",
+          (response as any)?.candidates?.length,
+          "| cand0 keys=",
+          Object.keys(cand0 || {}).join(","),
+          "| gm keys=",
+          Object.keys(cand0?.groundingMetadata || {}).join(","),
+          "| gm=",
+          JSON.stringify(cand0?.groundingMetadata || {}).slice(0, 400)
+        );
+      }
+      for (const chunk of chunks) {
+        if (chunk?.web?.uri) {
+          const title = chunk.web.title || "";
+          const domain = chunk.web.domain || title || "";
+          sources.push({ title: title || chunk.web.uri, uri: chunk.web.uri, domain });
+        }
+      }
+    } catch {
+      /* sin groundingMetadata */
+    }
+
+    // "grounded" real = la búsqueda efectivamente se ejecutó y devolvió fuentes.
+    grounded = sources.length > 0;
+
+    const result = { report, materia, sources, grounded };
+    setCached(pKey, JSON.stringify(result));
+    res.json(result);
+  } catch (err: any) {
+    console.error("Error en /api/premium-report:", err);
+    if (sendQuotaExhausted(res, err)) return;
+    res.status(500).json({ error: "Error generando la auditoría premium. Intenta nuevamente en unos minutos." });
   }
 });
 
@@ -1996,11 +2211,9 @@ ${COMUNAS_RM.map(c => `- ${c.comuna}: ${baseUrl}/prescripcion-multas/${c.slug}`)
 
 const distPath = path.join(process.cwd(), "dist");
 
-// Serve static build in production
-if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
-  app.use(express.static(distPath, { index: false }));
-  app.get("/", serveHomePage);
-}
+// Serve static build + SSR home (production on Vercel and local preview)
+app.use(express.static(distPath, { index: false }));
+app.get("/", serveHomePage);
 
 // Vercel / Serverless export: handler receives all requests (routes SEO + API + SPA fallback)
 export const handler = app;

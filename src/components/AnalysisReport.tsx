@@ -1,8 +1,37 @@
 import React, { useState } from 'react';
-import { LegalArea, ChatMessage } from '../types';
-import { Scale, Download, Copy, BookmarkPlus, Send, MessageSquare, AlertCircle, CheckCircle, ShieldAlert, FileText, Lock, ShieldCheck, CreditCard, Sparkles, CheckCircle2 } from 'lucide-react';
+import { LegalArea, ChatMessage, PremiumResult } from '../types';
+import { Scale, Download, Copy, BookmarkPlus, Send, MessageSquare, AlertCircle, CheckCircle, ShieldAlert, FileText, Lock, ShieldCheck, CreditCard, Sparkles, CheckCircle2, Globe, ExternalLink } from 'lucide-react';
 import { PaymentModal } from './PaymentModal';
+import { PreviewAlertCard } from './PreviewAlertCard';
 
+// --- Extracción de riesgos severos para la vista previa gratuita (Card de Alerta) ---
+const RISK_KEYWORD_SCORES: Array<[RegExp, number]> = [
+  [/embarg/i, 10],
+  [/remat/i, 9],
+  [/nulidad/i, 9],
+  [/arresto|prisi[óo]n|detenci[óo]n/i, 9],
+  [/rebeld/i, 8],
+  [/lanzamiento|desalojo|lanzami/i, 8],
+  [/ejecuci[óo]n|t[íi]tulo ejecutivo|desp[áa]chese/i, 7],
+  [/perenci[óo]n/i, 7],
+  [/prescripci[óo]n/i, 6],
+  [/p[ée]rdida de (derechos|acci[óo]n|t[ée]rmino)/i, 6],
+  [/apercibimiento/i, 6],
+  [/insolvencia|quiebra/i, 5],
+  [/costas|multa/i, 4],
+];
+
+const cleanMdText = (text: string): string =>
+  text
+    .replace(/\*\*/g, '')
+    .replace(/^\s*#+\s*/gm, '')
+    .replace(/[`_]/g, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const GREETING_RE = /^(estimad[oa]s?|saludos|atte|cordialmente)/i;
+const OFFICIAL_SOURCE_RE = /bcn\.cl|leychile|pjud|dt\.gob\.cl|bcu\.cl|gob\.cl|diariooficial|boletinoficial|contraloria|sernac/i;
 
 interface AnalysisReportProps {
   analysisMarkdown: string;
@@ -14,6 +43,8 @@ interface AnalysisReportProps {
   onNewAnalysis: () => void;
   isPaidInitial?: boolean;
   onPaymentSuccess?: () => void;
+  premium?: PremiumResult | null;
+  isPremiumLoading?: boolean;
 }
 
 export const AnalysisReport: React.FC<AnalysisReportProps> = ({
@@ -26,6 +57,8 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
   onNewAnalysis,
   isPaidInitial = false,
   onPaymentSuccess,
+  premium = null,
+  isPremiumLoading = false,
 }) => {
   const [copied, setCopied] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(isPaidInitial);
@@ -187,6 +220,57 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
   };
 
   const parsedSections = parseMarkdownSections(analysisMarkdown);
+  const premiumSections = premium?.report ? parseMarkdownSections(premium.report) : [];
+
+  // Extrae los 2-3 riesgos más severos ya redactados en el dictamen (Punto 4 o 3).
+  // Solo reordena/limita contenido existente: no inventa datos.
+  const extractSevereRisks = (sections: SectionData[]): string[] => {
+    const sourceSection =
+      sections.find((s) => /^\s*4\s*[.)]/.test(s.title) && /riesgo/i.test(s.title)) ||
+      sections.find((s) => /riesgo/i.test(s.title)) ||
+      sections.find((s) => /^\s*3\s*[.)]/.test(s.title)) ||
+      sections.find((s) => /plazo/i.test(s.title));
+    const source = sourceSection?.body || '';
+    if (!source) return [];
+
+    // 1) Viñetas o lista numerada
+    let items = source
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => /^([-*•]|\d+[.)])\s+/.test(l))
+      .map((l) => l.replace(/^([-*•]|\d+[.)])\s+/, ''))
+      .map(cleanMdText)
+      .filter((t) => t.length >= 20 && !GREETING_RE.test(t));
+
+    // 2) Fallback: oraciones del párrafo
+    if (items.length < 2) {
+      items = (cleanMdText(source).match(/[^.]+\.?/g) || [])
+        .map((s) => s.trim())
+        .filter((t) => t.length >= 30 && !GREETING_RE.test(t));
+    }
+    if (items.length === 0) return [];
+
+    const scored = items.map((text, order) => ({
+      text,
+      order,
+      score: RISK_KEYWORD_SCORES.reduce((acc, [re, w]) => (re.test(text) ? acc + w : acc), 0),
+    }));
+
+    const bySeverity = [...scored].sort((a, b) => b.score - a.score || a.order - b.order);
+    const picked: Array<{ text: string; order: number; score: number }> = [];
+    for (const item of bySeverity) {
+      if (picked.length >= 3) break;
+      if (picked.some((p) => p.text === item.text)) continue;
+      picked.push(item);
+    }
+
+    return picked
+      .map((p) => p.text)
+      .map((t) => (t.length > 150 ? `${t.slice(0, 147).trim()}…` : t));
+  };
+
+  const severeRisks = isUnlocked ? [] : extractSevereRisks(parsedSections);
+  const showDeadlineBadge = /plazo|fatal/i.test(analysisMarkdown);
 
   return (
     <div className="space-y-6">
@@ -286,7 +370,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
             {isUnlocked ? (
               <span>DICTAMEN TÉCNICO COMPLETO (100%)</span>
             ) : (
-              <span className="text-blue-700 font-extrabold">VISTA PREVIA DE CASO (50% PUNTO 1)</span>
+              <span className="text-blue-700 font-extrabold">VISTA PREVIA GRATUITA (ALERTAS DE URGENCIA)</span>
             )}
           </span>
         </div>
@@ -294,7 +378,8 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
         {/* Formatted Markdown Content */}
         <div className="max-w-none space-y-6">
           {isUnlocked ? (
-            parsedSections.map((sec, idx) => {
+            <>
+            {parsedSections.map((sec, idx) => {
               const { title, body } = sec;
 
               let icon = <Scale className="w-5 h-5 text-blue-600" />;
@@ -331,52 +416,116 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                   </div>
                 </div>
               );
-            })
-          ) : (
-            <>
-              {/* Punto 1: 50% Visible Preview (Unblurred, Crisp & Clear Case Details) */}
-              {parsedSections.slice(0, 1).map((sec, idx) => {
-                const { title, body } = sec;
-                const halfLength = Math.max(300, Math.ceil(body.length * 0.5));
-                const previewText = body.length > halfLength ? body.slice(0, halfLength) : body;
+            })}
 
-                return (
-                  <div key={idx} className="p-5 sm:p-6 rounded-r-lg border-l-4 border-blue-600 bg-blue-50/60 space-y-3 shadow-sm border border-slate-200">
-                    <div className="flex items-center justify-between gap-2 border-b border-blue-200/80 pb-3">
+            {/* Complemento Web RAG: carga en curso (dictamen original ya visible) */}
+            {isUnlocked && isPremiumLoading && (
+              <div className="flex items-center gap-3 p-4 rounded-lg border border-emerald-200 bg-emerald-50/70">
+                <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                <div>
+                  <p className="text-xs font-bold text-emerald-900">Verificando el dictamen con búsqueda web oficial (Web RAG)…</p>
+                  <p className="text-[11px] text-emerald-700">Contrastando artículos y plazos con fuentes oficiales (BCN, Ley Chile, PJUD, DT). Toma entre 10 y 30 segundos.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Complemento Web RAG: secciones de verificación + fuentes, ABAJO del dictamen original */}
+            {isUnlocked && !isPremiumLoading && premium && (
+              <>
+                <div className="flex flex-wrap items-center gap-2 pt-4 border-t-2 border-dashed border-emerald-300">
+                  <span className="text-[10px] font-extrabold uppercase px-2 py-1 bg-emerald-100 text-emerald-800 rounded border border-emerald-300 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" /> Complemento de verificación
+                  </span>
+                  {premium.grounded && (
+                    <span className="text-[10px] font-bold uppercase px-2 py-1 bg-blue-100 text-blue-800 rounded border border-blue-200 flex items-center gap-1">
+                      <Globe className="w-3 h-3" /> Búsqueda web oficial activa (Web RAG)
+                    </span>
+                  )}
+                  {premium.materia && (
+                    <span className="text-[10px] font-bold uppercase px-2 py-1 bg-slate-100 text-slate-700 rounded border border-slate-200">
+                      Materia: {premium.materia}
+                    </span>
+                  )}
+                </div>
+                {premiumSections.map((sec, idx) => {
+                  const { title, body } = sec;
+                  let icon = <ShieldCheck className="w-5 h-5 text-emerald-600" />;
+                  let borderClass = 'border-l-4 border-emerald-500 bg-emerald-50/60';
+                  let titleClass = 'text-emerald-950';
+                  if (/nulidad|punto ciego/i.test(title)) {
+                    icon = <AlertCircle className="w-5 h-5 text-red-600" />;
+                    borderClass = 'border-l-4 border-red-500 bg-red-50/60';
+                    titleClass = 'text-red-950';
+                  } else if (/verificaci[oó]n de art[ií]culos|art[ií]culos citados/i.test(title)) {
+                    icon = <CheckCircle className="w-5 h-5 text-blue-700" />;
+                    borderClass = 'border-l-4 border-blue-600 bg-blue-50/60';
+                    titleClass = 'text-blue-950';
+                  } else if (/fuente/i.test(title)) {
+                    icon = <Globe className="w-5 h-5 text-slate-700" />;
+                    borderClass = 'border-l-4 border-slate-500 bg-slate-50';
+                    titleClass = 'text-slate-900';
+                  }
+                  return (
+                    <div key={idx} className={`p-5 rounded-r-lg ${borderClass} space-y-3 shadow-xs`}>
                       <div className="flex items-center gap-2.5">
-                        <FileText className="w-5 h-5 text-blue-600" />
-                        <h3 className="text-lg font-bold tracking-tight text-slate-900">{title}</h3>
+                        {icon}
+                        <h3 className={`text-lg font-bold tracking-tight ${titleClass}`}>{title}</h3>
                       </div>
-                      <span className="text-[10px] uppercase font-extrabold px-2.5 py-1 bg-blue-100 text-blue-800 rounded-md border border-blue-300 flex items-center gap-1 shadow-2xs">
-                        <Sparkles className="w-3 h-3 text-blue-600" />
-                        Vista Previa 50%
+                      <div className="text-sm space-y-3 leading-relaxed whitespace-pre-line font-sans text-slate-800">
+                        {body}
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* Panel de fuentes oficiales consultadas */}
+                {premium.sources.length > 0 && (
+                  <div className="p-5 rounded-r-lg border-l-4 border-emerald-600 bg-white shadow-xs">
+                    <div className="flex flex-wrap items-center gap-2.5 mb-3">
+                      <Globe className="w-5 h-5 text-emerald-600" />
+                      <h3 className="text-lg font-bold tracking-tight text-slate-900">Fuentes oficiales consultadas</h3>
+                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded border border-emerald-200">
+                        {premium.sources.filter((s) => OFFICIAL_SOURCE_RE.test(`${s.domain || ''} ${s.title || ''}`)).length} / {premium.sources.length} oficiales
                       </span>
                     </div>
-
-                    {/* Crisp Readable 50% Content */}
-                    <div className="text-sm leading-relaxed whitespace-pre-line font-sans text-slate-800 pt-1">
-                      {previewText}
-                      {body.length > halfLength && (
-                        <span className="text-blue-700 font-extrabold"> ... [50% restante protegido por pago]</span>
-                      )}
-                    </div>
-
-                    {/* Locked Banner at Bottom of Punto 1 */}
-                    <div className="mt-4 pt-3 text-xs font-semibold text-slate-700 bg-blue-100/60 border border-blue-200/80 px-3.5 py-2.5 rounded-lg flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <Lock className="w-4 h-4 text-amber-600 shrink-0" />
-                        <span>El 50% restante de la síntesis de tu caso y los Puntos 2 a 5 se desbloquean al realizar el pago.</span>
-                      </div>
-                      <button
-                        onClick={() => setIsPaymentModalOpen(true)}
-                        className="text-[11px] font-black text-blue-700 hover:text-blue-900 underline whitespace-nowrap cursor-pointer"
-                      >
-                        Desbloquear &rarr;
-                      </button>
-                    </div>
+                    <ul className="space-y-1.5 text-xs">
+                      {premium.sources.map((s, i) => {
+                        const isOfficial = OFFICIAL_SOURCE_RE.test(`${s.domain || ''} ${s.title || ''}`);
+                        return (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className={`mt-0.5 shrink-0 ${isOfficial ? 'text-emerald-600' : 'text-slate-400'}`}>
+                              {isOfficial ? <CheckCircle2 className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />}
+                            </span>
+                            <a
+                              href={s.uri}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-700 hover:underline break-all flex items-center gap-1"
+                            >
+                              <span>{s.title || s.domain || s.uri}</span>
+                              <ExternalLink className="w-3 h-3 shrink-0" />
+                            </a>
+                            {isOfficial && (
+                              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded shrink-0 mt-0.5">
+                                Oficial
+                              </span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </div>
-                );
-              })}
+                )}
+              </>
+            )}
+            </>
+          ) : (
+            <>
+              {/* ALERT CARD: vista previa gratuita de impacto (reemplaza el párrafo plano del Punto 1) */}
+              <PreviewAlertCard
+                risks={severeRisks}
+                showDeadlineBadge={showDeadlineBadge}
+                onUnlock={() => setIsPaymentModalOpen(true)}
+              />
 
               {/* Puntos 2, 3, 4, 5...: Entirely blurred under a single payment button overlay */}
               {parsedSections.length > 1 && (

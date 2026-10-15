@@ -1,17 +1,12 @@
 import React from 'react';
-import { Shield, Calculator, FileText, Lock } from 'lucide-react';
+import { Shield, Calculator, Lock } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'analyzer' | 'calculator';
-  setActiveTab: (tab: 'analyzer' | 'calculator') => void;
   hasAntecedents?: boolean;
   isPaid?: boolean;
-  onOpenPayment?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  activeTab,
-  setActiveTab,
   hasAntecedents = false,
   isPaid = false,
 }) => {
@@ -61,27 +56,13 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar border-t border-slate-800/80 pt-2 pb-2">
-          <button
-            onClick={() => setActiveTab('analyzer')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
-              activeTab === 'analyzer'
-                ? 'bg-blue-600 text-white shadow-sm font-bold'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            <span>Diagnóstico de Caso</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('calculator')}
+        {/* Quick Jump: Calculadora (ancla, no pestaña) */}
+        <div className="flex items-center gap-2 border-t border-slate-800/80 pt-2 pb-2">
+          <a
+            href="#calculadora"
             className={`flex items-center gap-2 px-4 py-2 text-xs rounded-lg transition-all whitespace-nowrap relative cursor-pointer ${
               isCalculatorBlinking
                 ? 'bg-amber-400 text-slate-950 font-black animate-pulse ring-2 ring-amber-300 shadow-lg shadow-amber-400/30'
-                : activeTab === 'calculator'
-                ? 'bg-blue-600 text-white shadow-sm font-bold'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800 font-semibold'
             }`}
           >
@@ -96,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
             {!isPaid && (
               <Lock className={`w-3.5 h-3.5 ${isCalculatorBlinking ? 'text-slate-950' : 'text-amber-400'} ml-0.5`} />
             )}
-          </button>
+          </a>
         </div>
       </div>
     </header>

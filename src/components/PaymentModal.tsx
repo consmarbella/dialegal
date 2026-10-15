@@ -20,6 +20,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  // Solo visible en local: permite simular el pago aprobado sin MercadoPago (prod nunca lo muestra)
+  const isLocalDev =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
   if (!isOpen) return null;
 
   const handleAdminBypass = (code: string) => {
@@ -158,6 +163,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   <span>Solicitar link de pago al WhatsApp ($19.990 CLP)</span>
                   <ArrowRight className="w-4 h-4" />
                 </a>
+
+                {/* SOLO LOCAL: simular pago aprobado para probar el desbloqueo + capa premium */}
+                {isLocalDev && (
+                  <button
+                    onClick={onSuccess}
+                    className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition-all border border-dashed border-slate-400 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>🧪</span>
+                    <span>Simular pago aprobado (solo local — no existe en producción)</span>
+                  </button>
+                )}
               </div>
             </>
           )}

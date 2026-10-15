@@ -1,26 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { CaseAnalyzer } from './components/CaseAnalyzer';
 import { AnalysisReport } from './components/AnalysisReport';
 import { DeadlineCalculatorComponent } from './components/DeadlineCalculatorComponent';
+import { CtaAbogadoBanner } from './components/CtaAbogadoBanner';
 import { PaymentModal } from './components/PaymentModal';
-import { LegalArea, SavedAnalysis } from './types';
+import { LegalArea, SavedAnalysis, PremiumResult } from './types';
 import { Scale } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'analyzer' | 'calculator'>('analyzer');
   const [isLoading, setIsLoading] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isPremiumLoading, setIsPremiumLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<{
     markdown: string;
     userStory: string;
     area: LegalArea;
     notificationDate?: string;
     isPaid?: boolean;
+    premium?: PremiumResult | null;
+    premiumFailed?: boolean;
   } | null>(null);
 
   const [savedCases, setSavedCases] = useState<SavedAnalysis[]>([]);
   const [currentSavedId, setCurrentSavedId] = useState<string | null>(null);
+
+  // Último payload de análisis (para reenviarlo a /api/premium-report al desbloquear)
+  const lastPayloadRef = useRef<{
+    userStory: string;
+    documentText: string;
+    area: LegalArea;
+    notificationDate: string;
+  } | null>(null);
+  const premiumRequestedRef = useRef(false);
 
   // Load saved cases from localStorage & handle MercadoPago redirect back
   useEffect(() => {
@@ -54,6 +66,45 @@ export default function App() {
     }
   }, []);
 
+  // Al desbloquear (pago real o bypass local): genera la auditoría premium con grounding.
+  // Prod sin flag -> /api/premium-report responde 404 -> premiumFailed -> se ve el dictamen normal (sin cambios).
+  useEffect(() => {
+    const ar = analysisResult;
+    if (!ar?.isPaid || ar.premium || ar.premiumFailed) return;
+    const payload = lastPayloadRef.current;
+    if (!payload || premiumRequestedRef.current) return;
+    premiumRequestedRef.current = true;
+
+    (async () => {
+      setIsPremiumLoading(true);
+      try {
+        const res = await fetch('/api/premium-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userStory: payload.userStory,
+            documentText: payload.documentText,
+            area: payload.area,
+            notificationDate: payload.notificationDate,
+            dictamenMarkdown: ar.markdown,
+          }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || data?.error) {
+          console.error('premium-report falló:', data?.error || res.status);
+          setAnalysisResult((prev) => (prev && prev.isPaid ? { ...prev, premiumFailed: true } : prev));
+        } else {
+          setAnalysisResult((prev) => (prev && prev.isPaid ? { ...prev, premium: data } : prev));
+        }
+      } catch (e: any) {
+        console.error('premium-report error:', e);
+        setAnalysisResult((prev) => (prev && prev.isPaid ? { ...prev, premiumFailed: true } : prev));
+      } finally {
+        setIsPremiumLoading(false);
+      }
+    })();
+  }, [analysisResult]);
+
   // Save to localStorage helper
   const saveCasesToStorage = (cases: SavedAnalysis[]) => {
     setSavedCases(cases);
@@ -74,6 +125,13 @@ export default function App() {
     setIsLoading(true);
     setAnalysisResult(null);
     setCurrentSavedId(null);
+    premiumRequestedRef.current = false;
+    lastPayloadRef.current = {
+      userStory: payload.userStory,
+      documentText: payload.documentText,
+      area: payload.area,
+      notificationDate: payload.notificationDate,
+    };
 
     try {
       const response = await fetch('/api/analyze', {
@@ -145,45 +203,46 @@ export default function App() {
       
       {/* Header */}
       <Header
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
         hasAntecedents={hasAntecedents}
         isPaid={isPaid}
-        onOpenPayment={() => setIsPaymentModalOpen(true)}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        
-        {activeTab === 'analyzer' && (
-          <div className="space-y-6">
-            {analysisResult ? (
-              <AnalysisReport
-                analysisMarkdown={analysisResult.markdown}
-                userStory={analysisResult.userStory}
-                area={analysisResult.area}
-                notificationDate={analysisResult.notificationDate}
-                onSaveToHistory={handleSaveCurrentReport}
-                isSaved={currentSavedId !== null}
-                onNewAnalysis={() => setAnalysisResult(null)}
-                isPaidInitial={analysisResult.isPaid}
-                onPaymentSuccess={() =>
-                  setAnalysisResult((prev) => (prev ? { ...prev, isPaid: true } : null))
-                }
-              />
-            ) : (
-              <CaseAnalyzer onAnalyze={handleAnalyze} isLoading={isLoading} />
-            )}
+        <div className="space-y-6">
+          {analysisResult ? (
+            <AnalysisReport
+              analysisMarkdown={analysisResult.markdown}
+              userStory={analysisResult.userStory}
+              area={analysisResult.area}
+              notificationDate={analysisResult.notificationDate}
+              onSaveToHistory={handleSaveCurrentReport}
+              isSaved={currentSavedId !== null}
+              onNewAnalysis={() => setAnalysisResult(null)}
+              isPaidInitial={analysisResult.isPaid}
+              premium={analysisResult.premium}
+              isPremiumLoading={isPremiumLoading}
+              onPaymentSuccess={() =>
+                setAnalysisResult((prev) => (prev ? { ...prev, isPaid: true } : null))
+              }
+            />
+          ) : (
+            <CaseAnalyzer onAnalyze={handleAnalyze} isLoading={isLoading} />
+          )}
+
+          {/* Calculadora de Plazos Finales: siempre debajo del diagnóstico */}
+          <div id="calculadora" className="scroll-mt-28 pt-4 border-t border-slate-200">
+            <DeadlineCalculatorComponent
+              isUnlocked={isPaid}
+              onOpenPayment={() => setIsPaymentModalOpen(true)}
+            />
           </div>
-        )}
 
-        {activeTab === 'calculator' && (
-          <DeadlineCalculatorComponent
-            isUnlocked={isPaid}
-            onOpenPayment={() => setIsPaymentModalOpen(true)}
-          />
-        )}
-
+          {/* CTA principal de conversión: al final de la vista de resultados, sobre el pie de página */}
+          {analysisResult && (
+            <CtaAbogadoBanner onClick={() => setIsPaymentModalOpen(true)} />
+          )}
+        </div>
       </main>
 
       {/* Global Payment Modal if opened from Calculator or Header */}

@@ -60,3 +60,17 @@ export interface ChatMessage {
   isQuotaExhausted?: boolean;
   whatsappUrl?: string;
 }
+
+export interface PremiumSource {
+  title: string;
+  uri: string;
+  domain: string;
+}
+
+export interface PremiumResult {
+  report: string;
+  sources: PremiumSource[];
+  materia: string;
+  grounded: boolean;
+  cached?: boolean;
+}
