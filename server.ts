@@ -941,53 +941,173 @@ app.post("/api/chat", async (req, res) => {
     }
     const msg = normalizeNoAccents(userMessage);
 
-    const DRAFT_TRIGGERS = [
-      /generar\s+(?:borrador|escrito|demanda|contestacion|otrosi|minuta|contrato|correo)/i,
-      /redactar\s+(?:la\s+)?(?:contestacion|demanda|escrito|otrosi|minuta)/i,
-      /hacer\s+(?:la\s+)?(?:contestacion|demanda)/i,
-      /borrador\s+(?:de\s+)?(?:contestacion|demanda)/i,
-      /escrit(?:o|a)\s+(?:de\s+)?(?:contestacion|demanda)/i,
-    ];
+    // ───── LEGALHELP IA: intercepción de intención de redactar ─────
+    // Tier 1: verbo + sustantivo (con muletillas entre medio) o keywords fuertes.
+    // Tier 2: si el LLM igual devolviera una negativa ética, se intercepta y se
+    //         convierte en draftAction (sin cachearla), suprimiendo cualquier
+    //         bloqueo ético para los comandos de redacción autorizados.
+    const DRAFT_VERBO = /(?:generar|crear|redactar|redactame|escribeme|hacer|elaborar|confeccionar|escribir|preparar|preparame|dame|ayudame|ayudar|contestar|responder|entregar|entregame|necesito|necesitan|necesitamos|quiero|queremos|deseo|requiero|solicito|solicita|solicitan)\b/i;
+    const DRAFT_SUST = /\b(?:borrador|escrito|minuta|otrosi|contestacion|defensa|demanda|replica)\b/i;
+    const DRAFT_STRONG = /\b(?:borrador|redactar|redactame|otrosi)\b/i;
 
-    const wantsDraft = DRAFT_TRIGGERS.some((re) => re.test(msg));
-    if (wantsDraft) {
-      let suggestedTipo: DraftInput["tipo"] = "contestacion";
-      if (/contestacion/i.test(msg)) suggestedTipo = "contestacion";
-      else if (/demanda/i.test(msg)) suggestedTipo = "demanda";
-      else if (/otrosi/i.test(msg)) suggestedTipo = "otrosi";
-      else if (/minuta/i.test(msg)) suggestedTipo = "minuta";
-      else if (/contrato/i.test(msg)) suggestedTipo = "contrato";
-      else if (/correo/i.test(msg)) suggestedTipo = "correo";
+    const verbNearNoun = (s: string): boolean => {
+      const vi = s.search(DRAFT_VERBO);
+      const ni = s.search(DRAFT_SUST);
+      if (vi === -1 || ni === -1) return false;
+      const gap = vi < ni ? ni - (vi + 8) : (vi + 8) - ni;
+      return gap >= -8 && gap < 60;
+    };
 
+    const wantsDraft = verbNearNoun(msg) || DRAFT_STRONG.test(msg);
+
+    // Tipo inferido: primero escritos específicos, luego defensas (orden evita que
+    // "contestar la demanda" caiga en demanda en vez de contestacion).
+    const inferTipoFromMsg = (s: string): DraftInput["tipo"] => {
+      if (/otrosi/i.test(s)) return "otrosi";
+      if (/minuta/i.test(s)) return "minuta";
+      if (/contrato/i.test(s)) return "contrato";
+      if (/correo|carta/i.test(s)) return "correo";
+      if (/contestacion|defensa|contestar|responder|replica/i.test(s)) return "contestacion";
+      if (/demanda/i.test(s)) return "demanda";
+      return "contestacion";
+    };
+
+    // Builder reutilizable (Tier 1 y Tier 2): mapea el diagnóstico completo a DraftInput
+    const buildDraftSuggestion = (rawMsg: string, rawCtx: string) => {
+      const suggestedTipo = inferTipoFromMsg(normalizeNoAccents(rawMsg));
+      const ctx = typeof rawCtx === "string" ? rawCtx : "";
+      const limpiarMd = (s: string): string =>
+        s.replace(/^\s*#{1,6}\s*/, "").replace(/\*\*/g, "").replace(/[`_]/g, "").trim();
+
+      // HECHOS: preferir el RELATO INICIAL (narrativa del usuario); fallback: sección Resumen del diagnóstico
       let hechos = "";
-      if (currentCaseContext?.includes("RELATO INICIAL:\n")) {
-        hechos = currentCaseContext.split("RELATO INICIAL:\n")[1]?.split("\n\nDIAGN")[0]?.slice(0, 4000) || "";
+      if (ctx.includes("RELATO INICIAL:\n")) {
+        hechos = ctx.split("RELATO INICIAL:\n")[1]?.split("\n\nDIAGN")[0]?.slice(0, 4000) || "";
+      }
+      if (!hechos) {
+        const mRes = ctx.match(/Resumen[\s\S]{0,2000}?(?=\n#{1,4}\s|\n##\s)/i);
+        if (mRes) hechos = mRes[0].slice(0, 4000);
       }
 
-      const area = detectAreaFromContext(currentCaseContext || "");
+      // ROL: formatos RIT/ROL/RUC presentes en el análisis (ej: "RIT O-100-2026", "Rol N° 12345-2024", "RUC 1234-5")
+      let rol = "";
+      const reRolEtiqueta = /\b(?:RIT|ROL|R\.?O\.?L\.?)\b[:\s°ºN.]*([A-Za-z]-?\d{1,7}\s*[-–]\s*\d{2,4}|\d{1,7}\s*[-–]\s*\d{2,4})\b/i;
+      const reRolSueltas = /\b([OCR]-\d{1,7}-\d{2,4})\b/;
+      const mRol1 = ctx.match(reRolEtiqueta);
+      if (mRol1) rol = mRol1[1].replace(/\s*/g, "");
+      else {
+        const mRol2 = ctx.match(reRolSueltas);
+        if (mRol2) rol = mRol2[1];
+      }
+      if (!rol) {
+        const mRuc = ctx.match(/\bRUC\b[:\s]*([\d]{5,12}[-–]\d)/i);
+        if (mRuc) rol = `RUC ${mRuc[1]}`;
+      }
 
-      return res.json({
-        draftAction: true,
+      // TRIBUNAL: regex amplia (incluye 1er/2º Juzgado y comuna) vs extractor determinista; gana la variante más completa
+      let tribunal = "";
+      if (ctx) {
+        const mJuz = ctx.match(
+          /\b(?:[1-9](?:[ºo°]|\s*er|\s*ro)?\s+)?(?:Juzgado|Tribunal)\s+(?:de\s+)?(?:Letras(?:\s+del\s+Trabajo)?|de\s+Familia|de\s+Letras\s+y\s+Garant[íi]a|de\s+Garant[íi]a|de\s+Polic[íi]a\s+Local|de\s+Cobranza\s+Laboral\s+y\s+Previsional|Civil\s+de\s+[^,\n.)]{3,40}|de\s+Comercio|Juicio\s+Oral\s+(?:penal|en\s+lo\s+penal)|Laboral)(?:\s+(?:de|del)\s+[A-ZÁÉÍÓÚÑ][^,\n.)]{2,40})?/i
+        );
+        const regexHit = mJuz ? mJuz[0].replace(/\s+/g, " ").trim() : "";
+        let extractorHit = "";
+        try {
+          extractorHit = extraerChileno(ctx).juzgado;
+        } catch {
+          extractorHit = "";
+        }
+        if (regexHit.length >= extractorHit.length) tribunal = regexHit;
+        else tribunal = extractorHit;
+      }
+
+      // PRETENSIONES: bullets de estrategia/defensa del diagnóstico propio (coherencia 100% con el análisis)
+      let pretensiones: string[] = [];
+      if (ctx) {
+        const lineas = ctx.split("\n");
+        const reHeader = /(estrategia|defensa|riesgo|recomendaci|pr[oó]ximos?\s+pasos|acci[oó]n(?:es)?|argumentos)/i;
+        const recolectando: string[] = [];
+        let enSeccion = false;
+        for (const linea of lineas) {
+          const esHeader = /^\s*#{1,6}\s+/.test(linea) || /^[A-ZÁÉÍÓÚÑ0-9 .:]{4,40}:?\s*$/.test(linea);
+          const normLinea = normalizeNoAccents(linea);
+          if (esHeader && reHeader.test(normLinea)) {
+            enSeccion = true;
+            continue;
+          }
+          if (esHeader && enSeccion) enSeccion = false; // otro encabezado corta la sección
+          if (enSeccion) {
+            const mBullet = linea.match(/^\s*(?:[-*•]|\d+[.)])\s+(.{10,220})$/);
+            if (mBullet) recolectando.push(limpiarMd(mBullet[1]));
+          }
+        }
+        pretensiones = recolectando.filter((t, i) => t.length >= 15 && recolectando.findIndex((x) => x === t) === i).slice(0, 6);
+      }
+
+      // Fallback 1: acciones detectadas por el extractor determinista → tesis de defensa
+      if (!pretensiones.length) {
+        try {
+          const acciones = extraerChileno(ctx).acciones;
+          if (acciones.length) {
+            pretensiones = acciones.map((a) =>
+              suggestedTipo === "contestacion"
+                ? `Enjuiciar/questionar la tesis de ${a} presentada por la contraparte`
+                : `Reclamar: ${a}`
+            );
+          }
+        } catch {
+          /* extractor nunca arroja, probabilidad baja */
+        }
+      }
+
+      // Fallback 2: genéricos actuales
+      if (!pretensiones.length) {
+        pretensiones =
+          suggestedTipo === "contestacion"
+            ? ["Rechazar la demanda en todas sus partes", "Excepción de caducidad si procede", "Costas"]
+            : ["Declarar...", "Condenar...", "Costas"];
+      }
+
+      const area = detectAreaFromContext(ctx || "");
+
+      return {
+        draftAction: true as const,
         suggestedTipo,
         suggestedInput: {
           tipo: suggestedTipo,
           hechos: hechos || "Ver relato en diagnóstico adjunto",
           area,
-          pretensiones:
-            suggestedTipo === "contestacion"
-              ? ["Rechazar la demanda en todas sus partes", "Excepción de caducidad si procede", "Costas"]
-              : ["Declarar...", "Condenar...", "Costas"],
+          pretensiones,
+          ...(rol ? { rol } : {}),
+          ...(tribunal ? { tribunal } : {}),
         },
-        reply: `✅ Detecté que quieres redactar un escrito. Te preparo el formulario con el contexto de tu caso.`,
-      });
+        reply: `✅ Detecté que quieres redactar un escrito. Preparé el formulario con los datos del diagnóstico (hechos, rol, tribunal y defensas detectadas). Completa lo que falte o añade antecedentes antes de generar.`,
+        cached: false as const,
+      };
+    };
+
+    if (wantsDraft) {
+      // NO cachear respuestas de draftAction; la intención intercepta todo flujo conversacional
+      console.log(`[draft] Tier 1: intención detectada ("${userMessage.slice(0, 60)}")`);
+      return res.json(buildDraftSuggestion(userMessage, currentCaseContext));
     }
 
-    // Caché: misma pregunta + mismo contexto = respuesta cacheada (ahorra cuota diaria)
+    // ───── Tier 2: intercepción de negativa ética ─────
+    const DRAFT_HINT_RE = /\b(?:borrador|redactar|redactame|contestacion|defensa|escrito|minuta|otrosi|replica|demanda)\b/i;
+    const REFUSAL_RE =
+      /(?:no\s+(?:puede?s?|me)\s+(?:generar|redactar|hacer|elaborar|ayudar|asistir|crear|entregar|preparar)|s[oó]lo?\s+un\s+abogado|debes?\s+(?:consultar|acudir)\s+[^\n]{0,60}\s*abogado|consultar?\s+(?:urgentemente\s+)?a\s+un\s+abogado|reitero[^\n]{0,60}abogado)/i;
+
+    // Caché: misma pregunta + mismo contexto = respuesta cacheada (ahorra cuota diaria).
+    // Pero si la caché contiene una negativa ética y hay intención de draft → se ignora.
     const cKey = cacheKey([
       userMessage,
       typeof currentCaseContext === "string" ? currentCaseContext.slice(0, 2000) : "",
     ]);
     const cached = getCached(cKey);
+    if (cached && REFUSAL_RE.test(cached) && DRAFT_HINT_RE.test(msg)) {
+      console.log("[draft] Tier 2a: caché con negativa ética → convertida a draftAction (sin LLM)");
+      return res.json(buildDraftSuggestion(userMessage, currentCaseContext));
+    }
     if (cached) {
       console.log("[cache] /api/chat hit de caché");
       return res.json({ reply: cached, cached: true });
@@ -1036,7 +1156,15 @@ app.post("/api/chat", async (req, res) => {
       response.text ||
       "Estimado cliente, conforme a la legislación procesal chilena y los antecedentes aportados, le sugiero verificar la fecha exacta de notificación y revisar las actuaciones en la Oficina Judicial Virtual (OJV).";
 
-    setCached(cKey, reply);
+    // Tier 2b: si el LLM devolvió una negativa ética y hay intención de redactar,
+    // se intercepta y se convierte en draftAction (se suprime el bloqueo ético).
+    if (REFUSAL_RE.test(reply) && DRAFT_HINT_RE.test(msg)) {
+      console.log("[draft] Tier 2b: negativa ética del LLM interceptada → convertida a draftAction");
+      return res.json(buildDraftSuggestion(userMessage, currentCaseContext));
+    }
+
+    // No almacenar negativas éticas en caché (evita envenenar consultas futuras)
+    if (!REFUSAL_RE.test(reply)) setCached(cKey, reply);
     res.json({ reply });
   } catch (err: any) {
     console.error("Error en /api/chat:", err);

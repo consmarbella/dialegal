@@ -61,11 +61,11 @@ const ESTRUCTURA_DEMANDA = [
 
 const ESTRUCTURA_CONTESTACION = [
   /S\.J\.L\.|Juzgado/i,
-  /CONTESTACI[OÓ]N\s+DE\s+DEMANDA|CONTESTAR/i,
-  /EXCEPCIONES?\s+PREVIAS|EXCEPCI[OÓ]N/i,
-  /NEGATIVA\s+DE\s+HECHOS|HECHOS\s+(?:NEGADOS|ADMITIDOS)/i,
-  /DEFENSAS?\s+DE\s+FONDO|FUNDAMENTOS\s+DE\s+DERECHO/i,
-  /PETITORIO|SOLICITO/i,
+  /CONTESTACI[OÓ]N\s+DE\s+DEMANDA|CONTESTAR\s+(?:LA\s+)?DEMANDA|CONTESTAR\b/i,
+  /EXCEPCIONES?\s+PREVIAS|EXCEPCI[OÓ]N[^\n]{0,80}|DEFENSA\s+PREVIA/i,
+  /NEGATIVA\s+DE\s+HECHOS|HECHOS\s+(?:NEGADOS|ADMITIDOS)|NEGATIVA[^\n]{0,60}HECHOS|NEGO\s+(?:CATEG[OÓ]RICAMENTE\s+)?(?:Y\s+)?CONTROVIERTO|CONTROVERTIENDO\s+EXPRESAMENTE/i,
+  /DEFENSAS?\s+DE\s+FONDO|FUNDAMENTOS?\s+DE\s+DERECHO|EL\s+DERECHO/i,
+  /PETITORIO|SOLICITO|POR\s+TANTO|A\s+U\.?\s?S\.?\s+PIDO/,
 ];
 
 const ESTRUCTURA_OTROSI = [
@@ -105,9 +105,10 @@ function validarNumeracionHechos(texto: string): boolean {
 }
 
 function validarPetitorio(texto: string): boolean {
-  const petSection = texto.split(/PETITORIO|POR\s+TANTO|SOLICITO/i)[1] || "";
+  const petSection = texto.split(/PETITORIO|POR\s+TANTO|SOLICITO|EN\s+M[ÉE]RITO|\bPIDO\b/i)[1] || "";
   if (!petSection) return false;
-  const items = petSection.match(/^\s*(?:[0-9]+[.)]\s*|[-•]\s*)/gm) || [];
+  const items =
+    petSection.match(/^\s*(?:[0-9]+[.)]\s*|[-•]\s*|[A-ZÁÉÍÓÚ][.,)]\s+|PRIMERO\b|SEGUNDO\b|TERCERO\b|CUARTO\b|QUINTO\b)/gm) || [];
   return items.length >= 2;
 }
 

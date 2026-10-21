@@ -150,6 +150,9 @@ export interface DraftInput {
   area?: DraftArea;
   rol?: string;
   tribunal?: string;
+  // Contexto heredado del análisis (Motor v2): dictamen técnico previo y documento real del expediente
+  dictamen?: string;
+  documentoCaso?: string;
 }
 
 export interface ValidacionLegalHelp extends ValidacionInformeUI {

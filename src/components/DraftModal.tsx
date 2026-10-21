@@ -14,8 +14,17 @@ export const DraftModal: React.FC<DraftModalProps> = ({ initialData, onClose, on
   const [view, setView] = useState<'form' | 'result'>('form');
   const [isLoading, setIsLoading] = useState(false);
   const [currentDraft, setCurrentDraft] = useState<DraftOutput | null>(null);
+  // Key para remontar el formulario si cambia el prefill (datos frescos del diagnóstico)
+  const formKey = `${initialData?.tipo}-${JSON.stringify(initialData?.rol || '')}-${JSON.stringify(initialData?.tribunal || '')}-${JSON.stringify(initialData?.pretensiones || []).length}`;
 
-  const handleSubmit = async (input: DraftInput) => {
+  const handleSubmit = async (formInput: DraftInput) => {
+    // El formulario reconstruye el objeto desde sus campos visibles; los campos
+    // heredados del análisis (dictamen + documento del caso) se preservan aparte.
+    const inherited: Partial<DraftInput> = {};
+    for (const key of ['dictamen', 'documentoCaso'] as const) {
+      if (initialData?.[key]) inherited[key] = initialData[key];
+    }
+    const input: DraftInput = { ...formInput, ...inherited };
     setIsLoading(true);
     try {
       const res = await fetch('/api/legalhelp/draft', {
@@ -121,6 +130,7 @@ export const DraftModal: React.FC<DraftModalProps> = ({ initialData, onClose, on
         <div className="flex-1 overflow-auto p-6">
           {view === 'form' ? (
             <DraftForm
+              key={formKey}
               initialData={initialData}
               onSubmit={handleSubmit}
               isLoading={isLoading}

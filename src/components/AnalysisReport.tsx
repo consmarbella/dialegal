@@ -39,6 +39,7 @@ interface AnalysisReportProps {
   userStory: string;
   area: LegalArea;
   notificationDate?: string;
+  documentText?: string;
   onSaveToHistory: () => void;
   isSaved: boolean;
   onNewAnalysis: () => void;
@@ -55,6 +56,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
   userStory,
   area,
   notificationDate,
+  documentText,
   onSaveToHistory,
   isSaved,
   onNewAnalysis,
@@ -73,6 +75,14 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [draftPrefill, setDraftPrefill] = useState<DraftInput | null>(null);
+
+  // Contexto heredado para el Motor de Redacción (LegalHelp IA):
+  // dictamen (premium si está desbloqueado; análisis como fallback) + documento real del expediente.
+  // El borrador se genera con los hechos/fechas/montos reales del caso, no con texto genérico.
+  const draftContextExtra = (): Pick<DraftInput, 'dictamen' | 'documentoCaso'> => ({
+    dictamen: ((premium?.report || analysisMarkdown) || '').trim().slice(0, 9000) || undefined,
+    documentoCaso: (documentText || '').trim().slice(0, 9000) || undefined,
+  });
 
   const handleCopy = () => {
     navigator.clipboard.writeText(analysisMarkdown);
@@ -133,9 +143,38 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
 
       const data = await response.json();
 
+      // Tier 3: red de seguridad cliente — si el servidor no detectó la intención
+      // pero el usuario pide redactar y el reply es una negativa ética, abrir el
+      // modal igual con prefill local (hechos del relato propio).
+      const DRAFT_HINT_CLIENT = /\b(borrador|redactar|redactame|contestación|contestacion|defensa|escrito|minuta|otrosí|otrosi|demanda|replica)\b/i;
+      const REFUSAL_CLIENT = /(no puedo|solo un abogado|sólo un abogado|debes consultar|debe consultar|consultar (?:a un|urgentemente) |consulte (?:a un )?abogado|no reemplaza|con la máxima urgencia)/i;
+      if (!data.draftAction && DRAFT_HINT_CLIENT.test(userMsg) && REFUSAL_CLIENT.test(data.reply || '')) {
+        const tipoLocal =
+          /otrosi/i.test(userMsg) ? 'otrosi' :
+          /minuta/i.test(userMsg) ? 'minuta' :
+          /defensa|contestar|responder|contestación|contestacion/i.test(userMsg) ? 'contestacion' :
+          'demanda';
+        data.draftAction = true;
+        data.suggestedTipo = tipoLocal;
+        data.suggestedInput = {
+          tipo: tipoLocal,
+          hechos: userStory || analysisMarkdown.slice(0, 4000),
+          area,
+          pretensiones:
+            tipoLocal === 'contestacion'
+              ? ['Rechazar la demanda en todas sus partes', 'Costas']
+              : ['Declarar...', 'Condenar...', 'Costas'],
+          ...draftContextExtra(),
+        };
+        console.log('[draft] Tier 3: negativa ética interceptada en cliente → abriendo modal con prefill local');
+      }
+
       // Detectar acción de generar borrador (LegalHelp IA)
       if (data.draftAction) {
-        setDraftPrefill(data.suggestedInput);
+        setDraftPrefill({
+          ...(data.suggestedInput as DraftInput),
+          ...draftContextExtra(),
+        });
         setShowDraftModal(true);
         
         // Agregar mensaje de confirmación al chat

@@ -6,6 +6,7 @@ import { DeadlineCalculatorComponent } from './components/DeadlineCalculatorComp
 import { CtaAbogadoBanner } from './components/CtaAbogadoBanner';
 import { PaymentModal } from './components/PaymentModal';
 import { LegalHelpDraft } from './pages/LegalHelpDraft';
+import { TestDraftPanel } from './components/TestDraftPanel';
 import { LegalArea, SavedAnalysis, PremiumResult } from './types';
 import { Scale } from 'lucide-react';
 
@@ -19,6 +20,7 @@ export default function App() {
     userStory: string;
     area: LegalArea;
     notificationDate?: string;
+    documentText?: string;
     isPaid?: boolean;
     premium?: PremiumResult | null;
     premiumFailed?: boolean;
@@ -170,6 +172,7 @@ export default function App() {
         userStory: payload.userStory || 'Análisis de documento legal adjunto',
         area: payload.area,
         notificationDate: payload.notificationDate,
+        documentText: payload.documentText || '',
         isPaid: false,
       });
 
@@ -206,6 +209,16 @@ export default function App() {
   const hasAntecedents = analysisResult !== null;
   const isPaid = analysisResult?.isPaid || false;
 
+  // Panel de prueba (solo si ?testdraft=1 en la URL)
+  const isTestMode = new URLSearchParams(window.location.search).get('testdraft') === '1';
+  if (isTestMode) {
+    return (
+      <div className="min-h-screen bg-slate-100">
+        <TestDraftPanel />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
       
@@ -230,6 +243,7 @@ export default function App() {
                   userStory={analysisResult.userStory}
                   area={analysisResult.area}
                   notificationDate={analysisResult.notificationDate}
+                  documentText={analysisResult.documentText}
                   onSaveToHistory={handleSaveCurrentReport}
                   isSaved={currentSavedId !== null}
                   onNewAnalysis={() => setAnalysisResult(null)}

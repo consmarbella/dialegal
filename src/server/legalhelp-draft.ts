@@ -30,7 +30,22 @@ FUENTES PRIORITARIAS (orden):
 3. Casos análogos recientes — ORIENTATIVO
 4. Búsqueda web — SOLO si BCN/jurisprudencia no cubren
 
-NUNCA INVENTES: artículos, roles, montos, fechas. Si no está en fuentes, escribe "[VERIFICAR]" y el validador lo marcará.`;
+NUNCA INVENTES: artículos, roles, montos, fechas NI IDENTIDADES de las partes. Los nombres de demandante, representantes y apoderados deben provenir del [DOCUMENTO DEL CASO] o del [DICTAMEN TÉCNICO PREVIO]. Si un nombre no figura en ellos, redáctalo de forma neutra ("el actor", "la demandada") o usa el marcador "[NOMBRE DEL ACTOR]"; jamás un apellido supuesto. Si falta alguna otra fuente, escribe "[VERIFICAR]" y el validador lo marcará.
+
+JERARQUÍA DE CONTEXTO DEL CASO (cuando el prompt incluya estos bloques, prevalecen sobre ejemplos genéricos):
+1. [DOCUMENTO DEL CASO] — texto real del expediente: fuente principal de HECHOS, FECHAS y MONTOS. Cítalos literalmente; no los sustituyas por supuestos.
+2. [DICTAMEN TÉCNICO PREVIO] — análisis del mismo caso: fuente principal de la ESTRATEGIA. No contradigas sus conclusiones; nuestros criterios legales (BCN/jurisprudencia) los respaldan.
+3. BCN/Ley Chile y jurisprudencia — verificación normativa.
+4. Plantilla — da la FORMA, nunca inventa contenido.
+
+CALIDAD FORENSE OBLIGATORIA (aplica a todo borrador con documento/dictamen adjunto):
+- NEGATIVAS/AFIRMACIONES PUNTUALES: cuando sea contestación/defensa, niega hechos y rebate cada pretensión demandada una por una (por numeral o rubro), con su razón de improcedencia. Nunca una negativa global sola.
+- EXCEPCIONES A MEDIDA: opón solo las que el caso concreto haga procedentes, fundadas en el documento/dictamen; nada de excepciones por rutina ni contradictorias con la propia posición del caso.
+- CITAS DE LA CONTRAPARTE: los roles, causales y montos que solo aparezcan como citas del demandante NO son del propio caso; jamás los uses como si fueran propios (especialmente en el encabezado RIT/RUC).
+- DATOS HEREDADOS: usa exactamente los montos, plazos y conseciones del documento/dictamen; si faltan, [VERIFICAR]. El borrador debe individualizar las FECHAS EXTREMAS del vínculo (inicio y término, tal como constan en el [DOCUMENTO DEL CASO], p. ej. "4 de abril de 2022 … 15 de diciembre de 2024"), los MONTOS reclamados y el tribunal/rol del encabezado; no las omitas ni las aproximes.
+- VOCABULARIO DE QA: los marcadores de trazabilidad ("NO VERIFICADO", "no corroborado", "pendiente de confirmar") NO pertenecen al texto del escrito. Todo dato que SÍ figure en el documento/dictamen se afirma directamente como hecho del expediente; los marcadores se reservan solo para datos ausentes en todas las fuentes.
+- TRIBUNAL Y ROL: el TRIBUNAL y el ROL/RIT proporcionados en el encabezado (si existen) se reproducen LITERALMENTE, sin renombrarlos, sin numerarlos ni añadir servidores/puertas (1°, N° 2); si no fueron proporcionados, usa marcadores genéricos ("S.J.L. de [COMUNA]", "RIT: [RIT de la causa]").
+- ROLES DE FALLOS JURISPRUDENCIALES: PROHIBIDO citar un rol de fallo (ej. "Rol N° 41.500-2017") que NO aparezca en los bloques verificados (CRITERIO JURISPRUDENCIAL / CASOS ANÁLOGOS / [DICTAMEN]). Cita la doctrina sin rol (" según la jurisprudencia de la Excma. Corte Suprema"); si la fuente trae un rol, cópialo textual. Los roles citados por la contraparte solo se mencionan como citas de ella, nunca como propios.`;
 
 const PREMIUM_GROUNDING_ENABLED = process.env.PREMIUM_GROUNDING === "true";
 
@@ -87,7 +102,11 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   const { confidence } = getAreaConfidence(input.hechos, input.pretensiones);
 
   // 3. Extractor determinista (plano de lectura + artefactos)
-  const combinedText = [input.hechos, ...input.pretensiones, ...(input.documentos || [])].filter(Boolean).join("\n");
+  // El documento real del expediente entra primero: los montos/fechas que extrae
+  // el extractor y el validador QA corresponden al caso, no a resúmenes.
+  const combinedText = [input.documentoCaso, input.hechos, ...input.pretensiones, ...(input.documentos || [])]
+    .filter(Boolean)
+    .join("\n");
   let ext: ReturnType<typeof extraerChileno> | null = null;
   let planoExt = "";
   try {
@@ -104,6 +123,8 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   // 5. Multi-retrieval jurisprudencial adaptativo
   const consultas: ConsultaEtiquetada[] = [];
   if (input.hechos) consultas.push({ texto: input.hechos.slice(0, 2500), etiqueta: "hechos" });
+  if (input.documentoCaso) consultas.push({ texto: input.documentoCaso.slice(0, 2500), etiqueta: "documento" });
+  if (input.dictamen) consultas.push({ texto: input.dictamen.slice(0, 2500), etiqueta: "dictamen" });
   if (ext) {
     if (ext.secciones.hechos) consultas.push({ texto: ext.secciones.hechos.slice(0, 2200), etiqueta: "hechos" });
     if (ext.secciones.derecho) consultas.push({ texto: ext.secciones.derecho.slice(0, 2500), etiqueta: "derecho" });
@@ -134,6 +155,14 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   promptContent += `\nHECHOS:\n${input.hechos}\n\n`;
   promptContent += `PRETENSIONES:\n${input.pretensiones.map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\n`;
   if (planoExt) promptContent += planoExt;
+  // Bloques de contexto heredado (Motor v2): documento real + dictamen del caso.
+  // Van antes de la plantilla para que fijen hechos/estrategia y la plantilla solo dé forma.
+  if (input.documentoCaso) {
+    promptContent += `\n[DOCUMENTO DEL CASO] — texto real del expediente; HECHOS, FECHAS y MONTOS autoritativos:\n${input.documentoCaso.slice(0, 9000)}\n`;
+  }
+  if (input.dictamen) {
+    promptContent += `\n[DICTAMEN TÉCNICO PREVIO] — análisis del mismo caso; ESTRATEGIA y defensas conforme al diagnóstico:\n${input.dictamen.slice(0, 9000)}\n`;
+  }
   if (bloqueBCN) promptContent += bloqueBCN;
   if (bloqueJuris) promptContent += bloqueJuris;
   if (bloqueCasos) promptContent += bloqueCasos;

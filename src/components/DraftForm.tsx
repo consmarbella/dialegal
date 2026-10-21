@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DraftInput, DraftTipo, DraftArea } from '../types';
-import { FileText, Scale, MessageSquare, PenTool, Mail, Download, X, Loader2, Brain, AlertTriangle } from 'lucide-react';
+import { FileText, Scale, MessageSquare, PenTool, Mail, X, Loader2, Brain, AlertTriangle, FilePlus2 } from 'lucide-react';
 
 interface DraftFormProps {
   onSubmit: (input: DraftInput) => Promise<void>;
@@ -34,8 +34,12 @@ export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initi
   const [documentos, setDocumentos] = useState<string[]>(initialData?.documentos || []);
   const [rol, setRol] = useState(initialData?.rol || "");
   const [tribunal, setTribunal] = useState(initialData?.tribunal || "");
+  const [antecedentes, setAntecedentes] = useState("");
+  const [showAntecedentes, setShowAntecedentes] = useState(false);
   const [areaConfidence, setAreaConfidence] = useState<number | null>(null);
   const [showDocumentos, setShowDocumentos] = useState(false);
+
+  const tienePrefillDiagnostico = !!initialData?.hechos || (initialData?.pretensiones?.length || 0) > 0;
 
   // Auto-detect area cuando cambian hechos/pretensiones
   useEffect(() => {
@@ -87,7 +91,9 @@ export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initi
     const input: DraftInput = {
       tipo,
       area: area === "auto" ? undefined : area,
-      hechos: hechos.trim(),
+      hechos:
+        hechos.trim() +
+        (antecedentes.trim() ? `\n\nNOTAS DEL CLIENTE:\n${antecedentes.trim()}` : ""),
       pretensiones: pretensiones.map(p => p.trim()).filter(Boolean),
       documentos: documentos.map(d => d.trim()).filter(Boolean),
       rol: rol.trim() || undefined,
@@ -162,7 +168,14 @@ export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initi
 
       {/* Hechos */}
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">Hechos <span className="text-red-500">*</span></label>
+        <label className="block text-sm font-semibold text-slate-700 mb-2">
+          Hechos <span className="text-red-500">*</span>
+          {tienePrefillDiagnostico && (
+            <span className="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 align-middle">
+              Heredado del diagnóstico — edítalo libremente
+            </span>
+          )}
+        </label>
         <textarea
           value={hechos}
           onChange={e => setHechos(e.target.value)}
@@ -172,6 +185,30 @@ export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initi
           required
         />
         <p className="text-[11px] text-slate-500 mt-1">Usa numeración ordinal (PRIMERO, SEGUNDO...) para que el validador verifique la estructura.</p>
+      </div>
+
+      {/* Antecedentes adicionales (nota del cliente, se fusiona al generar) */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowAntecedentes(!showAntecedentes)}
+          className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-800"
+        >
+          <FilePlus2 className="w-4 h-4" />
+          <span>Añadir / editar antecedentes adicionales (opcional)</span>
+          {showAntecedentes ? <span className="text-xs text-slate-400">− contraer</span> : <span className="text-xs text-slate-400">+ expandir</span>}
+        </button>
+        {showAntecedentes && (
+          <div className="mt-2 animate-slide-down">
+            <textarea
+              value={antecedentes}
+              onChange={e => setAntecedentes(e.target.value)}
+              rows={3}
+              placeholder="Inyecta aquí notas o detalles específicos del caso que quieras agregar al borrador (fechas, montos, hechos omitidos, instrucciones para el redactor...). Se añadirán como 'NOTAS DEL CLIENTE' al final de los hechos."
+              className="w-full px-3 py-2 border border-indigo-200 bg-indigo-50/50 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all resize-none text-sm"
+            />
+          </div>
+        )}
       </div>
 
       {/* Pretensiones */}
