@@ -43,8 +43,13 @@ export const DraftModal: React.FC<DraftModalProps> = ({ initialData, onClose, on
     }
   };
 
-  const handleRegenerate = () => {
-    if (initialData) handleSubmit(initialData);
+  const handleRegenerate = (respuestasAuditoria?: string) => {
+    if (!initialData) return;
+    handleSubmit(
+      respuestasAuditoria?.trim()
+        ? { ...initialData, respuestasAuditoria }
+        : initialData
+    );
   };
 
   const handleNewDraft = () => {

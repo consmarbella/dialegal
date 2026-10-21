@@ -153,6 +153,16 @@ export interface DraftInput {
   // Contexto heredado del análisis (Motor v2): dictamen técnico previo y documento real del expediente
   dictamen?: string;
   documentoCaso?: string;
+  // Respuestas de la auditoría de vacíos (regeneración guiada)
+  respuestasAuditoria?: string;
+}
+
+// Auditoría determinista de vacíos críticos (Fase 2)
+export interface VacioCritico {
+  campo: string;
+  prioridad: 'fatal' | 'importante';
+  pregunta: string;
+  fragmento?: string;
 }
 
 export interface ValidacionLegalHelp extends ValidacionInformeUI {
@@ -172,6 +182,7 @@ export interface DraftMetadatos {
 export interface DraftOutput {
   draft: string;
   validacion: ValidacionLegalHelp;
+  vacios?: VacioCritico[];
   bcn: {
     citados: BcnArticuloCitado[];
     pendientes: Array<{ nombreNorma: string; motivo: string }>;

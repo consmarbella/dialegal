@@ -7,9 +7,10 @@ import { extraerChileno, planoBlindajePrompt } from "../../extractorChile.js";
 import { verificarCitasBCN, bloquePromptBCN } from "../../bcnLeyChile.js";
 import { buscarJurisprudenciaMulti, buscarCasosJurisMulti, type ConsultaEtiquetada } from "../../jurisprudenciaChile.js";
 import { validarLegalHelp, notaBlindajeLegalHelp, type InsumosValidacionLegalHelp, type ValidacionLegalHelp } from "../../validadorLegalHelp.js";
+import { auditarVacios } from "../../auditorVacios.js";
 import { detectarArea, getAreaConfidence } from "../../area-detector.js";
 import { getPlantilla, getArticulosClave } from "../../legalhelp-templates.js";
-import type { DraftInput, DraftOutput } from "../types.js";
+import type { DraftInput, DraftOutput, VacioCritico } from "../types.js";
 
 const SYSTEM_PROMPT_LEGALHELP = `Eres LegalHelp IA, motor forense y de redacción procesal para profesionales del derecho en Chile.
 
@@ -30,7 +31,8 @@ FUENTES PRIORITARIAS (orden):
 3. Casos análogos recientes — ORIENTATIVO
 4. Búsqueda web — SOLO si BCN/jurisprudencia no cubren
 
-NUNCA INVENTES: artículos, roles, montos, fechas NI IDENTIDADES de las partes. Los nombres de demandante, representantes y apoderados deben provenir del [DOCUMENTO DEL CASO] o del [DICTAMEN TÉCNICO PREVIO]. Si un nombre no figura en ellos, redáctalo de forma neutra ("el actor", "la demandada") o usa el marcador "[NOMBRE DEL ACTOR]"; jamás un apellido supuesto. Si falta alguna otra fuente, escribe "[VERIFICAR]" y el validador lo marcará.
+NUNCA INVENTES: artículos, roles, montos, fechas NI IDENTIDADES de las partes. Los nombres de demandante, representantes y apoderados deben provenir del [DOCUMENTO DEL CASO] o del [DICTAMEN TÉCNICO PREVIO]. Si un nombre no figura en ellos, redáctalo de forma neutra ("el actor", "la demandada") o usa el marcador "[NOMBRE DEL ACTOR]"; jamás un apellido supuesto.
+MARCADOR ÚNICO DE DATOS OPERATIVOS FALTANTES: si un dato indispensable (RIT/RUC, fecha de notificación, nombre o patente de abogado, RUN de testigo, escritura de poder, etc.) NO figura en ninguna fuente, escribe en el lugar exacto del escrito el marcador "[DATO FALTANTE: descripción corta]" (p. ej. "RIT C-[DATO FALTANTE: rol de la causa]-2026", "notificada el [DATO FALTANTE: fecha de notificación de la demanda]"). Nunca dejes espacios en blanco vacíos ni "XX"; cada marcador se convierte en una pregunta para el usuario. "[VERIFICAR]" queda reservado SOLO para citas normativas sin cobertura BCN.
 
 JERARQUÍA DE CONTEXTO DEL CASO (cuando el prompt incluya estos bloques, prevalecen sobre ejemplos genéricos):
 1. [DOCUMENTO DEL CASO] — texto real del expediente: fuente principal de HECHOS, FECHAS y MONTOS. Cítalos literalmente; no los sustituyas por supuestos.
@@ -42,9 +44,10 @@ CALIDAD FORENSE OBLIGATORIA (aplica a todo borrador con documento/dictamen adjun
 - NEGATIVAS/AFIRMACIONES PUNTUALES: cuando sea contestación/defensa, niega hechos y rebate cada pretensión demandada una por una (por numeral o rubro), con su razón de improcedencia. Nunca una negativa global sola.
 - EXCEPCIONES A MEDIDA: opón solo las que el caso concreto haga procedentes, fundadas en el documento/dictamen; nada de excepciones por rutina ni contradictorias con la propia posición del caso.
 - CITAS DE LA CONTRAPARTE: los roles, causales y montos que solo aparezcan como citas del demandante NO son del propio caso; jamás los uses como si fueran propios (especialmente en el encabezado RIT/RUC).
-- DATOS HEREDADOS: usa exactamente los montos, plazos y conseciones del documento/dictamen; si faltan, [VERIFICAR]. El borrador debe individualizar las FECHAS EXTREMAS del vínculo (inicio y término, tal como constan en el [DOCUMENTO DEL CASO], p. ej. "4 de abril de 2022 … 15 de diciembre de 2024"), los MONTOS reclamados y el tribunal/rol del encabezado; no las omitas ni las aproximes.
+- DATOS HEREDADOS: usa exactamente los montos, plazos y conseciones del documento/dictamen; si faltan, usa "[DATO FALTANTE: qué dato falta]". El borrador debe individualizar las FECHAS EXTREMAS del vínculo (inicio y término, tal como constan en el [DOCUMENTO DEL CASO], p. ej. "4 de abril de 2022 … 15 de diciembre de 2024"), los MONTOS reclamados y el tribunal/rol del encabezado; no las omitas ni las aproximes.
 - VOCABULARIO DE QA: los marcadores de trazabilidad ("NO VERIFICADO", "no corroborado", "pendiente de confirmar") NO pertenecen al texto del escrito. Todo dato que SÍ figure en el documento/dictamen se afirma directamente como hecho del expediente; los marcadores se reservan solo para datos ausentes en todas las fuentes.
-- TRIBUNAL Y ROL: el TRIBUNAL y el ROL/RIT proporcionados en el encabezado (si existen) se reproducen LITERALMENTE, sin renombrarlos, sin numerarlos ni añadir servidores/puertas (1°, N° 2); si no fueron proporcionados, usa marcadores genéricos ("S.J.L. de [COMUNA]", "RIT: [RIT de la causa]").
+- TRIBUNAL Y ROL: el TRIBUNAL y el ROL/RIT proporcionados en el encabezado (si existen) se reproducen LITERALMENTE, sin renombrarlos, sin numerarlos ni añadir servidores/puertas (1°, N° 2); si no fueron proporcionados, usa el marcador de dato faltante ("S.J.L. de [DATO FALTANTE: comuna del tribunal]", "RIT: [DATO FALTANTE: rol de la causa]").
+- REGENERACIÓN CON DATOS DEL USUARIO: si el prompt incluye el bloque [DATOS COMPLETADOS POR EL USUARIO], INTEGRÁELOS en el borrador tal como los dio el usuario (exactos, con formato procesal) y ELIMINA los marcadores "[DATO FALTANTE]" y "[NOMBRE ...]" correspondientes; no los dejes ambos (dato + marcador).
 - ROLES DE FALLOS JURISPRUDENCIALES: PROHIBIDO citar un rol de fallo (ej. "Rol N° 41.500-2017") que NO aparezca en los bloques verificados (CRITERIO JURISPRUDENCIAL / CASOS ANÁLOGOS / [DICTAMEN]). Cita la doctrina sin rol (" según la jurisprudencia de la Excma. Corte Suprema"); si la fuente trae un rol, cópialo textual. Los roles citados por la contraparte solo se mencionan como citas de ella, nunca como propios.`;
 
 const PREMIUM_GROUNDING_ENABLED = process.env.PREMIUM_GROUNDING === "true";
@@ -83,6 +86,12 @@ async function generateWithFallback(clients: GoogleGenAI[], payload: any, opts: 
 // Cache simple en memoria
 const draftCache = new Map<string, { data: DraftOutput; expires: number }>();
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 horas
+
+// Des-escapa corchetes que el modelo a veces emite en markdown (\[X\] → [X]),
+// para que encabezado, copiado y auditor de vacíos vean los marcadores reales.
+function limpiarEscapesCorchetes(t: string): string {
+  return t.replace(/\\([\[\]])/g, "$1");
+}
 
 function cacheKey(input: DraftInput): string {
   const str = JSON.stringify(input);
@@ -163,6 +172,9 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   if (input.dictamen) {
     promptContent += `\n[DICTAMEN TÉCNICO PREVIO] — análisis del mismo caso; ESTRATEGIA y defensas conforme al diagnóstico:\n${input.dictamen.slice(0, 9000)}\n`;
   }
+  if (input.respuestasAuditoria?.trim()) {
+    promptContent += `\n[DATOS COMPLETADOS POR EL USUARIO] — respuestas a la auditoría de vacíos de una versión anterior del borrador. Insértalas en su lugar exacto (RIT, techo de notificación, patrocinante, testigos, etc.), con la ortografía y detalle que el usuario entregó, y ELIMINA los marcadores que reemplazan:\n${input.respuestasAuditoria.slice(0, 4000)}\n`;
+  }
   if (bloqueBCN) promptContent += bloqueBCN;
   if (bloqueJuris) promptContent += bloqueJuris;
   if (bloqueCasos) promptContent += bloqueCasos;
@@ -176,7 +188,7 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   let draft = "";
 
   if (llmCached && llmCached.expires > Date.now()) {
-    draft = llmCached.data.draft;
+    draft = limpiarEscapesCorchetes(llmCached.data.draft);
   } else {
     // 8. LLM Generation
     const clients = getGeminiClients();
@@ -197,6 +209,7 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
       draft = response.text || "";
     }
     if (!draft.trim()) throw new Error("Modelo no devolvió contenido");
+    draft = limpiarEscapesCorchetes(draft);
     draftCache.set(llmKey, { data: { draft, validacion: null as any, bcn: null as any, metadatos: null as any }, expires: Date.now() + CACHE_TTL });
   }
 
@@ -239,10 +252,17 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     if (nota) draft = draft + nota;
   } catch { validacion = validarLegalHelp("", insumos); }
 
+  // 10.5 Auditoría determinista de vacíos críticos (Fase 2)
+  let vacios: VacioCritico[] = [];
+  try {
+    vacios = auditarVacios(draft, input);
+  } catch { /* silencioso */ }
+
   // 11. Output
   const output: DraftOutput = {
     draft,
     validacion,
+    vacios,
     bcn: {
       citados: citasBCNFinal.verificados.map(a => ({
         nombreNorma: a.nombreNorma,

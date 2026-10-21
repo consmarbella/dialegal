@@ -33,14 +33,17 @@ export const LegalHelpDraft: React.FC = () => {
     }
   }, []);
 
-  const handleRegenerate = useCallback(async () => {
+  const handleRegenerate = useCallback(async (respuestasAuditoria?: string) => {
     if (!lastInput) return;
     setIsLoading(true);
     try {
+      const body = respuestasAuditoria?.trim()
+        ? JSON.stringify({ ...lastInput, respuestasAuditoria })
+        : JSON.stringify({ ...lastInput, _regenerate: true });
       const res = await fetch('/api/legalhelp/draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...lastInput, _regenerate: true }),
+        body,
       });
       const data = await res.json();
       if (!res.ok || data?.error) throw new Error(data?.error || `Error ${res.status}`);

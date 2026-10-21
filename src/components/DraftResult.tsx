@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { DraftOutput, ValidacionLegalHelp } from '../types';
-import { Copy, Download, AlertTriangle, CheckCircle2, Scale, FileText, ShieldCheck, AlertCircle, RotateCcw, Brain, MessageSquare } from 'lucide-react';
+import { DraftOutput, ValidacionLegalHelp, VacioCritico } from '../types';
+import { Copy, Download, AlertTriangle, CheckCircle2, Scale, FileText, ShieldCheck, AlertCircle, RotateCcw, Brain, MessageSquare, Search } from 'lucide-react';
 
 interface DraftResultProps {
   output: DraftOutput;
-  onRegenerate: () => void;
+  onRegenerate: (respuestasAuditoria?: string) => void;
   onNewDraft: () => void;
 }
 
@@ -20,11 +20,24 @@ const cleanMdText = (text: string): string =>
 export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, onNewDraft }) => {
   const [copied, setCopied] = useState(false);
   const [showValidation, setShowValidation] = useState(true);
+  const [respuestas, setRespuestas] = useState('');
+  const [regenerando, setRegenerando] = useState(false);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(output.draft);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleRegenerarConDatos = async () => {
+    if (!respuestas.trim()) return;
+    setRegenerando(true);
+    try {
+      await onRegenerate(respuestas.trim());
+      setRespuestas('');
+    } finally {
+      setRegenerando(false);
+    }
   };
 
   const parseSections = (markdown: string) => {
@@ -106,7 +119,7 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
             <span>{copied ? '¡Copiado!' : 'Copiar al portapapeles'}</span>
           </button>
           <button
-            onClick={onRegenerate}
+            onClick={() => onRegenerate()}
             className="flex-1 sm:flex-none px-4 py-2 text-sm font-semibold rounded-lg border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-all flex items-center justify-center gap-2"
           >
             <RotateCcw className="w-4 h-4" />
@@ -175,6 +188,74 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
           })}
         </div>
       </div>
+
+      {/* Panel de Auditoría de Vacíos Críticos (Fase 2 — Regla de Oro) */}
+      {output.metadatos.tipo === 'contestacion' && (
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+          <div className="flex items-start gap-2.5 mb-4">
+            <Search className="w-5 h-5 text-rose-600 mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-lg font-bold tracking-tight text-slate-900">Auditoría de vacíos críticos antes de presentar</h3>
+              <p className="text-xs text-slate-600 mt-1">
+                Análisis determinista del escrito: datos operativos indispensables que faltan para que la contestación sea 100% admisible.
+                Responde en el campo de abajo y el borrador se regenerará con esos datos integrados. Nunca se inventan datos faltantes.
+              </p>
+            </div>
+          </div>
+
+          {(output.vacios?.length ?? 0) === 0 ? (
+            <div className="flex items-center gap-2 text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span><span className="font-bold">Sin vacíos críticos detectados.</span> El escrito cierra su círculo con los datos disponibles: revisa el borrador y presenta.</span>
+            </div>
+          ) : (
+            <>
+              <ul className="space-y-2 mb-4">
+                {output.vacios!.map((v: VacioCritico, i: number) => (
+                  <li
+                    key={`${v.campo}-${i}`}
+                    className={`border rounded-lg p-3 text-xs ${v.prioridad === 'fatal' ? 'border-rose-200 bg-rose-50' : 'border-amber-200 bg-amber-50'}`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${v.prioridad === 'fatal' ? 'text-rose-600' : 'text-amber-600'}`} />
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border ${
+                            v.prioridad === 'fatal'
+                              ? 'bg-rose-100 text-rose-800 border-rose-300'
+                              : 'bg-amber-100 text-amber-800 border-amber-300'
+                          }`}>
+                            {v.prioridad === 'fatal' ? 'Impide presentar' : 'Importante'}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-slate-800 leading-relaxed">{v.pregunta}</p>
+                        {v.fragmento && (
+                          <p className="mt-1 text-[10px] text-slate-500 font-mono truncate">en el escrito: {v.fragmento}</p>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <textarea
+                value={respuestas}
+                onChange={(e) => setRespuestas(e.target.value)}
+                rows={5}
+                placeholder={'Ejemplo:\nRIT: C-1520-2026\nNotificada la demanda el 12 de marzo de 2026\nAbogada patrocinante: María Pérez Soto, patente 12345, Av. Providencia 1234, Santiago'}
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono"
+              />
+              <button
+                onClick={handleRegenerarConDatos}
+                disabled={!respuestas.trim() || regenerando}
+                className="mt-3 px-4 py-2 text-sm font-semibold rounded-lg border border-rose-300 text-rose-700 bg-rose-50 hover:bg-rose-100 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RotateCcw className={`w-4 h-4 ${regenerando ? 'animate-spin' : ''}`} />
+                <span>{regenerando ? 'Regenerando con tus datos...' : 'Regenerar con estos datos'}</span>
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Panel de Trazabilidad (Validación LegalHelp) */}
       {showValidation && validacion && (
