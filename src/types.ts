@@ -67,10 +67,63 @@ export interface PremiumSource {
   domain: string;
 }
 
+export interface BcnArticuloCitado {
+  nombreNorma: string;
+  articulo: string;
+  vigente: boolean;
+  fechaVersion: string;
+  url: string;
+}
+
+export interface JurisRecomendacion {
+  institucion: string;
+  materia: string;
+  autor: string;
+  obra: string;
+  rolFalloRector: string;
+  fechaFalloRector: string;
+  normas: string[];
+}
+
+export interface CasoJurisRecomendacion {
+  tipo: string;
+  tribunal: string;
+  sala: string;
+  rol: string;
+  fecha: string;
+  materia: string;
+  doctrina: string;
+  normas: string;
+  link: string;
+}
+
+export interface ValidacionInformeUI {
+  rolesEnCorpus: string[];
+  rolesNoEnCorpus: string[];
+  artsCubiertos: string[];
+  artsSinCobertura: string[];
+  montosInforme: number;
+  montosNoCorroborados: string[];
+}
+
+export interface DocumentoExtraidoUI {
+  acciones: string[];
+  juzgado: string;
+  articulosInvocados: string[];
+}
+
 export interface PremiumResult {
   report: string;
   sources: PremiumSource[];
   materia: string;
   grounded: boolean;
   cached?: boolean;
+  bcn?: {
+    citados: BcnArticuloCitado[];
+    pendientes: Array<{ nombreNorma: string; motivo: string }>;
+  };
+  jurisprudencia?: JurisRecomendacion[];
+  casos?: CasoJurisRecomendacion[];
+  validacion?: ValidacionInformeUI | null;
+  documentos?: DocumentoExtraidoUI | null;
 }

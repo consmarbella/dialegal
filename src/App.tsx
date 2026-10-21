@@ -105,6 +105,12 @@ export default function App() {
     })();
   }, [analysisResult]);
 
+  // Reintento manual de la auditoría premium tras un fallo (resetea el lock del ref).
+  const handleRetryPremium = () => {
+    premiumRequestedRef.current = false;
+    setAnalysisResult((prev) => (prev && prev.isPaid ? { ...prev, premiumFailed: false } : prev));
+  };
+
   // Save to localStorage helper
   const saveCasesToStorage = (cases: SavedAnalysis[]) => {
     setSavedCases(cases);
@@ -221,6 +227,8 @@ export default function App() {
               onNewAnalysis={() => setAnalysisResult(null)}
               isPaidInitial={analysisResult.isPaid}
               premium={analysisResult.premium}
+              premiumFailed={analysisResult.premiumFailed}
+              onRetryPremium={handleRetryPremium}
               isPremiumLoading={isPremiumLoading}
               onPaymentSuccess={() =>
                 setAnalysisResult((prev) => (prev ? { ...prev, isPaid: true } : null))

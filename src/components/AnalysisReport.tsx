@@ -44,6 +44,8 @@ interface AnalysisReportProps {
   isPaidInitial?: boolean;
   onPaymentSuccess?: () => void;
   premium?: PremiumResult | null;
+  premiumFailed?: boolean;
+  onRetryPremium?: () => void;
   isPremiumLoading?: boolean;
 }
 
@@ -58,6 +60,8 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
   isPaidInitial = false,
   onPaymentSuccess,
   premium = null,
+  premiumFailed = false,
+  onRetryPremium,
   isPremiumLoading = false,
 }) => {
   const [copied, setCopied] = useState(false);
@@ -429,6 +433,29 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
               </div>
             )}
 
+            {/* Aviso de fallo premium: el dictamen normal se mantiene, pero el usuario queda al tanto */}
+            {isUnlocked && !isPremiumLoading && premiumFailed && (
+              <div className="mt-4 p-4 rounded-lg border-2 border-red-400 bg-red-50/80 shadow-xs">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                    <div>
+                      <h3 className="text-sm font-bold text-red-900">El complemento de verificación premium no se pudo generar</h3>
+                      <p className="text-xs text-red-800 mt-1">Tu dictamen sigue siendo válido. Puedes reintentarlo en unos minutos.</p>
+                    </div>
+                  </div>
+                  {onRetryPremium && (
+                    <button
+                      onClick={onRetryPremium}
+                      className="text-xs font-bold uppercase px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                    >
+                      Reintentar
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Complemento Web RAG: secciones de verificación + fuentes, ABAJO del dictamen original */}
             {isUnlocked && !isPremiumLoading && premium && (
               <>
@@ -439,6 +466,16 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                   {premium.grounded && (
                     <span className="text-[10px] font-bold uppercase px-2 py-1 bg-blue-100 text-blue-800 rounded border border-blue-200 flex items-center gap-1">
                       <Globe className="w-3 h-3" /> Búsqueda web oficial activa (Web RAG)
+                    </span>
+                  )}
+                  {premium.bcn && premium.bcn.citados.length > 0 && (
+                    <span className="text-[10px] font-bold uppercase px-2 py-1 bg-indigo-100 text-indigo-800 rounded border border-indigo-300 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Ley Chile · BCN ({premium.bcn.citados.length} arts. verificados)
+                    </span>
+                  )}
+                  {premium.jurisprudencia && premium.jurisprudencia.length > 0 && (
+                    <span className="text-[10px] font-bold uppercase px-2 py-1 bg-purple-100 text-purple-800 rounded border border-purple-300 flex items-center gap-1">
+                      <Scale className="w-3 h-3" /> Corte Suprema · Open Legal ({premium.jurisprudencia.length} fallos rectores)
                     </span>
                   )}
                   {premium.materia && (
@@ -452,7 +489,11 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                   let icon = <ShieldCheck className="w-5 h-5 text-emerald-600" />;
                   let borderClass = 'border-l-4 border-emerald-500 bg-emerald-50/60';
                   let titleClass = 'text-emerald-950';
-                  if (/nulidad|punto ciego/i.test(title)) {
+                  if (/criterio jur[ií]s|estrategia/i.test(title)) {
+                    icon = <Scale className="w-5 h-5 text-purple-700" />;
+                    borderClass = 'border-l-4 border-purple-600 bg-purple-50/50';
+                    titleClass = 'text-purple-950';
+                  } else if (/nulidad|punto ciego/i.test(title)) {
                     icon = <AlertCircle className="w-5 h-5 text-red-600" />;
                     borderClass = 'border-l-4 border-red-500 bg-red-50/60';
                     titleClass = 'text-red-950';
@@ -477,6 +518,204 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                     </div>
                   );
                 })}
+                {/* Panel de textos oficiales Ley Chile (BCN): verificación determinista, independiente del LLM */}
+                {premium.bcn && premium.bcn.citados.length > 0 && (
+                  <div className="p-5 rounded-r-lg border-l-4 border-indigo-600 bg-indigo-50/40 shadow-xs">
+                    <div className="flex flex-wrap items-center gap-2.5 mb-3">
+                      <CheckCircle2 className="w-5 h-5 text-indigo-700" />
+                      <h3 className="text-lg font-bold tracking-tight text-indigo-950">Textos oficiales verificados (Ley Chile — BCN)</h3>
+                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded border border-indigo-200">
+                        Texto XML oficial · vigente
+                      </span>
+                    </div>
+                    <ul className="space-y-2 text-xs">
+                      {premium.bcn.citados.map((a, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="mt-0.5 shrink-0 text-indigo-600"><CheckCircle2 className="w-3.5 h-3.5" /></span>
+                          <span className="flex-1">
+                            <span className="font-bold text-indigo-950">{a.nombreNorma}</span>
+                            {', Art. '}
+                            <span className="font-bold text-indigo-950">{a.articulo}</span>
+                            {a.fechaVersion ? <span className="text-slate-500"> · versión vigente {a.fechaVersion}</span> : null}
+                            {a.url && (
+                              <>
+                                {' · '}
+                                <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">
+                                  Ver texto oficial en Ley Chile
+                                </a>
+                              </>
+                            )}
+                          </span>
+                          {a.vigente && (
+                            <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded border border-emerald-200">
+                              Vigente
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-3 text-[10px] text-slate-500">
+                      Fuente: Ley Chile — Biblioteca del Congreso Nacional de Chile (BCN), consultado al momento del análisis · CC BY-NC-ND 4.0.
+                    </p>
+                  </div>
+                )}
+
+                {/* Panel de jurisprudencia análoga (Open Legal Chile): fallos rectores de la Corte Suprema */}
+                {premium.jurisprudencia && premium.jurisprudencia.length > 0 && (
+                  <div className="p-5 rounded-r-lg border-l-4 border-purple-600 bg-purple-50/40 shadow-xs">
+                    <div className="flex flex-wrap items-center gap-2.5 mb-3">
+                      <Scale className="w-5 h-5 text-purple-700" />
+                      <h3 className="text-lg font-bold tracking-tight text-purple-950">Jurisprudencia análoga (Corte Suprema)</h3>
+                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-purple-100 text-purple-800 rounded border border-purple-200">
+                        Fallo rector · criterio dominante
+                      </span>
+                    </div>
+                    <ul className="space-y-2 text-xs">
+                      {premium.jurisprudencia.map((j, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="mt-0.5 shrink-0 text-purple-600"><Scale className="w-3.5 h-3.5" /></span>
+                          <span className="flex-1">
+                            <span className="font-bold text-purple-950">{j.institucion}</span>
+                            {j.materia && <span className="text-slate-500"> · {j.materia}</span>}
+                            {j.rolFalloRector && (
+                              <>
+                                {' · Fallo rector: '}
+                                <span className="font-bold text-purple-950">CS Rol {j.rolFalloRector}</span>
+                                {j.fechaFalloRector ? <span className="text-slate-500"> de {j.fechaFalloRector}</span> : null}
+                                {` · `}
+                                <a
+                                  href="https://juris.pjud.cl/busqueda?Corte_Suprema"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-700 hover:underline"
+                                >
+                                  Buscar sentencia en el PJUD
+                                </a>
+                              </>
+                            )}
+                            {j.normas && j.normas.length > 0 && (
+                              <div className="text-[10px] text-slate-500 mt-0.5">{j.normas.join(' · ')}</div>
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-3 text-[10px] text-slate-500">
+                      Fuente: Open Legal Chile (corpus público de jurisprudencia y doctrina chilena) · Consulta el fallo íntegro en el buscador del Poder Judicial con el rol indicado.
+                      <br />
+                      El criterio jurisprudencial es una estimación orientativa para apoyar tu decisión, no una garantía de resultado del juicio.
+                    </p>
+                  </div>
+                )}
+
+                {/* Panel de casos análogos recientes (CS/TC, doctrina cosechada) */}
+                {premium.casos && premium.casos.length > 0 && (
+                  <div className="p-5 rounded-r-lg border-l-4 border-fuchsia-600 bg-fuchsia-50/40 shadow-xs">
+                    <div className="flex flex-wrap items-center gap-2.5 mb-3">
+                      <Scale className="w-5 h-5 text-fuchsia-700" />
+                      <h3 className="text-lg font-bold tracking-tight text-fuchsia-950">Casos análogos recientes</h3>
+                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-fuchsia-100 text-fuchsia-800 rounded border border-fuchsia-200">
+                        Doctrina del fallo · sintetizada
+                      </span>
+                    </div>
+                    <ul className="space-y-3 text-xs">
+                      {premium.casos.map((c, i) => (
+                        <li key={i} className="border-b border-fuchsia-100 pb-2 last:border-b-0 last:pb-0">
+                          <div className="flex flex-wrap items-baseline gap-1.5">
+                            <span className="font-bold text-fuchsia-950">{c.tribunal}{c.sala ? ` · ${c.sala}` : ""}</span>
+                            {c.rol && (
+                              <>
+                                {' · '}
+                                <span className="font-bold">{c.rol}</span>
+                                {c.fecha ? <span className="text-slate-500"> de {c.fecha}</span> : null}
+                              </>
+                            )}
+                            {c.link && (
+                              <a
+                                href={c.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-700 hover:underline"
+                              >
+                                Texto del fallo
+                              </a>
+                            )}
+                          </div>
+                          {c.materia && <div className="text-[10px] text-slate-500 mt-0.5">{c.materia}</div>}
+                          {c.doctrina && <p className="mt-1 text-slate-700">{c.doctrina}</p>}
+                          {c.normas && <div className="text-[10px] text-slate-500 mt-0.5">{c.normas}</div>}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-3 text-[10px] text-slate-500">
+                      Fuente: corpus cosechado de Open Legal Chile (Corte Suprema reciente y Tribunal Constitucional). Sintetización automática de la doctrina del fallo: verifícala contra el texto íntegro antes de fijar criterio.
+                      <br />
+                      Estimación orientativa, no garantía de resultado.
+                    </p>
+                  </div>
+                )}
+
+                {/* Panel de blindaje: QA determinista del informe (roles/arts/montos) */}
+                {premium.validacion && (
+                  <div className="p-5 rounded-r-lg border-l-4 border-slate-500 bg-slate-50/70 shadow-xs">
+                    <div className="flex flex-wrap items-center gap-2.5 mb-3">
+                      <ShieldCheck className="w-5 h-5 text-slate-700" />
+                      <h3 className="text-lg font-bold tracking-tight text-slate-900">Trazabilidad automática del informe</h3>
+                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-slate-200 text-slate-700 rounded border border-slate-300">
+                        QA local · sin IA
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className="p-2.5 rounded border border-slate-200 bg-white">
+                        <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Roles citados</div>
+                        <div className="font-bold text-slate-900">
+                          {premium.validacion.rolesEnCorpus.length} verificados
+                          {premium.validacion.rolesNoEnCorpus.length > 0 && (
+                            <span className="text-red-700"> · {premium.validacion.rolesNoEnCorpus.length} fuera del corpus</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="p-2.5 rounded border border-slate-200 bg-white">
+                        <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Artículos</div>
+                        <div className="font-bold text-slate-900">
+                          {premium.validacion.artsCubiertos.length} con texto BCN
+                          {premium.validacion.artsSinCobertura.length > 0 && (
+                            <span className="text-amber-700"> · {premium.validacion.artsSinCobertura.length} sin cobertura</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="p-2.5 rounded border border-slate-200 bg-white">
+                        <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Montos</div>
+                        <div className="font-bold text-slate-900">
+                          {premium.validacion.montosInforme} citados
+                          {premium.validacion.montosNoCorroborados.length > 0 && (
+                            <span className="text-amber-700"> · {premium.validacion.montosNoCorroborados.length} por revisar</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {premium.validacion.rolesNoEnCorpus.length > 0 && (
+                      <div className="mt-3 text-[11px] text-red-800 bg-red-50 border border-red-200 rounded p-2">
+                        <span className="font-bold">Roles marcados NO VERIFICADOS:</span>{' '}
+                        {premium.validacion.rolesNoEnCorpus.join(', ')} — confírmalos en el buscador del PJUD antes de citarlos.
+                      </div>
+                    )}
+                    {premium.documentos && (premium.documentos.acciones.length > 0 || premium.documentos.articulosInvocados.length > 0) && (
+                      <div className="mt-3 text-[11px] text-slate-600">
+                        {premium.documentos.acciones.length > 0 && (
+                          <div><span className="font-bold">Acciones detectadas:</span> {premium.documentos.acciones.join(' · ')}</div>
+                        )}
+                        {premium.documentos.articulosInvocados.length > 0 && (
+                          <div className="mt-0.5"><span className="font-bold">Artículos invocados en tu documento:</span> {premium.documentos.articulosInvocados.join(', ')}</div>
+                        )}
+                      </div>
+                    )}
+                    <p className="mt-3 text-[10px] text-slate-500">
+                      Contraste determinista hecho en el servidor sobre el texto final: ayuda a detectar cualquier error del modelo, no reemplaza tu criterio profesional.
+                    </p>
+                  </div>
+                )}
+
                 {/* Panel de fuentes oficiales consultadas */}
                 {premium.sources.length > 0 && (
                   <div className="p-5 rounded-r-lg border-l-4 border-emerald-600 bg-white shadow-xs">

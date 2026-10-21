@@ -1,4 +1,4 @@
-import express from "express";
+﻿import express from "express";
 import path from "path";
 import fs from "fs";
 import { GoogleGenAI } from "@google/genai";
@@ -15,6 +15,10 @@ import { resolvePseoRedirect } from "./src/data/redirects.js";
 import { ALL_SEO_PAGES as ALL_SEO_PAGES_SHARED, renderHomeContent } from "./src/lib/homeSsr.js";
 import { CALCULATOR_PAGES, getCalculatorPage } from "./src/data/calculators.js";
 import { COMUNAS_RM } from "./src/data/tribunales.js";
+import { verificarCitasBCN, bloquePromptBCN } from "./bcnLeyChile.js";
+import { buscarJurisprudencia, bloquePromptJuris, resumenJuris, buscarCasosJuris, bloquePromptCasos, resumenCasos, buscarJurisprudenciaMulti, buscarCasosJurisMulti, type ConsultaEtiquetada } from "./jurisprudenciaChile.js";
+import { extraerChileno, planoBlindajePrompt } from "./extractorChile.js";
+import { validarInforme, notaBlindajeReporte } from "./validadorInforme.js";
 
 // Combinación de TODAS las páginas SEO: 21 originales + 45 + 20 = 86 páginas (+home = 87 URLs)
 const ALL_SEO_PAGES = ALL_SEO_PAGES_SHARED;
@@ -622,15 +626,19 @@ REGLAS ESTRICTAS:
 4. Si un punto del dictamen contradice una fuente oficial que encontraste, dilo con claridad ("El dictamen indica X, pero la fuente oficial Y establece Z").
 5. Prohibido saludar o usar fórmulas de cortesía. Entra directo al análisis.
 6. No inventes fechas, montos ni hechos no entregados por el usuario.
+7. El criterio jurisprudencial entregado en el contexto (fallos rectores CS) es un insumo de TRAZABILIDAD: úsalo para fundamentar la estrategia, pero antes de afirmar que un criterio sigue vigente, contrasta con tus búsquedas (puede haber fallos posteriores que lo superen). Marca "no verificado en línea" cuando no puedas confirmarlo.
 
 ESTRUCTURA OBLIGATORIA (usa exactamente estos títulos, en Markdown):
-## 1. Control de Nulidades y Puntos Ciegos
+## 1. Criterio Jurisprudencial Dominante y Estrategia Procesal
+(Con el insumo de fallos rectores del contexto: criterio dominante de la materia, el fallo rector que lo fija, cómo se aplica al caso, la hoja de ruta procesal sugerida (pretensión, vía, prueba) y el riesgo principal si existiera criterio contrario. Si el insumo es insuficiente, no lo inventes: indica "criterio no determinado por el corpus, trasládese a la verificación web".)
+
+## 2. Control de Nulidades y Puntos Ciegos
 (Revisión de notificaciones, feriados, plazos fatales y exigencias procedimentales del caso; identifica requisitos formales estrictos y posibles vicios que el dictamen pudo omitir.)
 
-## 2. Verificación de Artículos y Plazos Citados
+## 3. Verificación de Artículos y Plazos Citados
 (Para cada artículo/ley/plazo citado en el dictamen, indícalo con viñeta y su estado: "verificado en [fuente oficial]" o "no verificado en las fuentes consultadas". Máximo 8 viñetas, las más relevantes.)
 
-## 3. Fuentes y Enlaces Oficiales Consultadas
+## 4. Fuentes y Enlaces Oficiales Consultadas
 (Listado con la URL EXACTA de cada fuente oficial que consultaste, en formato:
 - Nombre del instrumento o página — URL completa (https://...)
 Sin URLs inventadas: usa solo las URLs que realmente aparecieron en tus resultados de búsqueda.)
@@ -658,12 +666,65 @@ app.post("/api/premium-report", async (req, res) => {
     if (dictamenMarkdown && typeof dictamenMarkdown === "string") {
       promptContent += `DICTAMEN YA EMITIDO POR EL SISTEMA (verifícalo y complétalo, no lo repitas):\n"""${dictamenMarkdown.slice(0, 10000)}"""\n\n`;
     }
-    promptContent += `Genera el COMPLEMENTO DE VERIFICACIÓN con búsqueda web del dictamen, con la estructura obligatoria de 3 secciones.`;
+    promptContent += `Genera el COMPLEMENTO DE VERIFICACIÓN con búsqueda web del dictamen, con la estructura obligatoria de 4 secciones.`;
 
-    // Caché propia con sal premium-v4: no contamina la caché del dictamen normal.
-    // (v4 = instrucción con "PROCEDIMIENTO OBLIGATORIO" de búsqueda previa;
+    // ── Extractor determinista (capa local, sin IA): plano de lectura, artefactos
+    //    y acciones detectadas. Nunca arroja.
+    let ext: ReturnType<typeof extraerChileno> | null = null;
+    let planoExt = "";
+    try {
+      ext = extraerChileno(combinedText);
+      planoExt = planoBlindajePrompt(ext);
+      if (planoExt) promptContent += planoExt;
+    } catch (extErr: any) {
+      console.warn(`[premium][extractor] fallo (sigue sin plano): ${String(extErr?.message || extErr).slice(0, 150)}`);
+    }
+
+    // Verificacion determinista contra Ley Chile (BCN): textos oficiales de los
+    // articulos citados en el dictamen/relato. Nunca arroja: fallo = bloque vacio.
+    let citasBCN: Awaited<ReturnType<typeof verificarCitasBCN>> = { verificados: [], pendientes: [] };
+    try {
+      citasBCN = await verificarCitasBCN([combinedText, typeof dictamenMarkdown === "string" ? dictamenMarkdown : ""]);
+      const bloqueBCN = bloquePromptBCN(citasBCN);
+      if (bloqueBCN) promptContent += bloqueBCN;
+    } catch (bcnErr: any) {
+      console.warn(`[premium][bcn] verificacion BCN fallo (sigue solo con web): ${String(bcnErr?.message || bcnErr).slice(0, 150)}`);
+    }
+
+    // Recuperacion jurisprudencial (Open Legal Chile, vertical laboral): fallo rector
+    // + fichas dogmaticas anadidas al prompt como guia institucional. Fallo = vacio.
+    let juris: Awaited<ReturnType<typeof buscarJurisprudencia>> = [];
+    let casos: Awaited<ReturnType<typeof buscarCasosJuris>> = [];
+    try {
+      // Multi-consulta determinista: cada seccion del caso (hechos/derecho/
+      // petitorio/invocados) mas el relato generan su propia busqueda, y se
+      // fusiona por score maximo. Documentos largos ya no dependen del slice.
+      const consultas: ConsultaEtiquetada[] = [];
+      if (userStory) consultas.push({ texto: String(userStory).slice(0, 2500), etiqueta: "relato" });
+      if (ext) {
+        if (ext.secciones.hechos) consultas.push({ texto: ext.secciones.hechos.slice(0, 2200), etiqueta: "hechos" });
+        if (ext.secciones.derecho) consultas.push({ texto: ext.secciones.derecho.slice(0, 2500), etiqueta: "derecho" });
+        if (ext.secciones.petitorio) consultas.push({ texto: ext.secciones.petitorio.slice(0, 1600), etiqueta: "petitorio" });
+        const invocados = [ext.acciones.join(" "), ext.juzgado, ext.articulosInvocados.slice(0, 20).join(" "), ext.normasDetectadas.map((n) => n.nombre).join(" ")].filter(Boolean).join(" ");
+        if (invocados) consultas.push({ texto: invocados, etiqueta: "invocados" });
+      }
+      if (!consultas.length) consultas.push({ texto: combinedText.slice(0, 4000), etiqueta: "documento" });
+      else consultas.push({ texto: combinedText.slice(0, 3000), etiqueta: "documento" });
+
+      juris = await buscarJurisprudenciaMulti(consultas);
+      const bloqueJuris = bloquePromptJuris(juris);
+      if (bloqueJuris) promptContent += bloqueJuris;
+      casos = await buscarCasosJurisMulti(consultas);
+      const bloqueCasos = bloquePromptCasos(casos);
+      if (bloqueCasos) promptContent += bloqueCasos;
+    } catch (jurisErr: any) {
+      console.warn(`[premium][juris] recuperacion fallo (sigue): ${String(jurisErr?.message || jurisErr).slice(0, 150)}`);
+    }
+
+    // Caché propia con sal premium-v9: no contamina la caché del dictamen normal.
+    // (v7 = bloque determinista BCN + bloque jurisprudencial + bloque de casos análogos;
     //  el sal cambia porque la caché NO incluye la system instruction.)
-    const pKey = cacheKey(["premium-v4", promptContent]);
+    const pKey = cacheKey(["premium-v9", promptContent]);
     const cached = getCached(pKey);
     if (cached) {
       try {
@@ -716,7 +777,7 @@ app.post("/api/premium-report", async (req, res) => {
       );
     }
 
-    const report = response.text || "";
+    let report = response.text || "";
     if (!report.trim()) {
       return res.status(502).json({ error: "El modelo no devolvió contenido para la auditoría premium." });
     }
@@ -755,13 +816,93 @@ app.post("/api/premium-report", async (req, res) => {
     // "grounded" real = la búsqueda efectivamente se ejecutó y devolvió fuentes.
     grounded = sources.length > 0;
 
-    const result = { report, materia, sources, grounded };
+    // Segunda pasada BCN sobre el INFORME FINAL: cualquier articulo que el modelo
+    // haya citado (aunque no estuviera en el dictamen) se contrasta contra el texto
+    // oficial. Las normas ya consultadas salen de cache (coste marginal = 0).
+    try {
+      const bcnInforme = await verificarCitasBCN([report]);
+      const vistos = new Set(citasBCN.verificados.map((a) => `${a.keyNorma}:${a.articulo}`));
+      for (const a of bcnInforme.verificados) {
+        const k = `${a.keyNorma}:${a.articulo}`;
+        if (!vistos.has(k)) { citasBCN.verificados.push(a); vistos.add(k); }
+      }
+      const pendVistos = new Set(citasBCN.pendientes.map((p) => `${p.keyNorma}:${(p.articulosPedidos || []).join(",")}`));
+      for (const p of bcnInforme.pendientes) {
+        const k = `${p.keyNorma}:${(p.articulosPedidos || []).join(",")}`;
+        if (!pendVistos.has(k)) { citasBCN.pendientes.push(p); pendVistos.add(k); }
+      }
+    } catch (bcn2Err: any) {
+      console.warn(`[premium][bcn-final] verificacion del informe fallo (sigue): ${String(bcn2Err?.message || bcn2Err).slice(0, 150)}`);
+    }
+
+    // Resumen BCN ligero para la UI (sin textos completos; esos van directo al prompt)
+    const bcn = {
+      citados: citasBCN.verificados.map((a) => ({
+        nombreNorma: a.nombreNorma,
+        articulo: a.articulo,
+        vigente: a.vigente,
+        fechaVersion: a.fechaVersion || "",
+        url: a.url,
+      })),
+      pendientes: citasBCN.pendientes.map((p) => ({ nombreNorma: p.nombreNorma, motivo: p.motivo })),
+    };
+    const jurisResumen = resumenJuris(juris);
+    const casosResumen = resumenCasos(casos);
+
+    // ── Validador post-salida (QA determinista, sin IA): contrasta roles, arts
+    //    y montos del informe final contra corpus + BCN. Marca lo no verificado
+    //    como apendice del propio informe. Nunca arroja.
+    let validacion: ReturnType<typeof validarInforme> | null = null;
+    try {
+      const rolesCorpus = [
+        ...jurisResumen.map((j) => j.rolFalloRector),
+        ...casosResumen.map((c) => c.rol),
+        ...casos.filter((c) => c.tipo === "fallo_rector").map((c) => c.rol),
+      ].filter(Boolean);
+      const valid = validarInforme(report, {
+        rolesCorpus,
+        artsCubiertos: citasBCN.verificados.map((a) => a.articulo),
+        artsPendientes: citasBCN.pendientes.flatMap((p) => p.articulosPedidos ?? []),
+        montosDoc: ext?.montos || [],
+        textoDoc: combinedText,
+      });
+      validacion = valid;
+      const nota = notaBlindajeReporte(valid);
+      if (nota) report = report + nota;
+    } catch (valErr: any) {
+      console.warn(`[premium][validador] fallo (informe sin nota): ${String(valErr?.message || valErr).slice(0, 150)}`);
+    }
+
+    const result = {
+      report, materia, sources, grounded, bcn, jurisprudencia: jurisResumen, casos: casosResumen,
+      validacion: validacion ? {
+        rolesEnCorpus: validacion.rolesEnCorpus,
+        rolesNoEnCorpus: validacion.rolesNoEnCorpus,
+        artsCubiertos: validacion.artsCubiertos,
+        artsSinCobertura: validacion.artsSinCobertura,
+        montosInforme: validacion.montosInforme.length,
+        montosNoCorroborados: validacion.montosNoCorroborados,
+      } : null,
+      documentos: ext ? { acciones: ext.acciones, juzgado: ext.juzgado, articulosInvocados: ext.articulosInvocados.slice(0, 20) } : null,
+    };
     setCached(pKey, JSON.stringify(result));
     res.json(result);
   } catch (err: any) {
     console.error("Error en /api/premium-report:", err);
     if (sendQuotaExhausted(res, err)) return;
     res.status(500).json({ error: "Error generando la auditoría premium. Intenta nuevamente en unos minutos." });
+  }
+});
+
+// Piloto del retriever jurisprudencial (sin LLM): valida el corpus y el scoring.
+app.post("/api/juris-test", async (req, res) => {
+  try {
+    const { texto } = req.body || {};
+    const q = typeof texto === "string" ? texto : "despedido por necesidades de la empresa con carta que solo invoca reestructuración, no acredita antecedentes objetivos";
+    const resultados = await buscarJurisprudencia([q]);
+    res.json({ total: resultados.length, resultados: resumenJuris(resultados) });
+  } catch (err: any) {
+    res.status(500).json({ error: String(err?.message || err) });
   }
 });
 
