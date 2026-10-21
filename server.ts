@@ -19,6 +19,7 @@ import { verificarCitasBCN, bloquePromptBCN } from "./bcnLeyChile.js";
 import { buscarJurisprudencia, bloquePromptJuris, resumenJuris, buscarCasosJuris, bloquePromptCasos, resumenCasos, buscarJurisprudenciaMulti, buscarCasosJurisMulti, type ConsultaEtiquetada } from "./jurisprudenciaChile.js";
 import { extraerChileno, planoBlindajePrompt } from "./extractorChile.js";
 import { validarInforme, notaBlindajeReporte } from "./validadorInforme.js";
+import { handleLegalHelpDraft } from "./src/server/legalhelp-draft.js";
 
 // Combinación de TODAS las páginas SEO: 21 originales + 45 + 20 = 86 páginas (+home = 87 URLs)
 const ALL_SEO_PAGES = ALL_SEO_PAGES_SHARED;
@@ -891,6 +892,22 @@ app.post("/api/premium-report", async (req, res) => {
     console.error("Error en /api/premium-report:", err);
     if (sendQuotaExhausted(res, err)) return;
     res.status(500).json({ error: "Error generando la auditoría premium. Intenta nuevamente en unos minutos." });
+  }
+});
+
+// LegalHelp IA — Motor de Redacción Procesal
+app.post("/api/legalhelp/draft", async (req, res) => {
+  try {
+    const input = req.body as import("./src/types").DraftInput;
+    if (!input?.hechos?.trim() || !input?.pretensiones?.length) {
+      return res.status(400).json({ error: "Se requieren hechos y al menos una pretensión." });
+    }
+    const output = await handleLegalHelpDraft(input);
+    res.json(output);
+  } catch (err: any) {
+    console.error("Error en /api/legalhelp/draft:", err);
+    if (sendQuotaExhausted(res, err)) return;
+    res.status(500).json({ error: "Error generando el borrador. Intenta nuevamente en unos minutos." });
   }
 });
 

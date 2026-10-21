@@ -1,14 +1,18 @@
 import React from 'react';
-import { Shield, Calculator, Lock } from 'lucide-react';
+import { Shield, Calculator, Lock, PenTool, Scale } from 'lucide-react';
 
 interface HeaderProps {
   hasAntecedents?: boolean;
   isPaid?: boolean;
+  view?: 'diagnostico' | 'redaccion';
+  onViewChange?: (view: 'diagnostico' | 'redaccion') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   hasAntecedents = false,
   isPaid = false,
+  view = 'diagnostico',
+  onViewChange,
 }) => {
   const isCalculatorBlinking = hasAntecedents && !isPaid;
 
@@ -49,6 +53,32 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
+          {/* Navigation Tabs */}
+          <div className="hidden md:flex items-center gap-1 px-1 py-1 bg-slate-800/50 rounded-lg border border-slate-700/50">
+            <button
+              onClick={() => onViewChange?.('diagnostico')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                view === 'diagnostico'
+                  ? 'bg-slate-700 text-white shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Shield className="w-4 h-4" />
+              Diagnóstico
+            </button>
+            <button
+              onClick={() => onViewChange?.('redaccion')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                view === 'redaccion'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <PenTool className="w-4 h-4" />
+              Redacción
+            </button>
+          </div>
+
           {/* Quick Info Badge */}
           <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-800/80 rounded border border-slate-700/60 text-xs text-slate-300">
             <Shield className="w-4 h-4 text-amber-400" />
@@ -57,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Quick Jump: Calculadora (ancla, no pestaña) */}
-        <div className="flex items-center gap-2 border-t border-slate-800/80 pt-2 pb-2">
+        <div className="flex items-center gap-2 border-t border-slate-800/80 pt-2 pb-2 md:hidden">
           <a
             href="#calculadora"
             className={`flex items-center gap-2 px-4 py-2 text-xs rounded-lg transition-all whitespace-nowrap relative cursor-pointer ${
@@ -78,6 +108,30 @@ export const Header: React.FC<HeaderProps> = ({
               <Lock className={`w-3.5 h-3.5 ${isCalculatorBlinking ? 'text-slate-950' : 'text-amber-400'} ml-0.5`} />
             )}
           </a>
+          
+          {/* Mobile Nav */}
+          <div className="md:hidden flex-1 flex justify-center gap-1 px-1 py-1 bg-slate-800/50 rounded-lg border border-slate-700/50">
+            <button
+              onClick={() => onViewChange?.('diagnostico')}
+              className={`flex items-center gap-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all ${
+                view === 'diagnostico'
+                  ? 'bg-slate-700 text-white'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => onViewChange?.('redaccion')}
+              className={`flex items-center gap-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all ${
+                view === 'redaccion'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <PenTool className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </header>

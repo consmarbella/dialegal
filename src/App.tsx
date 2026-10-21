@@ -5,10 +5,12 @@ import { AnalysisReport } from './components/AnalysisReport';
 import { DeadlineCalculatorComponent } from './components/DeadlineCalculatorComponent';
 import { CtaAbogadoBanner } from './components/CtaAbogadoBanner';
 import { PaymentModal } from './components/PaymentModal';
+import { LegalHelpDraft } from './pages/LegalHelpDraft';
 import { LegalArea, SavedAnalysis, PremiumResult } from './types';
 import { Scale } from 'lucide-react';
 
 export default function App() {
+  const [view, setView] = useState<'diagnostico' | 'redaccion'>('diagnostico');
   const [isLoading, setIsLoading] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isPremiumLoading, setIsPremiumLoading] = useState(false);
@@ -211,44 +213,52 @@ export default function App() {
       <Header
         hasAntecedents={hasAntecedents}
         isPaid={isPaid}
+        view={view}
+        onViewChange={setView}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="space-y-6">
-          {analysisResult ? (
-            <AnalysisReport
-              analysisMarkdown={analysisResult.markdown}
-              userStory={analysisResult.userStory}
-              area={analysisResult.area}
-              notificationDate={analysisResult.notificationDate}
-              onSaveToHistory={handleSaveCurrentReport}
-              isSaved={currentSavedId !== null}
-              onNewAnalysis={() => setAnalysisResult(null)}
-              isPaidInitial={analysisResult.isPaid}
-              premium={analysisResult.premium}
-              premiumFailed={analysisResult.premiumFailed}
-              onRetryPremium={handleRetryPremium}
-              isPremiumLoading={isPremiumLoading}
-              onPaymentSuccess={() =>
-                setAnalysisResult((prev) => (prev ? { ...prev, isPaid: true } : null))
-              }
-            />
+          {view === 'redaccion' ? (
+            <LegalHelpDraft />
           ) : (
-            <CaseAnalyzer onAnalyze={handleAnalyze} isLoading={isLoading} />
-          )}
+            <>
+              {analysisResult ? (
+                <AnalysisReport
+                  analysisMarkdown={analysisResult.markdown}
+                  userStory={analysisResult.userStory}
+                  area={analysisResult.area}
+                  notificationDate={analysisResult.notificationDate}
+                  onSaveToHistory={handleSaveCurrentReport}
+                  isSaved={currentSavedId !== null}
+                  onNewAnalysis={() => setAnalysisResult(null)}
+                  isPaidInitial={analysisResult.isPaid}
+                  premium={analysisResult.premium}
+                  premiumFailed={analysisResult.premiumFailed}
+                  onRetryPremium={handleRetryPremium}
+                  isPremiumLoading={isPremiumLoading}
+                  onPaymentSuccess={() =>
+                    setAnalysisResult((prev) => (prev ? { ...prev, isPaid: true } : null))
+                  }
+                />
+              ) : (
+                <CaseAnalyzer onAnalyze={handleAnalyze} isLoading={isLoading} />
+              )}
 
-          {/* Calculadora de Plazos Finales: siempre debajo del diagnóstico */}
-          <div id="calculadora" className="scroll-mt-28 pt-4 border-t border-slate-200">
-            <DeadlineCalculatorComponent
-              isUnlocked={isPaid}
-              onOpenPayment={() => setIsPaymentModalOpen(true)}
-            />
-          </div>
+              {/* Calculadora de Plazos Finales: siempre debajo del diagnóstico */}
+              <div id="calculadora" className="scroll-mt-28 pt-4 border-t border-slate-200">
+                <DeadlineCalculatorComponent
+                  isUnlocked={isPaid}
+                  onOpenPayment={() => setIsPaymentModalOpen(true)}
+                />
+              </div>
 
-          {/* CTA principal de conversión: al final de la vista de resultados, sobre el pie de página */}
-          {analysisResult && (
-            <CtaAbogadoBanner onClick={() => setIsPaymentModalOpen(true)} />
+              {/* CTA principal de conversión: al final de la vista de resultados, sobre el pie de página */}
+              {analysisResult && (
+                <CtaAbogadoBanner onClick={() => setIsPaymentModalOpen(true)} />
+              )}
+            </>
           )}
         </div>
       </main>

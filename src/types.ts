@@ -127,3 +127,51 @@ export interface PremiumResult {
   validacion?: ValidacionInformeUI | null;
   documentos?: DocumentoExtraidoUI | null;
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// LEGALHELP IA — Motor de Redacción Procesal
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type DraftTipo = 
+  | "demanda" 
+  | "contestacion" 
+  | "otrosi" 
+  | "minuta" 
+  | "contrato" 
+  | "correo";
+
+export type DraftArea = "laboral" | "civil" | "familia" | "penal" | "administrativo" | "constitucional";
+
+export interface DraftInput {
+  tipo: DraftTipo;
+  hechos: string;
+  pretensiones: string[];
+  documentos?: string[];
+  area?: DraftArea;
+  rol?: string;
+  tribunal?: string;
+}
+
+export interface ValidacionLegalHelp extends ValidacionInformeUI {
+  estructuraJudicial: boolean;
+  articulosClaveFaltantes: string[];
+  petitorioValido: boolean;
+  numeracionHechosValida: boolean;
+}
+
+export interface DraftMetadatos {
+  tipo: DraftTipo;
+  area: DraftArea;
+  articulosClave: string[];
+  tokensEstimados: number;
+}
+
+export interface DraftOutput {
+  draft: string;
+  validacion: ValidacionLegalHelp;
+  bcn: {
+    citados: BcnArticuloCitado[];
+    pendientes: Array<{ nombreNorma: string; motivo: string }>;
+  };
+  metadatos: DraftMetadatos;
+}
