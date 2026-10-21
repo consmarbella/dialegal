@@ -20,6 +20,8 @@ import { buscarJurisprudencia, bloquePromptJuris, resumenJuris, buscarCasosJuris
 import { extraerChileno, planoBlindajePrompt } from "./extractorChile.js";
 import { validarInforme, notaBlindajeReporte } from "./validadorInforme.js";
 import { handleLegalHelpDraft } from "./src/server/legalhelp-draft.js";
+import { detectarArea, detectAreaFromContext } from "./area-detector.js";
+import type { DraftInput } from "./src/types.js";
 
 // Combinación de TODAS las páginas SEO: 21 originales + 45 + 20 = 86 páginas (+home = 87 URLs)
 const ALL_SEO_PAGES = ALL_SEO_PAGES_SHARED;
@@ -930,6 +932,54 @@ app.post("/api/chat", async (req, res) => {
 
     if (!userMessage || typeof userMessage !== "string") {
       return res.status(400).json({ error: "Mensaje de usuario requerido." });
+    }
+
+    // Detectar intención de generar borrador (LegalHelp IA)
+    // Normalizar removiendo acentos para evitar problemas de codificación UTF-8 en el body parser
+    function normalizeNoAccents(s: string): string {
+      return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+    const msg = normalizeNoAccents(userMessage);
+
+    const DRAFT_TRIGGERS = [
+      /generar\s+(?:borrador|escrito|demanda|contestacion|otrosi|minuta|contrato|correo)/i,
+      /redactar\s+(?:la\s+)?(?:contestacion|demanda|escrito|otrosi|minuta)/i,
+      /hacer\s+(?:la\s+)?(?:contestacion|demanda)/i,
+      /borrador\s+(?:de\s+)?(?:contestacion|demanda)/i,
+      /escrit(?:o|a)\s+(?:de\s+)?(?:contestacion|demanda)/i,
+    ];
+
+    const wantsDraft = DRAFT_TRIGGERS.some((re) => re.test(msg));
+    if (wantsDraft) {
+      let suggestedTipo: DraftInput["tipo"] = "contestacion";
+      if (/contestacion/i.test(msg)) suggestedTipo = "contestacion";
+      else if (/demanda/i.test(msg)) suggestedTipo = "demanda";
+      else if (/otrosi/i.test(msg)) suggestedTipo = "otrosi";
+      else if (/minuta/i.test(msg)) suggestedTipo = "minuta";
+      else if (/contrato/i.test(msg)) suggestedTipo = "contrato";
+      else if (/correo/i.test(msg)) suggestedTipo = "correo";
+
+      let hechos = "";
+      if (currentCaseContext?.includes("RELATO INICIAL:\n")) {
+        hechos = currentCaseContext.split("RELATO INICIAL:\n")[1]?.split("\n\nDIAGN")[0]?.slice(0, 4000) || "";
+      }
+
+      const area = detectAreaFromContext(currentCaseContext || "");
+
+      return res.json({
+        draftAction: true,
+        suggestedTipo,
+        suggestedInput: {
+          tipo: suggestedTipo,
+          hechos: hechos || "Ver relato en diagnóstico adjunto",
+          area,
+          pretensiones:
+            suggestedTipo === "contestacion"
+              ? ["Rechazar la demanda en todas sus partes", "Excepción de caducidad si procede", "Costas"]
+              : ["Declarar...", "Condenar...", "Costas"],
+        },
+        reply: `✅ Detecté que quieres redactar un escrito. Te preparo el formulario con el contexto de tu caso.`,
+      });
     }
 
     // Caché: misma pregunta + mismo contexto = respuesta cacheada (ahorra cuota diaria)

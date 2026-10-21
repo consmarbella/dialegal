@@ -124,3 +124,14 @@ export function getAreaConfidence(hechos: string, pretensiones: string[]): { are
   const confidence = Math.min(1, hits / Math.max(1, keywords.length * 0.3));
   return { area, confidence };
 }
+
+export function detectAreaFromContext(context: string): DraftArea {
+  const texto = context.toLowerCase();
+  if (texto.includes("laboral") || texto.includes("despido") || texto.includes("cotiz") || texto.includes("trabajo")) return "laboral";
+  if (texto.includes("familia") || texto.includes("alimentos") || texto.includes("divorcio") || texto.includes("cuidado personal") || texto.includes("visitas")) return "familia";
+  if (texto.includes("civil") || texto.includes("daños") || texto.includes("perjuicios") || texto.includes("contrato") || texto.includes("cobro") || texto.includes("ejecutivo")) return "civil";
+  if (texto.includes("penal") || texto.includes("querella") || texto.includes("delito") || texto.includes("imputado") || texto.includes("fiscal")) return "penal";
+  if (texto.includes("administrativo") || texto.includes("municipalidad") || texto.includes("recurso de protección")) return "administrativo";
+  if (texto.includes("constitucional") || texto.includes("tribunal constitucional") || texto.includes("derechos fundamentales")) return "constitucional";
+  return "laboral";
+}

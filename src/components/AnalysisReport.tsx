@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { LegalArea, ChatMessage, PremiumResult } from '../types';
-import { Scale, Download, Copy, BookmarkPlus, Send, MessageSquare, AlertCircle, CheckCircle, ShieldAlert, FileText, Lock, ShieldCheck, CreditCard, Sparkles, CheckCircle2, Globe, ExternalLink } from 'lucide-react';
+import { LegalArea, ChatMessage, PremiumResult, DraftInput, DraftOutput } from '../types';
+import { Scale, Download, Copy, BookmarkPlus, Send, MessageSquare, AlertCircle, CheckCircle, ShieldAlert, FileText, Lock, ShieldCheck, CreditCard, Sparkles, CheckCircle2, Globe, ExternalLink, RotateCcw, X } from 'lucide-react';
 import { PaymentModal } from './PaymentModal';
 import { PreviewAlertCard } from './PreviewAlertCard';
+import { DraftModal } from './DraftModal';
 
 // --- Extracción de riesgos severos para la vista previa gratuita (Card de Alerta) ---
 const RISK_KEYWORD_SCORES: Array<[RegExp, number]> = [
@@ -70,6 +71,8 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [showDraftModal, setShowDraftModal] = useState(false);
+  const [draftPrefill, setDraftPrefill] = useState<DraftInput | null>(null);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(analysisMarkdown);
@@ -129,6 +132,24 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
       });
 
       const data = await response.json();
+
+      // Detectar acción de generar borrador (LegalHelp IA)
+      if (data.draftAction) {
+        setDraftPrefill(data.suggestedInput);
+        setShowDraftModal(true);
+        
+        // Agregar mensaje de confirmación al chat
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            role: 'model',
+            content: data.reply || '✅ Detecté que quieres redactar un escrito. Te preparo el formulario con el contexto de tu caso.',
+            timestamp: new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
+          },
+        ]);
+        return;
+      }
 
       // 429: cuota diaria de IA agotada en todos los modelos -> CTA WhatsApp
       if (response.status === 429) {
@@ -1005,6 +1026,30 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
         onSuccess={handleUnlockSuccess}
         areaLabel={area.toUpperCase()}
       />
+
+      {/* Draft Modal - LegalHelp IA */}
+      {showDraftModal && draftPrefill && (
+        <DraftModal
+          initialData={draftPrefill}
+          onClose={() => {
+            setShowDraftModal(false);
+            setDraftPrefill(null);
+          }}
+          onSuccess={(output) => {
+            setChatMessages((prev) => [
+              ...prev,
+              {
+                id: Date.now().toString(),
+                role: 'model',
+                content: `✅ **Borrador de ${draftPrefill.tipo} generado**\n\nPuedes copiarlo, revisar la trazabilidad (QA) y usarlo como base para tu escrito.`,
+                timestamp: new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
+              },
+            ]);
+            setShowDraftModal(false);
+            setDraftPrefill(null);
+          }}
+        />
+      )}
 
     </div>
   );
