@@ -57,3 +57,45 @@ siguiendo la instrucción de decidir sin preguntar. Cada fase agrega su entrada.
 
 7. **Ambigüedad: nombre del título del ítem MCP.** Se escogió
    `${TITULO_DICTAMEN} - LegalHelp Chile` (idéntico al comportamiento previo).
+
+## Fase 1 — Cinco bugs del motor (2026-10-22)
+
+1. **`SYSTEM_PROMPT_LEGALHELP` ahora se envía.** Ambas llamadas de
+   `src/server/legalhelp-draft.ts` incluyen
+   `config.systemInstruction = SYSTEM_PROMPT_LEGALHELP` (con
+   `temperature: 0.1` y `maxOutputTokens: 8192`, que antes construía la copia
+   local del fallback y se perdían al consolidar).
+
+2. **`generateWithFallback` consolidado en `src/server/llmEngine.ts`.** Se
+   movió allí la versión completa (cadena dinámica con auto-listado cacheado,
+   pausa por cuota diaria por modelo+key, reintentos con backoff, exigencia de
+   grounding con fallback degradado, errores tipados
+   `GeminiQuotaExhaustedError`/`GeminiUnavailableError`). `server.ts` importa
+   de este módulo; `legalhelp-draft.ts` también. La lógica de
+   `/api/premium-report` no cambia (misma implementación, otro archivo).
+   Los errores tipados siguen funcionando vía `sendQuotaExhausted`.
+
+3. **Errores ya no se tragan en silencio.** La copia simple del módulo de
+   borradores (que filtraba 429/404 y se comía el resto sin log) desapareció
+   con la consolidación; además el fallback "con grounding → sin grounding"
+   del borrador imprime `console.warn` con el motivo truncado a 300 chars.
+
+4. **Bandera de grounding sin cambio de comportamiento.** El comentario
+   obsoleto "Prod (Vercel) no define PREMIUM_GROUNDING_ENABLED" se corrigió
+   (verificado: la variable está en `true` en Vercel Production ⇒
+   `/api/premium-report` activo). `legalhelp-draft.ts` sigue leyendo
+   `PREMIUM_GROUNDING` (no definida ⇒ borradores sin búsqueda web); NO se
+   renombró ni fusionó nada para no encender grounding en borradores por
+   accidente. Documentado en comentarios de ambos archivos y arriba (F0.6).
+
+5. **Contador de roles corregido en ambos validadores**
+   (`validadorInforme.ts` y `validadorLegalHelp.ts`, mismo patrón duplicado):
+   `rolesNoEnCorpus = rolesInforme.filter(r => !rolesEnCorpus.includes(r))`,
+   complemento exacto de `rolesEnCorpus`. Piloto
+   `scripts/validador-pilot.ts`: rol ficticio solo en "fuera del corpus";
+   regresión nueva `scripts/regression-roles.ts` (roles con formato
+   `28.321-2021` vs `28321-2021`) cuenta cada rol UNA vez.
+
+QA: `tsc --noEmit` OK; pilotos verde; prueba de punta a punta local
+(`scripts/qa-draft-fase1.ts`): borrador otrosí generado en 16 s por
+`gemini-3.6-flash` con `systemInstruction` activo y cadena 10/10 disponible.

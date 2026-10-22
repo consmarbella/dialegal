@@ -70,8 +70,9 @@ export default function App() {
     }
   }, []);
 
-  // Al desbloquear (pago real o bypass local): genera la auditoría premium con grounding.
-  // Prod sin flag -> /api/premium-report responde 404 -> premiumFailed -> se ve el dictamen normal (sin cambios).
+  // Al desbloquear (pago real): genera la auditoría premium con grounding.
+  // Fase 1: /api/premium-report está ACTIVO en prod (PREMIUM_GROUNDING_ENABLED=true).
+  // Si la flag se quitara de Vercel, el 404 -> premiumFailed -> dictamen normal.
   useEffect(() => {
     const ar = analysisResult;
     if (!ar?.isPaid || ar.premium || ar.premiumFailed) return;

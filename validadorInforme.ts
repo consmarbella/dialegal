@@ -86,7 +86,10 @@ export function validarInforme(report: string, insumos: InsumosValidacion): Vali
     const textoDocClean = textoDoc.replace(/[. \n]/g, "");
 
     const rolesEnCorpus = rolesInforme.filter((r) => rolesCorpusSet.has(r) || rolesCorpusBaseSet.has(baseDeRol(r)));
-    const rolesNoEnCorpus = rolesInforme.filter((r) => !rolesCorpusSet.has(r));
+    // Fase 1: complemento exacto de rolesEnCorpus. Antes usaba comparación de
+    // set exacto: un rol que coincidió solo por su base quedaba contado en los
+    // dos buckets (doble conteo en correcciones).
+    const rolesNoEnCorpus = rolesInforme.filter((r) => !rolesEnCorpus.includes(r));
     const artsCubiertos = artsInforme.filter((a) => artsCubiertosSet.has(a));
     const artsSinCobertura = artsInforme.filter((a) => !artsCubiertosSet.has(a));
     const montosNoCorroborados = montosInforme.filter((mo) => {

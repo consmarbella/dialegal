@@ -11,6 +11,10 @@ import { auditarVacios } from "../../auditorVacios.js";
 import { detectarArea, getAreaConfidence } from "../../area-detector.js";
 import { getPlantilla, getArticulosClave } from "../../legalhelp-templates.js";
 import type { DraftInput, DraftOutput, VacioCritico } from "../types.js";
+// Fase 1: generateWithFallback consolidado en llmEngine.ts (versión completa:
+// cadena dinámica, pausa por cuota diaria, reintentos y fallback degradado).
+// Se importa aquí para eliminar la copia simplificada de este módulo.
+import { generateWithFallback } from "./llmEngine.js";
 
 const SYSTEM_PROMPT_LEGALHELP = `Eres LegalHelp IA, motor forense y de redacción procesal para profesionales del derecho en Chile.
 
@@ -50,6 +54,15 @@ CALIDAD FORENSE OBLIGATORIA (aplica a todo borrador con documento/dictamen adjun
 - REGENERACIÓN CON DATOS DEL USUARIO: si el prompt incluye el bloque [DATOS COMPLETADOS POR EL USUARIO], INTEGRÁELOS en el borrador tal como los dio el usuario (exactos, con formato procesal) y ELIMINA los marcadores "[DATO FALTANTE]" y "[NOMBRE ...]" correspondientes; no los dejes ambos (dato + marcador).
 - ROLES DE FALLOS JURISPRUDENCIALES: PROHIBIDO citar un rol de fallo (ej. "Rol N° 41.500-2017") que NO aparezca en los bloques verificados (CRITERIO JURISPRUDENCIAL / CASOS ANÁLOGOS / [DICTAMEN]). Cita la doctrina sin rol (" según la jurisprudencia de la Excma. Corte Suprema"); si la fuente trae un rol, cópialo textual. Los roles citados por la contraparte solo se mencionan como citas de ella, nunca como propios.`;
 
+// Fase 1: las dos banderas de grounding son DISTINTAS por diseño y no deben
+// unificarse ni renombrarse sin tocar Vercel:
+// - PREMIUM_GROUNDING_ENABLED (server.ts): gate del endpoint /api/premium-report
+//   (está en true en Vercel -> capa premium activa).
+// - PREMIUM_GROUNDING (este módulo): si el BORRADOR exige googleSearch.
+//   NO está definida en Vercel -> los borradores corren sin búsqueda web
+//   (más rápidos, gastan menos cuota). Se conserva el comportamiento actual
+//   a propósito: fusionarlas o encenderlas por accidente subiría latencia,
+//   costo y consumo de cuota de todos los borradores.
 const PREMIUM_GROUNDING_ENABLED = process.env.PREMIUM_GROUNDING === "true";
 
 function getGeminiClients(): GoogleGenAI[] {
@@ -59,29 +72,7 @@ function getGeminiClients(): GoogleGenAI[] {
   return keys.map((apiKey) => new GoogleGenAI({ apiKey, httpOptions: { headers: { "User-Agent": "legalhelp-draft" } } }));
 }
 
-async function generateWithFallback(clients: GoogleGenAI[], payload: any, opts: { requireGrounding?: boolean; skipLite?: boolean } = {}): Promise<any> {
-  const GEMINI_MODEL_CHAIN = [
-    "gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash",
-    "gemini-3-flash-preview", "gemini-3.5-flash-lite", "gemini-2.5-flash-lite",
-    "gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-flash-latest",
-  ];
-  for (const model of GEMINI_MODEL_CHAIN) {
-    for (const client of clients) {
-      try {
-        const config: any = { temperature: 0.1, maxOutputTokens: 8192 };
-        if (opts.requireGrounding) config.tools = [{ googleSearch: {} }];
-        const resp = await client.models.generateContent({ model, contents: payload.contents, config });
-        if (resp?.text?.trim()) return resp;
-      } catch (e: any) {
-        const msg = String(e?.message || e);
-        if (msg.includes("429") || msg.includes("QUOTA") || msg.includes("quota")) continue;
-        if (msg.includes("404") || msg.includes("not found")) continue;
-        if (opts.skipLite && model.includes("lite")) continue;
-      }
-    }
-  }
-  throw new Error("Todos los modelos fallaron o agotaron cuota");
-}
+// Fase 1: (generateWithFallback importado arriba desde llmEngine.ts).
 
 // Cache simple en memoria
 const draftCache = new Map<string, { data: DraftOutput; expires: number }>();
@@ -191,19 +182,27 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     draft = limpiarEscapesCorchetes(llmCached.data.draft);
   } else {
     // 8. LLM Generation
+    // Fase 1: SYSTEM_PROMPT_LEGALHELP se pasa SIEMPRE como systemInstruction
+    // (antes se definía y nunca se enviaba -> reglas forenses ignoradas).
+    const configBase = {
+      systemInstruction: SYSTEM_PROMPT_LEGALHELP,
+      temperature: 0.1,
+      maxOutputTokens: 8192,
+    };
     const clients = getGeminiClients();
     try {
       const response = await generateWithFallback(
         clients,
-        { contents: { parts: [{ text: promptContent }] } },
+        { contents: { parts: [{ text: promptContent }] }, config: { ...configBase, tools: PREMIUM_GROUNDING_ENABLED ? [{ googleSearch: {} }] : undefined } },
         { requireGrounding: PREMIUM_GROUNDING_ENABLED, skipLite: PREMIUM_GROUNDING_ENABLED }
       );
       draft = response.text || "";
     } catch (e: any) {
-      // Fallback sin grounding
+      // Fallback sin grounding: registrar el motivo (antes se tragaba sin log).
+      console.warn("draft: generación con grounding falló, reintentando sin grounding:", String(e?.message || e).slice(0, 300));
       const response = await generateWithFallback(
         clients,
-        { contents: { parts: [{ text: promptContent }] } },
+        { contents: { parts: [{ text: promptContent }] }, config: configBase },
         { skipLite: true }
       );
       draft = response.text || "";

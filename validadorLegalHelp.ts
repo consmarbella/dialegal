@@ -159,7 +159,9 @@ export function validarLegalHelp(report: string, insumos: InsumosValidacionLegal
     const textoDocClean = (insumos.textoDoc || "").replace(/[. \n]/g, "");
 
     const rolesEnCorpus = rolesInforme.filter((r) => rolesCorpusSet.has(r) || rolesCorpusBaseSet.has(baseDeRol(r)));
-    const rolesNoEnCorpus = rolesInforme.filter((r) => !rolesCorpusSet.has(r));
+    // Fase 1: complemento exacto de rolesEnCorpus (antes quedaba doble-contado
+    // un rol que coincidía solo por su base).
+    const rolesNoEnCorpus = rolesInforme.filter((r) => !rolesEnCorpus.includes(r));
     const artsCubiertos = artsInforme.filter((a) => artsCubiertosSet.has(a));
     const artsSinCobertura = artsInforme.filter((a) => !artsCubiertosSet.has(a));
 
