@@ -69,3 +69,10 @@ export function getClientIp(headers: Record<string, string | string[] | undefine
 
 export const PAYMENT_RATE_LIMIT = { maxRequests: 5, windowMs: 60_000 };
 export const ANALYZE_RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
+
+// Limitador general por IP para endpoints caros (analyze, chat, borradores).
+// Nota: en serverless (Vercel) este almacen en memoria es por instancia y se
+// pierde en cada cold start: el limite es debil y defensivo. Se migra a la
+// base de datos en la Fase 2.
+const GENERAL_API_MAX = Number(process.env.GENERAL_API_RATE_LIMIT_MAX) || 30;
+export const GENERAL_API_RATE_LIMIT = { maxRequests: GENERAL_API_MAX, windowMs: 3_600_000 };

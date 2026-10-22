@@ -7,7 +7,7 @@ import mammoth from "mammoth";
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import crypto from "crypto";
 import { saveOrder, getOrderByOrderId, getOrderByPreferenceId, updateOrder } from "./src/lib/orderStore.js";
-import { checkRateLimit, getClientIp, PAYMENT_RATE_LIMIT, ANALYZE_RATE_LIMIT } from "./src/lib/rateLimit.js";
+import { checkRateLimit, getClientIp, PAYMENT_RATE_LIMIT, ANALYZE_RATE_LIMIT, GENERAL_API_RATE_LIMIT } from "./src/lib/rateLimit.js";
 import { SEO_PAGES } from "./src/data/seoPages.js";
 import { SEO_PAGES_EXTRA } from "./src/data/seoPagesExtra.js";
 import { SEO_PAGES_BATCH2 } from "./src/data/seoPagesBatch2.js";
@@ -490,6 +490,16 @@ app.post("/api/analyze", async (req, res) => {
       });
     }
 
+    // Rate limiting por IP (30/hora, configurable; debil en serverless, se migra a DB)
+    const analyzeIp = getClientIp(req.headers as Record<string, string | string[] | undefined>);
+    const analyzeRl = checkRateLimit(`analyze:${analyzeIp}`, GENERAL_API_RATE_LIMIT);
+    if (!analyzeRl.allowed) {
+      return res.status(429).json({
+        error: "Demasiadas solicitudes. Intenta nuevamente en una hora.",
+        retryAfter: Math.ceil(analyzeRl.resetMs / 1000),
+      });
+    }
+
     const clients = getGeminiClients();
 
     const parts: any[] = [];
@@ -904,6 +914,15 @@ app.post("/api/legalhelp/draft", async (req, res) => {
     if (!input?.hechos?.trim() || !input?.pretensiones?.length) {
       return res.status(400).json({ error: "Se requieren hechos y al menos una pretensión." });
     }
+    // Rate limiting por IP (30/hora; debil en serverless, se migra a DB)
+    const draftIp = getClientIp(req.headers as Record<string, string | string[] | undefined>);
+    const draftRl = checkRateLimit(`draft:${draftIp}`, GENERAL_API_RATE_LIMIT);
+    if (!draftRl.allowed) {
+      return res.status(429).json({
+        error: "Demasiadas solicitudes de borradores. Intenta nuevamente en una hora.",
+        retryAfter: Math.ceil(draftRl.resetMs / 1000),
+      });
+    }
     const output = await handleLegalHelpDraft(input);
     res.json(output);
   } catch (err: any) {
@@ -932,6 +951,16 @@ app.post("/api/chat", async (req, res) => {
 
     if (!userMessage || typeof userMessage !== "string") {
       return res.status(400).json({ error: "Mensaje de usuario requerido." });
+    }
+
+    // Rate limiting por IP (30/hora; debil en serverless, se migra a DB)
+    const chatIp = getClientIp(req.headers as Record<string, string | string[] | undefined>);
+    const chatRl = checkRateLimit(`chat:${chatIp}`, GENERAL_API_RATE_LIMIT);
+    if (!chatRl.allowed) {
+      return res.status(429).json({
+        error: "Demasiadas consultas. Intenta nuevamente en una hora.",
+        retryAfter: Math.ceil(chatRl.resetMs / 1000),
+      });
     }
 
     // Detectar intención de generar borrador (LegalHelp IA)
@@ -1176,9 +1205,14 @@ app.post("/api/chat", async (req, res) => {
 });
 
 // MercadoPago Integration Endpoints (reference: legalhelp-chile)
+// Precio y titulo fijados en el servidor: se IGNORAN los valores del cliente
+// para impedir pagos a monto arbitrario.
+const PRECIO_DICTAMEN = 19990;
+const TITULO_DICTAMEN = "Dictamen Técnico Legal Completo";
+
 app.post("/api/payment/create", async (req, res) => {
   try {
-    const { name, rut, email, amount = 19990, title = "Dictamen Técnico Legal Completo" } = req.body;
+    const { name, rut, email } = req.body;
     const orderId = crypto.randomUUID();
 
     // Determine correct public base URL from request or environment
@@ -1205,9 +1239,9 @@ app.post("/api/payment/create", async (req, res) => {
           items: [
             {
               id: "dictamen-completo",
-              title: `${title} - LegalHelp Chile`,
+              title: `${TITULO_DICTAMEN} - LegalHelp Chile`,
               quantity: 1,
-              unit_price: Number(amount),
+              unit_price: PRECIO_DICTAMEN,
               currency_id: "CLP",
             },
           ],
@@ -1238,8 +1272,8 @@ app.post("/api/payment/create", async (req, res) => {
           orderId,
           preferenceId: preference.id!,
           status: "pending",
-          amount: Number(amount),
-          title,
+          amount: PRECIO_DICTAMEN,
+          title: TITULO_DICTAMEN,
           payerEmail,
           createdAt: Date.now(),
         });
@@ -1273,8 +1307,8 @@ app.post("/api/payment/create", async (req, res) => {
       orderId,
       preferenceId: `pref-${orderId}`,
       status: "pending",
-      amount: Number(amount),
-      title,
+      amount: PRECIO_DICTAMEN,
+      title: TITULO_DICTAMEN,
       payerEmail,
       createdAt: Date.now(),
     });
@@ -1328,6 +1362,13 @@ app.get("/api/payment/status", async (req, res) => {
         const results = searchData.results;
         if (results && results.length > 0) {
           const paymentItem = results[0];
+          // Defensa de monto: un pago aprobado por menos que el precio de la
+          // orden NO desbloquea (ajusta su precision al costo real del dictamen).
+          if (Number(paymentItem.transaction_amount) < order.amount) {
+            console.warn(`/api/payment/status: pago ${paymentItem.id} por ${paymentItem.transaction_amount} < orden ${orderId} por ${order.amount} -> failed`);
+            updateOrder(orderId, { status: "failed", mpPaymentId: String(paymentItem.id) });
+            return res.json({ orderId, status: "failed" });
+          }
           if (paymentItem.status === "approved") {
             updateOrder(orderId, {
               status: "approved",
@@ -1371,6 +1412,14 @@ app.post("/api/payment/webhook", async (req, res) => {
       const externalRef = paymentData.external_reference;
 
       if (externalRef) {
+        // Defensa de monto: no marcar aprobada una orden pagada por menos que su precio.
+        const pagoMonto = Number(paymentData.transaction_amount);
+        const ordenExistente = getOrderByOrderId(externalRef);
+        if (status === "approved" && ordenExistente && pagoMonto && pagoMonto < ordenExistente.amount) {
+          console.warn(`webhook: pago ${paymentId} por ${pagoMonto} < orden ${externalRef} por ${ordenExistente.amount} -> failed`);
+          updateOrder(externalRef, { status: "failed", mpPaymentId: paymentId });
+          return res.json({ ok: true });
+        }
         if (status === "approved") {
           updateOrder(externalRef, {
             status: "approved",
@@ -1388,16 +1437,6 @@ app.post("/api/payment/webhook", async (req, res) => {
     console.error("Error en webhook de MercadoPago:", err);
     return res.json({ ok: true });
   }
-});
-
-// Test/Instant approval endpoint for developer mode / instant checkout fallback
-app.post("/api/payment/confirm-test", (req, res) => {
-  const { orderId } = req.body;
-  if (!orderId) {
-    return res.status(400).json({ error: "orderId requerido" });
-  }
-  const updated = updateOrder(orderId, { status: "approved", paidAt: Date.now() });
-  return res.json({ ok: true, order: updated });
 });
 
 // ========== SEO LANDING PAGES (Long-Tail) ==========
