@@ -99,3 +99,62 @@ siguiendo la instrucción de decidir sin preguntar. Cada fase agrega su entrada.
 QA: `tsc --noEmit` OK; pilotos verde; prueba de punta a punta local
 (`scripts/qa-draft-fase1.ts`): borrador otrosí generado en 16 s por
 `gemini-3.6-flash` con `systemInstruction` activo y cadena 10/10 disponible.
+
+## Fase 2 — Órdenes en Postgres/Neon (2026-10-22)
+
+1. **`src/lib/orderStore.ts` reescrito con persistencia en Postgres**
+   (lib `pg`). Tabla `orders` (`order_id` PK, `preference_id` con índice
+   único, `status`, `amount`, `title`, `payer_email`, `mp_payment_id`,
+   `paid_at`, `created_at`, `usos`), esquema creado automático en el primer
+   acceso (`CREATE TABLE IF NOT EXISTS`). Las funciones pasaron a async
+   (`saveOrder`, `getOrderByOrderId`, `getOrderByPreferenceId`,
+   `updateOrder`); los 10 puntos de llamada en server.ts ahora usan `await`.
+   Se añade `consumeUseAtomic`: `UPDATE orders SET usos = usos + 1 WHERE
+   order_id = $1 AND status = 'approved' AND usos < 3 RETURNING usos`
+   (verbo del spec, verbatim).
+2. **Fallback a memoria si no hay `DATABASE_URL` o la DB falla**:
+   `console.warn`/`console.error` UNA sola vez por proceso (evita spam de
+   logs), comportamiento idéntico al anterior. Con DB funcionando también se
+   mantiene un espejo en memoria que sirve de ultratumba si la DB cae
+   después de guardar.
+3. **QA contra Postgres real** (contenedor docker de prueba, scripts
+   `qa-orderstore-db.ts` y `qa-orderstore-mem.ts`):
+   save+get, update, índice por `preference_id`, contador atómico (4
+   consumos → solo 3 `ok`), re-save no pisa `usos` ni `paid_at`, y modo
+   memoria (warn único, flujo completo).
+4. `PORT` local ahora configurable (`process.env.PORT`), el 3000 chocaba con
+   un servidor de Docker en esta máquina. Vercel no se ve afectado.
+
+## Fase 3 — Paywall server-side de /api/premium-report (2026-10-22)
+
+1. **`orderId` obligatorio en el body de `/api/premium-report`**; sin él →
+   400. Orden no aprobada o sin usos → 402 con
+   `usosRestantes`. `requirePaidOrder` lee la orden de la DB; si falta o
+   está pendiente consulta MP por `external_reference` y "cura" la orden
+   (guardándola aprobada, con defensa de monto `transaction_amount >= 19990`).
+2. **3 usos por orden con conteo atómico en DB.** El uso se descuenta SOLO
+   después de tener el dictamen listo (generación OK o hit de caché); el
+   acierto de caché TAMBIÉN consume un uso. Si el contador rechaza (usos
+   agotados), el informe listo NO se entrega (402). `usosRestantes` sale en
+   la respuesta.
+3. **Degradación temporal, documentada:** sin `DATABASE_URL` la verificación
+   MP sigue operando, pero no es posible contar usos (`consumeUseSeguro`
+   avisa por console.warn y deja pasar). Regresará en cuanto el dueño cree
+   Vercel Postgres/Neon y defina `DATABASE_URL` (accione pendiente del dueño,
+   esquema auto-creado en el primer arranque).
+4. **Frontend:** `App.tsx` guarda el `orderId` (URL de retorno y
+   localStorage `pjud_legal_last_orderId`) y lo manda a
+   `/api/premium-report`. El desbloqueo por código admin o botón simulado
+   (solo local) NO tiene `orderId` por lo cual esos flujos desbloquean el
+   dictamen normal, no la capa premium (así estaba pensado: la capa premium
+   se exige con pago real en DB/MP).
+5. **QA e2e local con Postgres** (script `qa-paywall-fase3.ts`, server real
+   en :3210 apuntando `DATABASE_URL` al contenedor): sin orderId → 400;
+   orden pendiente → 402; orden aprobada → 200 con `usosRestantes=2`
+   (generación premium real, 49 s, 16.469 chars de dictamen); cache-hit
+   consume 2.º uso; 3.º uso OK (`usosRestantes=0`); 4.º uso → 402. Estado
+   final en DB: `usos=3, status='approved'`.
+
+Nota de proceso: Fases 2 y 3 salen en un único commit+deploy (F3 depende del
+esquema y funciones de F2; mantener dos deploys separados habría dejado la
+versión intermedia con `/api/premium-report` 402 pero orden sin persistir).

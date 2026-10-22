@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import mammoth from "mammoth";
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import crypto from "crypto";
-import { saveOrder, getOrderByOrderId, getOrderByPreferenceId, updateOrder } from "./src/lib/orderStore.js";
+import { saveOrder, getOrderByOrderId, getOrderByPreferenceId, updateOrder, consumeUseAtomic } from "./src/lib/orderStore.js";
 import { checkRateLimit, getClientIp, PAYMENT_RATE_LIMIT, ANALYZE_RATE_LIMIT, GENERAL_API_RATE_LIMIT } from "./src/lib/rateLimit.js";
 import { generateWithFallback, GeminiQuotaExhaustedError, GeminiUnavailableError } from "./src/server/llmEngine.js";
 import { SEO_PAGES } from "./src/data/seoPages.js";
@@ -30,7 +30,7 @@ const ALL_SEO_PAGES = ALL_SEO_PAGES_SHARED;
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Security: disable X-Powered-By header
 app.disable("x-powered-by");
@@ -57,6 +57,11 @@ const mpAccessToken = (envToken && (envToken.startsWith("APP_USR-") || envToken.
 const isMpConfigured = Boolean(mpAccessToken);
 const isSandbox = Boolean(mpAccessToken && mpAccessToken.startsWith("TEST-"));
 const mp = isMpConfigured && mpAccessToken ? new MercadoPagoConfig({ accessToken: mpAccessToken }) : null;
+
+// Fase 0: precio y título del dictamen VIVEN EN EL SERVIDOR. El cliente nunca
+// debe poder fijarlos (se ignora amount/title del body en /api/payment/create).
+const PRECIO_DICTAMEN = 19990;
+const TITULO_DICTAMEN = "Dictamen Técnico Legal Completo";
 
 // Initialize Gemini API (soporta MÚLTIPLES keys: GEMINI_API_KEYS separadas por coma,
 // multiplica la cuota diaria free-tier por número de cuentas/proyectos).
@@ -408,6 +413,64 @@ app.post("/api/analyze", async (req, res) => {
 // borradores no requieren grounding): son dos variables distintas por diseño.
 const PREMIUM_GROUNDING_ENABLED = process.env.PREMIUM_GROUNDING_ENABLED === "true";
 
+// ── Fase 3 — helpers de paywall server-side ──────────────────────────────
+// Verificación directa contra MP por external_reference (igual que /status).
+async function verificarPagoMPAprobado(orderId: string): Promise<{ approved: boolean; monto: number | null; paymentId: string | null }> {
+  if (!mpAccessToken) return { approved: false, monto: null, paymentId: null };
+  try {
+    const searchRes = await fetch(
+      `https://api.mercadopago.com/v1/payments/search?external_reference=${encodeURIComponent(orderId)}&sort=date_created&criteria=desc&limit=1`,
+      { headers: { Authorization: `Bearer ${mpAccessToken}` } }
+    );
+    if (!searchRes.ok) return { approved: false, monto: null, paymentId: null };
+    const searchData = await searchRes.json();
+    const item = searchData?.results?.[0];
+    if (!item) return { approved: false, monto: null, paymentId: null };
+    return { approved: item.status === "approved", monto: Number(item.transaction_amount ?? null), paymentId: String(item.id ?? "") };
+  } catch {
+    return { approved: false, monto: null, paymentId: null };
+  }
+}
+
+// consumeUseSeguro: con DB, conteo atómico (usos < 3). Sin DATABASE_URL,
+// degradación temporal DOCUMENTADA (DECISIONES.md F3.3): el MP sigue verificando
+// la orden aprobada, pero no se puede contar el uso — se regresa cuando el
+// dueño cree Vercel Postgres/Neon.
+//
+// requirePaidOrder: la orden debe estar aprobada en la DB. Si falta o está
+// pendiente, consulta MP y "cura" la orden si un pago aprobado la cubre
+// (defensa de monto incluida). Con usos >= 3 devuelve 402.
+async function requirePaidOrder(orderId: string, precio: number): Promise<{ ok: boolean; usosRestantes: number }> {
+  const order = await getOrderByOrderId(orderId);
+  if (order?.status === "approved") {
+    if (typeof order.usos === "number" && order.usos >= 3) return { ok: false, usosRestantes: 0 };
+    return { ok: true, usosRestantes: order.usos != null ? Math.max(0, 3 - order.usos) : 3 };
+  }
+  const mpCheck = await verificarPagoMPAprobado(orderId);
+  if (mpCheck.approved && (mpCheck.monto == null || mpCheck.monto >= precio)) {
+    const healed = order || {
+      orderId,
+      preferenceId: `mp-healed-${orderId}`,
+      status: "pending" as const,
+      amount: precio,
+      title: TITULO_DICTAMEN,
+      createdAt: Date.now(),
+    };
+    await saveOrder({ ...healed, status: "approved", mpPaymentId: mpCheck.paymentId || healed.mpPaymentId, paidAt: healed.paidAt || Date.now() });
+    return { ok: true, usosRestantes: 3 };
+  }
+  return { ok: false, usosRestantes: 0 };
+}
+
+async function consumeUseSeguro(orderId: string): Promise<{ ok: boolean; usos: number | null }> {
+  if (!process.env.DATABASE_URL) {
+    console.warn(`[premium] DATABASE_URL ausente: uso de la orden ${orderId} NO contado (degradación temporal documentada en DECISIONES.md).`);
+    return { ok: true, usos: null };
+  }
+  const r = await consumeUseAtomic(orderId);
+  return { ok: r.ok, usos: r.usos };
+}
+
 const MATERIA_RULES: Array<{ materia: string; keywords: RegExp }> = [
   { materia: "Tránsito y multas (Ley 18.290)", keywords: /multa|tag|permiso de circulaci[oó]n|tr[aá]nsito|colisi[oó]n|18\.290|alcoholemia|licencia de conducir/i },
   { materia: "Laboral — despido, finiquito o autodespido", keywords: /despido|finiquito|autodespido|despido indirecto|trabajador|empleador|remuneraci[oó]n|cotizaciones|art[ií]culo 161|art[ií]culo 171|inspecci[oó]n del trabajo/i },
@@ -468,6 +531,24 @@ app.post("/api/premium-report", async (req, res) => {
     return res.status(404).json({ error: "Not found" });
   }
   try {
+    // ── Fase 3: paywall server-side. Nada de esta capa corre sin orden aprobada.
+    // Cada generación (o acierto de caché) consume 1 de los 3 usos de la orden,
+    // con UPDATE atómico en la DB. Degradación si no hay DATABASE_URL: se
+    // re-verifica contra MP pero el conteo no es posible (documentado en
+    // DECISIONES.md — temporal hasta crear Vercel Postgres/Neon).
+    const orderId = typeof req.body?.orderId === "string" ? req.body.orderId.trim() : "";
+    if (!orderId) {
+      return res.status(400).json({ error: "orderId es requerido (orden de pago)." });
+    }
+    const pago = await requirePaidOrder(orderId, PRECIO_DICTAMEN);
+    if (!pago.ok) {
+      return res.status(402).json({
+        error: "Esta orden no fue aprobada o no tiene dictámenes premium disponibles (máximo 3 por orden).",
+        orderId,
+        usosRestantes: pago.usosRestantes,
+      });
+    }
+
     const { userStory, documentText, area, notificationDate, dictamenMarkdown } = req.body;
 
     if (!userStory && !documentText) {
@@ -546,8 +627,18 @@ app.post("/api/premium-report", async (req, res) => {
     const cached = getCached(pKey);
     if (cached) {
       try {
+        // Fase 3: el acierto de caché TAMBIÉN consume un uso (cada dictamen
+        // entregado cuesta un slot, haya costado GPU o no).
+        const consumed = await consumeUseSeguro(orderId);
+        if (!consumed.ok) {
+          return res.status(402).json({
+            error: "Esta orden no tiene dictámenes premium disponibles (máximo 3 por orden).",
+            orderId,
+            usosRestantes: 0,
+          });
+        }
         console.log("[cache] /api/premium-report hit de caché");
-        return res.json({ ...JSON.parse(cached), materia, cached: true });
+        return res.json({ ...JSON.parse(cached), materia, cached: true, usosRestantes: consumed.usos == null ? null : Math.max(0, 3 - consumed.usos) });
       } catch {
         /* JSON corrupto: regenerar */
       }
@@ -703,8 +794,20 @@ app.post("/api/premium-report", async (req, res) => {
       } : null,
       documentos: ext ? { acciones: ext.acciones, juzgado: ext.juzgado, articulosInvocados: ext.articulosInvocados.slice(0, 20) } : null,
     };
+    // Fase 3: el uso se descuenta SOLO cuando el dictamen ya está listo
+    // (generación exitosa). Si el ASSIGN atómico no puede ejecutarse (usos
+    // agotados), el informe se retrocede y no se envía: no hay dictamen gratis.
+    const consumed = await consumeUseSeguro(orderId);
+    if (!consumed.ok) {
+      console.warn(`[premium] orden ${orderId}: asignación de uso rechazada (usos agotados). Informe listo NO se entrega.`);
+      return res.status(402).json({
+        error: "Esta orden no tiene dictámenes premium disponibles (máximo 3 por orden).",
+        orderId,
+        usosRestantes: 0,
+      });
+    }
     setCached(pKey, JSON.stringify(result));
-    res.json(result);
+    res.json({ ...result, usosRestantes: consumed.usos == null ? null : Math.max(0, 3 - consumed.usos) });
   } catch (err: any) {
     console.error("Error en /api/premium-report:", err);
     if (sendQuotaExhausted(res, err)) return;
@@ -1010,10 +1113,7 @@ app.post("/api/chat", async (req, res) => {
 });
 
 // MercadoPago Integration Endpoints (reference: legalhelp-chile)
-// Precio y titulo fijados en el servidor: se IGNORAN los valores del cliente
-// para impedir pagos a monto arbitrario.
-const PRECIO_DICTAMEN = 19990;
-const TITULO_DICTAMEN = "Dictamen Técnico Legal Completo";
+// (precio y título fijados arriba, en las constantes de Fase 0)
 
 app.post("/api/payment/create", async (req, res) => {
   try {
@@ -1073,7 +1173,7 @@ app.post("/api/payment/create", async (req, res) => {
         console.log("Creating MP Preference with body:", JSON.stringify(preferenceBody, null, 2));
         const preference = await new Preference(mp).create({ body: preferenceBody });
 
-        saveOrder({
+        await saveOrder({
           orderId,
           preferenceId: preference.id!,
           status: "pending",
@@ -1108,7 +1208,7 @@ app.post("/api/payment/create", async (req, res) => {
     }
 
     // Fallback order saving if MP token is not provided in environment or during test mode
-    saveOrder({
+    await saveOrder({
       orderId,
       preferenceId: `pref-${orderId}`,
       status: "pending",
@@ -1140,7 +1240,7 @@ app.get("/api/payment/status", async (req, res) => {
     return res.status(400).json({ error: "orderId es requerido" });
   }
 
-  const order = getOrderByOrderId(orderId);
+  const order = await getOrderByOrderId(orderId);
   if (!order) {
     return res.status(404).json({ error: "Orden no encontrada" });
   }
@@ -1171,18 +1271,18 @@ app.get("/api/payment/status", async (req, res) => {
           // orden NO desbloquea (ajusta su precision al costo real del dictamen).
           if (Number(paymentItem.transaction_amount) < order.amount) {
             console.warn(`/api/payment/status: pago ${paymentItem.id} por ${paymentItem.transaction_amount} < orden ${orderId} por ${order.amount} -> failed`);
-            updateOrder(orderId, { status: "failed", mpPaymentId: String(paymentItem.id) });
+            await updateOrder(orderId, { status: "failed", mpPaymentId: String(paymentItem.id) });
             return res.json({ orderId, status: "failed" });
           }
           if (paymentItem.status === "approved") {
-            updateOrder(orderId, {
+            await updateOrder(orderId, {
               status: "approved",
               mpPaymentId: String(paymentItem.id),
               paidAt: Date.now(),
             });
             return res.json({ orderId, status: "approved", paidAt: Date.now() });
           } else if (paymentItem.status === "rejected") {
-            updateOrder(orderId, { status: "failed" });
+            await updateOrder(orderId, { status: "failed" });
             return res.json({ orderId, status: "failed" });
           }
         }
@@ -1219,20 +1319,20 @@ app.post("/api/payment/webhook", async (req, res) => {
       if (externalRef) {
         // Defensa de monto: no marcar aprobada una orden pagada por menos que su precio.
         const pagoMonto = Number(paymentData.transaction_amount);
-        const ordenExistente = getOrderByOrderId(externalRef);
+        const ordenExistente = await getOrderByOrderId(externalRef);
         if (status === "approved" && ordenExistente && pagoMonto && pagoMonto < ordenExistente.amount) {
           console.warn(`webhook: pago ${paymentId} por ${pagoMonto} < orden ${externalRef} por ${ordenExistente.amount} -> failed`);
-          updateOrder(externalRef, { status: "failed", mpPaymentId: paymentId });
+          await updateOrder(externalRef, { status: "failed", mpPaymentId: paymentId });
           return res.json({ ok: true });
         }
         if (status === "approved") {
-          updateOrder(externalRef, {
+          await updateOrder(externalRef, {
             status: "approved",
             mpPaymentId: paymentId,
             paidAt: Date.now(),
           });
         } else if (status === "rejected" || status === "cancelled") {
-          updateOrder(externalRef, { status: "failed" });
+          await updateOrder(externalRef, { status: "failed" });
         }
       }
     }

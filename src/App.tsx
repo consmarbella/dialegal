@@ -37,6 +37,9 @@ export default function App() {
     notificationDate: string;
   } | null>(null);
   const premiumRequestedRef = useRef(false);
+  // Fase 3: orderId de la orden pagada. Necesario para /api/premium-report
+  // (el servidor verifica la orden aprobada y cuenta los usos: 3 por orden).
+  const orderIdRef = useRef<string | null>(localStorage.getItem('pjud_legal_last_orderId'));
 
   // Load saved cases from localStorage & handle MercadoPago redirect back
   useEffect(() => {
@@ -56,6 +59,8 @@ export default function App() {
 
     if (paymentStatus === 'success' || orderId) {
       if (orderId) {
+        try { localStorage.setItem('pjud_legal_last_orderId', orderId); } catch { /* modo incógnito */ }
+        orderIdRef.current = orderId;
         fetch(`/api/payment/status?orderId=${orderId}`)
           .then((res) => res.json())
           .then((data) => {
@@ -92,6 +97,8 @@ export default function App() {
             area: payload.area,
             notificationDate: payload.notificationDate,
             dictamenMarkdown: ar.markdown,
+            // Fase 3: el servidor exige la orden aprobada y cuenta los usos.
+            orderId: orderIdRef.current || undefined,
           }),
         });
         const data = await res.json().catch(() => null);
