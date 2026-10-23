@@ -29,9 +29,15 @@ function warnOnce(scope: 'no-db' | 'db-error', msg: string): void {
 }
 
 let pool: Pool | null = null;
+// Resolución de la DB: DATABASE_URL explícita, o la POSTGRES_URL que la
+// integración Supabase/Vercel inyecta en runtime (valor de Marketplace: no es
+// leíble con `vercel env pull`, vive solo en el serverless).
+export function dbUrl(): string | undefined {
+  return process.env.DATABASE_URL || process.env.POSTGRES_URL || undefined;
+}
 function dbPool(): Pool | null {
-  const url = process.env.DATABASE_URL;
-  if (!url) { warnOnce('no-db', "DATABASE_URL no definida: órdenes SOLO en memoria (se pierden en cold start). Configura Vercel Postgres/Neon."); return null; }
+  const url = dbUrl();
+  if (!url) { warnOnce('no-db', "DATABASE_URL/POSTGRES_URL no definidas: órdenes SOLO en memoria (se pierden en cold start). Configura Vercel Postgres/Neon."); return null; }
   if (!pool) {
     pool = new Pool({ connectionString: url, max: 3, idleTimeoutMillis: 10000, connectionTimeoutMillis: 8000 });
   }

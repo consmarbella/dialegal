@@ -197,11 +197,12 @@ let leyesSchemaP: Promise<void> | null = null;
 let warnedDbLeyes = false;
 
 async function getLeyesPool(): Promise<PgPool | null> {
-  if (!process.env.DATABASE_URL) return null;
+  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  if (!url) return null;
   if (leyesPool) return leyesPool;
   try {
     const mod: any = await import("pg");
-    const pool: PgPool = new mod.Pool({ connectionString: process.env.DATABASE_URL, max: 2, connectionTimeoutMillis: 8000 });
+    const pool: PgPool = new mod.Pool({ connectionString: url, max: 2, connectionTimeoutMillis: 8000 });
     leyesSchemaP = pool
       .query(`CREATE TABLE IF NOT EXISTS leyes (
          ley_num     INTEGER PRIMARY KEY,

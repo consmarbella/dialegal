@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import mammoth from "mammoth";
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import crypto from "crypto";
-import { saveOrder, getOrderByOrderId, getOrderByPreferenceId, updateOrder, consumeUseAtomic } from "./src/lib/orderStore.js";
+import { saveOrder, getOrderByOrderId, getOrderByPreferenceId, updateOrder, consumeUseAtomic, dbUrl } from "./src/lib/orderStore.js";
 import { checkRateLimit, getClientIp, PAYMENT_RATE_LIMIT, ANALYZE_RATE_LIMIT, GENERAL_API_RATE_LIMIT } from "./src/lib/rateLimit.js";
 import { generateWithFallback, GeminiQuotaExhaustedError, GeminiUnavailableError } from "./src/server/llmEngine.js";
 import { SEO_PAGES } from "./src/data/seoPages.js";
@@ -463,8 +463,8 @@ async function requirePaidOrder(orderId: string, precio: number): Promise<{ ok: 
 }
 
 async function consumeUseSeguro(orderId: string): Promise<{ ok: boolean; usos: number | null }> {
-  if (!process.env.DATABASE_URL) {
-    console.warn(`[premium] DATABASE_URL ausente: uso de la orden ${orderId} NO contado (degradación temporal documentada en DECISIONES.md).`);
+  if (!dbUrl()) {
+    console.warn(`[premium] DATABASE_URL/POSTGRES_URL ausentes: uso de la orden ${orderId} NO contado (degradación temporal documentada en DECISIONES.md).`);
     return { ok: true, usos: null };
   }
   try {
