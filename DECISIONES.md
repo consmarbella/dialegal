@@ -251,3 +251,26 @@ Verificado ademas: prod (legalhelp.cl) 200/400/402 correctos con orden fake 404;
    corpus no esta alcanzable: el loader degrada a base + aviso en consola).
    El corpus completo va COMMITTEADO (data/corpus-full/, ~6.5 MB) para que
    cualquier deploy lo regenere sin descargar HF.
+
+## DATABASE_URL en produccion - integracion Supabase (2026-10-23)
+
+1. El dueño instaló la integración de Supabase en Vercel (Marketplace). Las
+   variables que crea (POSTGRES_URL/POSTGRES_HOST/etc) son gestionadas por la
+   integración: NO son leibles con `vercel env pull` (valores vacíos), pero SÍ
+   se inyectan en el runtime del serverless.
+2. Solución sin manejar secretos por CLI: `orderStore.dbUrl()`, el índice de
+   leyes (bcnLeyChile) y `consumeUseSeguro` resuelven
+   `DATABASE_URL || POSTGRES_URL`.
+3. TLS: Supabase usa una CA propia que Node no trae -> los Pool de pg crean ssl
+   `{ rejectUnauthorized: false }` cuando el string trae `sslmode=` (pg 8.x
+   trata require como verify-full y rechazaba la cadena
+   "self-signed certificate in certificate chain"). Documentado, querystring
+   contempla el caso.
+4. Verificación e2e en prod: POST /api/payment/create (orden real MP) ->
+   GET /api/payment/status -> 200 {status pending} sin el warn
+   "[orderStore] No se pudo guardar en DB" que sí apareció en el deploy previo
+   -> persistencia cruzada de lambda confirmada; /api/premium-report con esa
+   orden (pendiente) -> 402, con orden inexistente -> 402 (solo approved
+   desbloquea).
+5. Restan: rotar MP_ACCESS_TOKEN; QA determinista de orderStore contra Supabase
+   requiere la URL fuera de Vercel (opcional; el e2e de prod ya la cubre).
