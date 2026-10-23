@@ -467,8 +467,15 @@ async function consumeUseSeguro(orderId: string): Promise<{ ok: boolean; usos: n
     console.warn(`[premium] DATABASE_URL ausente: uso de la orden ${orderId} NO contado (degradación temporal documentada en DECISIONES.md).`);
     return { ok: true, usos: null };
   }
-  const r = await consumeUseAtomic(orderId);
-  return { ok: r.ok, usos: r.usos };
+  try {
+    const r = await consumeUseAtomic(orderId);
+    return { ok: r.ok, usos: r.usos };
+  } catch (e: any) {
+    // La DB pudo caer DESPUES de generar el dictamen: degradar igual que el
+    // modo sin DATABASE_URL en vez de 500 tras haber pagado la generación.
+    console.error(`[premium] consumeUseAtomic falló para ${orderId} (${String(e?.message || e).slice(0, 150)}): uso NO contado (degradación).`);
+    return { ok: true, usos: null };
+  }
 }
 
 const MATERIA_RULES: Array<{ materia: string; keywords: RegExp }> = [
@@ -539,6 +546,16 @@ app.post("/api/premium-report", async (req, res) => {
     const orderId = typeof req.body?.orderId === "string" ? req.body.orderId.trim() : "";
     if (!orderId) {
       return res.status(400).json({ error: "orderId es requerido (orden de pago)." });
+    }
+    // Rate limit: sin él, martillar el endpoint con orderIds inválidos provoca
+    // llamadas salientes de verificación a MP por cada request (amplificación).
+    const premiumIp = getClientIp(req.headers as Record<string, string | string[] | undefined>);
+    const premiumRlCfg = process.env.PREMIUM_RATE_LIMIT_MAX
+      ? { maxRequests: Number(process.env.PREMIUM_RATE_LIMIT_MAX), windowMs: 60_000 }
+      : PAYMENT_RATE_LIMIT;
+    const premiumRl = checkRateLimit(`premium:${premiumIp}`, premiumRlCfg);
+    if (!premiumRl.allowed) {
+      return res.status(429).json({ error: "Demasiadas solicitudes premium. Intenta en un minuto." });
     }
     const pago = await requirePaidOrder(orderId, PRECIO_DICTAMEN);
     if (!pago.ok) {
@@ -625,23 +642,25 @@ app.post("/api/premium-report", async (req, res) => {
     //  el sal cambia porque la caché NO incluye la system instruction.)
     const pKey = cacheKey(["premium-v9", promptContent]);
     const cached = getCached(pKey);
+    let cachedPayload: any = null;
     if (cached) {
-      try {
-        // Fase 3: el acierto de caché TAMBIÉN consume un uso (cada dictamen
-        // entregado cuesta un slot, haya costado GPU o no).
-        const consumed = await consumeUseSeguro(orderId);
-        if (!consumed.ok) {
-          return res.status(402).json({
-            error: "Esta orden no tiene dictámenes premium disponibles (máximo 3 por orden).",
-            orderId,
-            usosRestantes: 0,
-          });
-        }
-        console.log("[cache] /api/premium-report hit de caché");
-        return res.json({ ...JSON.parse(cached), materia, cached: true, usosRestantes: consumed.usos == null ? null : Math.max(0, 3 - consumed.usos) });
-      } catch {
-        /* JSON corrupto: regenerar */
+      // Parsear ANTES de consumir: si el JSON cacheado está corrupto se
+      // regenera sin cobrar uso (evita el doble cobro parse-fallido+regeneración).
+      try { cachedPayload = JSON.parse(cached); } catch { cachedPayload = null; }
+    }
+    if (cachedPayload) {
+      // Fase 3: el acierto de caché TAMBIÉN consume un uso (cada dictamen
+      // entregado cuesta un slot, haya costado GPU o no).
+      const consumed = await consumeUseSeguro(orderId);
+      if (!consumed.ok) {
+        return res.status(402).json({
+          error: "Esta orden no tiene dictámenes premium disponibles (máximo 3 por orden).",
+          orderId,
+          usosRestantes: 0,
+        });
       }
+      console.log("[cache] /api/premium-report hit de caché");
+      return res.json({ ...cachedPayload, materia, cached: true, usosRestantes: consumed.usos == null ? null : Math.max(0, 3 - consumed.usos) });
     }
 
     const clients = getGeminiClients();

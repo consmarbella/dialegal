@@ -27,9 +27,9 @@ let r = await callApi("/api/premium-report", { userStory: payload.userStory });
 console.log("1 sin orderId (espera 400):", r.code === 400 ? "PASS" : "FAIL", "->", r.code);
 
 // crear orden pendiente por API real
-r = await fetch(BASE + "/api/payment/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texto: "consultation de prueba qa fase 3" }) }).then((x) => x.json());
-if (!r.orderId) { console.error("FAIL: no se pudo crear orden de prueba", r); process.exit(1); }
-const orderId = r.orderId;
+const creacion = await fetch(BASE + "/api/payment/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texto: "consultation de prueba qa fase 3" }) }).then((x) => x.json());
+if (!creacion.orderId) { console.error("FAIL: no se pudo crear orden de prueba", creacion); process.exit(1); }
+const orderId = creacion.orderId;
 console.log("2 orden creada:", orderId);
 
 // (3) orden pendiente -> 402

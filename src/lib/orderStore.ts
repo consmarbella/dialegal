@@ -99,16 +99,18 @@ export async function saveOrder(order: Order): Promise<void> {
     try {
       await ensureSchema(p);
       await p.query(
-        `INSERT INTO orders (order_id, preference_id, status, amount, title, payer_email, paid_at, created_at, usos)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        `INSERT INTO orders (order_id, preference_id, status, amount, title, payer_email, mp_payment_id, paid_at, created_at, usos)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          ON CONFLICT (order_id) DO UPDATE SET
            preference_id = EXCLUDED.preference_id,
            status = EXCLUDED.status,
            amount = EXCLUDED.amount,
            title = EXCLUDED.title,
-           payer_email = EXCLUDED.payer_email,
+           payer_email = COALESCE(EXCLUDED.payer_email, orders.payer_email),
+           mp_payment_id = COALESCE(EXCLUDED.mp_payment_id, orders.mp_payment_id),
+           paid_at = COALESCE(EXCLUDED.paid_at, orders.paid_at),
            created_at = EXCLUDED.created_at`,
-        [order.orderId, order.preferenceId, order.status, order.amount, order.title, order.payerEmail || null, order.paidAt ?? null, order.createdAt, order.usos ?? 0]
+        [order.orderId, order.preferenceId, order.status, order.amount, order.title, order.payerEmail || null, order.mpPaymentId || null, order.paidAt ?? null, order.createdAt, order.usos ?? 0]
       );
       // Espejo en memoria también en modo DB (resiliencia si la DB cae después).
       ordersMap.set(order.orderId, order);
@@ -201,6 +203,7 @@ export async function updateOrder(orderId: string, updates: Partial<Order>): Pro
 export async function consumeUseAtomic(orderId: string): Promise<{ ok: boolean; usos: number }> {
   const p = dbPool();
   if (!p) return { ok: false, usos: 0 };
+  await ensureSchema(p); // el UPDATE directo nunca debe fallar por esquema ausente
   const r = await p.query<{ usos: string | number }>(
     `UPDATE orders SET usos = usos + 1 WHERE order_id = $1 AND status = 'approved' AND usos < 3 RETURNING usos`,
     [orderId]
