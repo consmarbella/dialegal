@@ -17,7 +17,7 @@ import { ALL_SEO_PAGES as ALL_SEO_PAGES_SHARED, renderHomeContent } from "./src/
 import { CALCULATOR_PAGES, getCalculatorPage } from "./src/data/calculators.js";
 import { COMUNAS_RM } from "./src/data/tribunales.js";
 import { verificarCitasBCN, bloquePromptBCN } from "./bcnLeyChile.js";
-import { buscarJurisprudencia, bloquePromptJuris, resumenJuris, buscarCasosJuris, bloquePromptCasos, resumenCasos, buscarJurisprudenciaMulti, buscarCasosJurisMulti, type ConsultaEtiquetada } from "./jurisprudenciaChile.js";
+import { buscarJurisprudencia, bloquePromptJuris, resumenJuris, buscarCasosJuris, bloquePromptCasos, resumenCasos, buscarJurisprudenciaMulti, buscarCasosJurisMulti, esSlugCorpusArea, type ConsultaEtiquetada } from "./jurisprudenciaChile.js";
 import { extraerChileno, planoBlindajePrompt } from "./extractorChile.js";
 import { validarInforme, notaBlindajeReporte } from "./validadorInforme.js";
 import { handleLegalHelpDraft } from "./src/server/legalhelp-draft.js";
@@ -627,7 +627,13 @@ app.post("/api/premium-report", async (req, res) => {
       if (!consultas.length) consultas.push({ texto: combinedText.slice(0, 4000), etiqueta: "documento" });
       else consultas.push({ texto: combinedText.slice(0, 3000), etiqueta: "documento" });
 
-      juris = await buscarJurisprudenciaMulti(consultas);
+      // Fase 5: corpus completo por area (CORPUS_COMPLETO=true) - el slug sale
+      // del area declarada por la UI; si falta, la sepia por keywords del texto.
+      const areaDeclarada = String(area || "").trim().toLowerCase();
+      const slugCorpus = esSlugCorpusArea(areaDeclarada)
+        ? areaDeclarada
+        : detectAreaFromContext(combinedText.slice(0, 4000));
+      juris = await buscarJurisprudenciaMulti(consultas, 6, slugCorpus);
       const bloqueJuris = bloquePromptJuris(juris);
       if (bloqueJuris) promptContent += bloqueJuris;
       casos = await buscarCasosJurisMulti(consultas);

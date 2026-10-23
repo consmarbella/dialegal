@@ -137,7 +137,7 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   let juris: Awaited<ReturnType<typeof buscarJurisprudenciaMulti>> = [];
   let casos: Awaited<ReturnType<typeof buscarCasosJurisMulti>> = [];
   try {
-    juris = await buscarJurisprudenciaMulti(consultas);
+    juris = await buscarJurisprudenciaMulti(consultas, 6, input.area);
     casos = await buscarCasosJurisMulti(consultas);
   } catch { /* silencioso */ }
 

@@ -117,8 +117,7 @@ function getCorpus(): Corpus | null {
   return corpusCache;
 }
 
-function construirIndice(): FichaIndexada[] {
-  const corpus = getCorpus();
+function construirIndice(corpus: Corpus): FichaIndexada[] {
   if (!corpus) return [];
   const out: FichaIndexada[] = [];
   for (const ficha of corpus.fichas) {
@@ -153,8 +152,74 @@ function construirIndice(): FichaIndexada[] {
 
 let indice: FichaIndexada[] | null = null;
 function getIndice(): FichaIndexada[] {
-  if (indice === null) indice = construirIndice();
+  if (indice === null) {
+    const corpus = getCorpus();
+    indice = corpus ? construirIndice(corpus) : [];
+  }
   return indice;
+}
+
+// ====== Fase 5: corpus completo por area (gate CORPUS_COMPLETO=true) ======
+// data/corpus-full/<slug>.json lo generan scripts/corpus_ingest_full.py desde el
+// dataset HF (11.858 fichas -> 2.130 institucionos unicas tras los mismos
+// filtros de calidad y dedup de la base laboral). Solo se cargan el archivo del
+// area pedida + transversal (Judicial/Procesal/General), y SOLO si el flag
+// CORPUS_COMPLETO=true esta definido. Con el flag apagado el motor usa la base
+// actual y el slug extra es inerte (misma respuesta que antes, costo 0).
+export type SlugCorpusArea = "laboral" | "civil" | "familia" | "penal" | "administrativo" | "constitucional" | "transversal";
+const SLUGS_CORPUS_AREA = new Set<SlugCorpusArea>(["laboral", "civil", "familia", "penal", "administrativo", "constitucional", "transversal"]);
+
+export function esSlugCorpusArea(a: string): boolean {
+  return SLUGS_CORPUS_AREA.has(a.trim().toLowerCase() as SlugCorpusArea);
+}
+
+function corpusCompletoActivo(): boolean {
+  return String(process.env.CORPUS_COMPLETO || "").trim().toLowerCase() === "true";
+}
+
+const corpusPorArea = new Map<SlugCorpusArea, Corpus>();
+const indicePorArea = new Map<SlugCorpusArea, FichaIndexada[]>();
+
+function getCorpusArea(slug: SlugCorpusArea): Corpus | null {
+  if (!corpusCompletoActivo()) return null;
+  if (!SLUGS_CORPUS_AREA.has(slug)) return null;
+  const cache = corpusPorArea.get(slug);
+  if (cache) return cache;
+  try {
+    const p = path.join(process.cwd(), "data", "corpus-full", `${slug}.json`);
+    const raw = fs.readFileSync(p, "utf-8");
+    const corpus = JSON.parse(raw) as Corpus;
+    if (!corpus || !Array.isArray(corpus.fichas) || corpus.fichas.length === 0) return null;
+    corpusPorArea.set(slug, corpus);
+    return corpus;
+  } catch (e: any) {
+    console.warn(`[juris] corpus-full/${slug}.json ilegible o ausente (sigue con base): ${String(e?.message || e).slice(0, 120)}`);
+    return null;
+  }
+}
+
+function getIndiceArea(slug: SlugCorpusArea): FichaIndexada[] {
+  if (!corpusCompletoActivo()) return [];
+  const cache = indicePorArea.get(slug);
+  if (cache) return cache;
+  const corpus = getCorpusArea(slug);
+  if (!corpus) return [];
+  const idx = construirIndice(corpus);
+  indicePorArea.set(slug, idx);
+  return idx;
+}
+
+function getIndiceExtendido(slug: string | undefined): FichaIndexada[] {
+  if (!corpusCompletoActivo() || !slug) return [];
+  const clean = slug.trim().toLowerCase() as SlugCorpusArea;
+  const extras: FichaIndexada[] = [];
+  if (clean !== "transversal") {
+    const idxArea = getIndiceArea(clean);
+    if (idxArea.length) extras.push(...idxArea);
+  }
+  const trans = getIndiceArea("transversal");
+  if (trans.length) extras.push(...trans);
+  return extras;
 }
 
 function bonusFrase(queryTokens: string[], blobFrases: string[]): number {
@@ -168,10 +233,11 @@ function bonusFrase(queryTokens: string[], blobFrases: string[]): number {
 
 export async function buscarJurisprudencia(
   textos: string[],
-  maxResultados = 6
+  maxResultados = 6,
+  slugArea?: string
 ): Promise<RecomendacionJuris[]> {
   try {
-    const indiceL = getIndice();
+    const indiceL = getIndice().concat(getIndiceExtendido(slugArea));
     if (indiceL.length === 0) return [];
     const queryTokens = tokenizar(textos.filter(Boolean).join(" "));
     if (queryTokens.length === 0) return [];
@@ -474,11 +540,11 @@ async function fusionar(runs: { consulta: string; resultados: Array<Recomendacio
     .slice(0, max);
 }
 
-export async function buscarJurisprudenciaMulti(consultas: ConsultaEtiquetada[], maxResultados = 6): Promise<RecomendacionJuris[]> {
+export async function buscarJurisprudenciaMulti(consultas: ConsultaEtiquetada[], maxResultados = 6, slugArea?: string): Promise<RecomendacionJuris[]> {
   const validas = consultas.filter((c) => typeof c.texto === "string" && c.texto.trim().length >= 15);
   if (validas.length === 0) return [];
   const runs = await Promise.all(
-    validas.map(async (c) => ({ consulta: c.etiqueta || "general", resultados: await buscarJurisprudencia([c.texto], 8) }))
+    validas.map(async (c) => ({ consulta: c.etiqueta || "general", resultados: await buscarJurisprudencia([c.texto], 8, slugArea) }))
   );
   return fusionar(runs, maxResultados);
 }

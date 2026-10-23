@@ -218,3 +218,36 @@ Verificado ademas: prod (legalhelp.cl) 200/400/402 correctos con orden fake 404;
 
      advisory, retro-compatib., multi-norma en texto, nota de blindaje).
 
+
+## Fase 5 - Corpus completo por area (2026-10-23)
+
+1. **Fuente:** dataset Open Legal Chile `pablobenavidesj/doctrina-jurisprudencia-chile-training`
+   (instituciones.jsonl, 11.858 fichas dogmaticas con institucion/materia/definicion/
+   operativa_procesal/concordancias/fallo_rector/contenido). El generador
+   `scripts/corpus_ingest_full.py` reusa EXACTAMENTE las mismas heuristicas de
+   calidad y el dedup por institucion del ingest laboral original
+   (juris_ingest_laboral.py); tras filtros quedan 2.130 institucionos unicas
+   repartidas en 7 archivos `data/corpus-full/<slug>.json`:
+   laboral 169 · civil 260 · familia 245 · penal 402 · administrativo 40 ·
+   constitucional 147 · transversal 867 (Judicial+Procesal+General).
+   `contenido` se recorta a 2500 chars/ficha (el peso de contenido en el scorer
+   es C_W=1, el mas bajo) para que el paquete total sea ~6.5 MB.
+2. **Gate por env `CORPUS_COMPLETO=true`:** `getIndiceExtendido(slug)` carga SOLO
+   el archivo del area pedida + `transversal`, con cache por proceso (corpus
+   parseado e indice tokenizado una vez por area; busquedas posteriores ~0ms).
+   Con el gate apagado el camino es identico al anterior (misma respuesta,
+   costo 0): `qa-corpus-fase5.ts` verifica ambas modalidades - determinista,
+   13/13 PASS, primera busqueda por area ~350-420 ms (construccion en caliente).
+3. **Conecta en:** borrador (handler /api/legalhelp-draft -> slug = input.area) y
+   dictamen premium (server.ts -> slug = area declarada por la UI o el area
+   detectada con detectAreaFromContext del texto). Los casos (busqueda por rol)
+   siguen usando el corpus de fallos CS sin cambios.
+4. **e2e con generacion real:** demanda de familia con corpus completo -> draft
+   13.997 chars, estructura y validacion OK en 6/6 (Gemini degradada por
+   tormenta 503 ese mometo: la cadena de fallback actuo como es de esperar).
+   Las llamadas deterministas y los probes del corpus laboral (qa-draft-fase1)
+   cubren el resto del motor.
+5. **Prod:** activado via env `CORPUS_COMPLETO=true` en Vercel (sin coste si el
+   corpus no esta alcanzable: el loader degrada a base + aviso en consola).
+   El corpus completo va COMMITTEADO (data/corpus-full/, ~6.5 MB) para que
+   cualquier deploy lo regenere sin descargar HF.
