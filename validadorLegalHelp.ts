@@ -3,6 +3,9 @@
 // MODULAR: no toca validadorInforme.ts ni el endpoint premium-report
 
 import type { ValidacionInformeUI, BcnArticuloCitado } from "./src/types";
+// Fase 4: el extractor determinista de BCN (solo regex, sin red) sirve aqui
+// para saber a QUE norma pertenece cada articulo citado dentro del borrador.
+import { extraerCitadasPorNorma } from "./bcnLeyChile.js";
 
 export interface ValidacionLegalHelp extends ValidacionInformeUI {
   rolesInforme: string[];
@@ -11,6 +14,9 @@ export interface ValidacionLegalHelp extends ValidacionInformeUI {
   articulosClaveFaltantes: string[];
   petitorioValido: boolean;
   numeracionHechosValida: boolean;
+  // Fase 4: articulos del borrador citados sin ley asociable en el texto
+  // (el emparejamiento articulo<->norma no pudo asignarles una norma).
+  articulosSinNorma: string[];
 }
 
 export interface InsumosValidacionLegalHelp {
@@ -121,6 +127,7 @@ export function validarLegalHelp(report: string, insumos: InsumosValidacionLegal
     articulosClaveFaltantes: [],
     petitorioValido: false,
     numeracionHechosValida: false,
+    articulosSinNorma: [],
   };
   const texto = typeof report === "string" ? report : "";
   if (!texto) return base;
@@ -162,8 +169,53 @@ export function validarLegalHelp(report: string, insumos: InsumosValidacionLegal
     // Fase 1: complemento exacto de rolesEnCorpus (antes quedaba doble-contado
     // un rol que coincidía solo por su base).
     const rolesNoEnCorpus = rolesInforme.filter((r) => !rolesEnCorpus.includes(r));
-    const artsCubiertos = artsInforme.filter((a) => artsCubiertosSet.has(a));
-    const artsSinCobertura = artsInforme.filter((a) => !artsCubiertosSet.has(a));
+
+    // ---- Fase 4: cobertura estricta articulo <-> norma ----
+    // El servidor entrega artsCubiertos como claves "KEY:art" (p.ej. "L18290:157"):
+    // un "Art. 161" del borrador SOLO esta cubierto si el 161 fue verificado en
+    // la MISMA norma que el cruce asigno a esa cita dentro del texto. El cruce
+    // se recalcula aqui con el propio extractor BCN (regex, sin red).
+    const claves = insumos.artsCubiertos.map((x) => String(x).replace(/\s+/g, ""));
+    const esCoberturaPorNorma = claves.length > 0 && claves.every((x) => /^[A-Z]+[0-9]*:/i.test(x));
+    const numKey = (s: string) => s.trim().replace(/\./g, "").replace(/^0+/, "") || "0";
+
+    // num -> conjunto de normas a las que el cruce asigno ese numero en el texto.
+    const pareos = new Map<string, Set<string>>();
+    if (esCoberturaPorNorma) {
+      try {
+        const ex = extraerCitadasPorNorma(texto);
+        for (const p of ex.pares) {
+          const nk = numKey(p.num);
+          if (!pareos.has(nk)) pareos.set(nk, new Set());
+          if (p.norma) pareos.get(nk)!.add(p.norma.key);
+        }
+      } catch { /* extractor fallo: degradar a cobertura por numero */ }
+    }
+    const claveCubierta = (a: string): { valido: boolean; asignado: boolean } => {
+      const nk = numKey(a);
+      const setNormas = pareos.get(nk);
+      // Cita sin norma asignable en el texto (set vacio) -> no la juzgamos
+      // contra una norma en particular; degrada a cobertura por numero.
+      if (!setNormas || setNormas.size === 0) return { valido: false, asignado: false };
+      for (const key of setNormas) if (claves.includes(`${key}:${nk}`)) return { valido: true, asignado: true };
+      return { valido: false, asignado: true };
+    };
+
+    const artsCubiertos = esCoberturaPorNorma && pareos.size > 0
+      ? artsInforme.filter((a) => {
+          const r = claveCubierta(a);
+          return r.asignado ? r.valido : artsCubiertosSet.has(a);
+        })
+      : artsInforme.filter((a) => artsCubiertosSet.has(a));
+    const artsSinCobertura = artsInforme.filter((a) => !artsCubiertos.includes(a));
+    // Advisory aparte: articulos cuya cita el cruce NO pudo asignar a ninguna
+    // norma (sin ley junto a la cita). Es calidad de la cita, no falta de texto
+    // oficial; por eso no se lista como "sin cobertura".
+    const articulosSinNorma = [...pareos.entries()]
+      .filter(([, normas]) => normas.size === 0)
+      .map(([nk]) => nk)
+      .filter((a) => artsInforme.includes(a))
+      .slice(0, 20);
 
     const montosNoCorroborados = montosInforme.filter((mo) => {
       if (insumos.montosDoc.includes(mo)) return false;
@@ -191,6 +243,7 @@ export function validarLegalHelp(report: string, insumos: InsumosValidacionLegal
       articulosClaveFaltantes,
       petitorioValido,
       numeracionHechosValida,
+      articulosSinNorma,
     };
   } catch {
     return base;
@@ -213,6 +266,9 @@ export function notaBlindajeLegalHelp(v: ValidacionLegalHelp): string {
   lineas.push(`- Artículos citados: ${v.artsInforme.length} · con texto BCN: **${v.artsCubiertos.length}** · sin cobertura: ${v.artsSinCobertura.length}`);
   for (const a of v.artsSinCobertura.slice(0, 6)) {
     lineas.push(`  - ⚠️ Art. ${a} — sin texto oficial en el canal BCN. Verifícalo en www.leychile.cl.`);
+  }
+  if (v.articulosSinNorma.length > 0) {
+    lineas.push(`- ℹ️ Art. ${v.articulosSinNorma.slice(0, 6).join(", ")} — la cita dentro del texto no permite asociarlos a una ley concreta. Indica la norma junto a la cita, p. ej. "Art. N de la Ley 21.430", para poder verificarlos contra la fuente oficial.`);
   }
 
   if (v.articulosClaveFaltantes.length > 0) {

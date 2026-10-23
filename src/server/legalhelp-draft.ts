@@ -236,7 +236,10 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
 
   const insumos: InsumosValidacionLegalHelp = {
     rolesCorpus,
-    artsCubiertos: citasBCNFinal.verificados.map(a => a.articulo),
+    // Fase 4: cobertura por clave "KEY:art" (p.ej. "L18290:157"), no por numero
+    // suelto: el validador cruza cada cita del borrador con la norma que el
+    // extractor BCN le asigno en ese mismo texto.
+    artsCubiertos: citasBCNFinal.verificados.map(a => `${a.keyNorma}:${a.articulo}`),
     artsPendientes: citasBCNFinal.pendientes.flatMap(p => p.articulosPedidos || []),
     montosDoc: ext?.montos || [],
     textoDoc: combinedText,
