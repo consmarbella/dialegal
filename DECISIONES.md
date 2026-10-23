@@ -158,3 +158,63 @@ QA: `tsc --noEmit` OK; pilotos verde; prueba de punta a punta local
 Nota de proceso: Fases 2 y 3 salen en un único commit+deploy (F3 depende del
 esquema y funciones de F2; mantener dos deploys separados habría dejado la
 versión intermedia con `/api/premium-report` 402 pero orden sin persistir).
+
+## Post-auditoria Fases 0-3 - correcciones (2026-10-23)
+
+Auditoria de verificacion (compilados vs decisiones, DB y prod) encontro 4 defectos reales corregidos:
+1. **saveOrder pisa datos MP en re-save (F3 heal).** Duplicado: heal re-guarda la orden
+   aprobada sin mp_payment_id/paid_at y el ON CONFLICT escribia lo nuevo NULL encima.
+   Corregido: `COALESCE(EXCLUDED.x, orders.x)` y la columna `mp_payment_id` ahora SI se
+   inserta (no estaba en la lista de columnas del INSERT). QA: `qa-orderstore-db.ts`
+   hecho idempotente (limpia sus filas al inicio) con 8/8 PASS, incluidos heal y preservacion.
+2. **Uso explotaba si la DB caia tras generar el dictamen.** `consumeUseAtomic` lanzaba y
+   el response era 500 aun con dictamen listo. Corregido: `consumeUseSeguro` degrada
+   (console.error) y entrega el dictamen sin descuento; el QA e2e confirma el flujo.
+3. **Doble cobro en cache corrupta.** El hit de cache JSON-invalido consumia un uso y
+   luego re-generaba: cobraba 2 usos por 1 dictamen. Corregido: parse del cache ANTES de
+   consumir; si el JSON es corrupto se regenera sin descontar. Complemento Fase 4
+   conexo: el resolver ya guarda la entrada resuelta en `normaCache` (seeding por
+   idNorma), por lo que el re-archivo del pendiente ya no re-descarga el XML.
+4. **Rate limit ausente en /api/premium-report.** Se aplica `checkRateLimit("premium:<ip>", 5/min)`
+   (PAYMENT_RATE_LIMIT ya importado en Fase 0); override por env `PREMIUM_RATE_LIMIT_MAX`
+   para QA local. El 400 por falta de orderId ocurre ANTES del limite (no consume cupo).
+
+Verificado ademas: prod (legalhelp.cl) 200/400/402 correctos con orden fake 404;
+`npx tsc --noEmit` limpio; deploy mantendra las dos capas en un solo deploy (ver abajo).
+
+## Fase 4 - Resolución genérica de leyes + cruce artículo<->norma (2026-10-23)
+
+1. **Resolución de CUALQUIER "Ley N° X.XXX".** Canal documentado
+   `obtxml?opt=7&idLey=<numero>` (probe 2026-10-22: idLey=18290 -> XML con
+   `<Tipo>Ley</Tipo><Numero>18290</Numero>`, normaId="29708"). El resolver verifica
+   Tipo=Numero exacto (DL/DFL no usan idLey y quedan pendientes
+   `norma_no_resoluble`). Fallos en cache 30 min; aciertos persistidos en tabla
+   `leyes` (Postgres, `CREATE TABLE IF NOT EXISTS`) con ON CONFLICT ley_num.
+2. **Cruce determinista artículo<->norma** (`extraerCitadasPorNorma`): regex, sin red,
+   ventana "ley después" <= 120 chars y "ley antes" <= 400, tope 12 arts/norma y
+   techo MAX_GENERICOS=8 leyes genericas por llamada. Datos de QA: "Art. 1 de la
+   Ley 21.430" + "Art. 157 de la Ley 18.290" -> 1->LEY21430 y 157->L18290
+   correctos; heurística de ventana igual a la del código antiguo, se degrada a
+   advisory de calidad de cita, no bloquea ni penaliza el texto.
+3. **Cobertura estricta en validarLegalHelp.** insumos `artsCubiertos` ahora son
+   claves `KEY:art` (p.ej. `L18290:157`, generico `LEY21430:1`); un "Art. N"
+   SOLO cuenta cubierto si el cruce asigna la cita a la MISMA norma verificada
+   por el servidor. Cita sin ley asociable -> degrada a cobertura por número +
+   advisory `articulosSinNorma` en la nota de blindaje (no falsa "sin cobertura"
+   por formato de cita). Retro-compatible: claves sin `:` usan el camino antiguo.
+   `validadorInforme.ts` (canal premium) queda INTACTO; su versión estricta
+   llega con Fase 5.
+4. **QA:**
+
+   - `qa-leyes-fase4.ts` (BCN en vivo): Ley 21.430 resuelta por idLey y Ley 18.290
+
+     Art. 157 verificada; 290ms con cache; filas `leyes(21430->1173643)` en DB
+
+     y `leyes(20123->254080)` (probada en mock de pruebas anteriores).
+
+   - `qa-validador-fase4.ts` (determinista, sin red): 7/7 PASS (cobertura
+
+     correcta, misma cifra en OTRA norma -> sin cobertura, sin ley asociable ->
+
+     advisory, retro-compatib., multi-norma en texto, nota de blindaje).
+
