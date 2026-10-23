@@ -39,7 +39,10 @@ function dbPool(): Pool | null {
   const url = dbUrl();
   if (!url) { warnOnce('no-db', "DATABASE_URL/POSTGRES_URL no definidas: órdenes SOLO en memoria (se pierden en cold start). Configura Vercel Postgres/Neon."); return null; }
   if (!pool) {
-    pool = new Pool({ connectionString: url, max: 3, idleTimeoutMillis: 10000, connectionTimeoutMillis: 8000 });
+    // Supabase usa una CA propia que Node no trae: conexiones con sslmode en el
+    // string requieren saltar la verificacion del cert (estandar en su docs).
+    const ssl = url.includes("sslmode=") ? { rejectUnauthorized: false } : undefined;
+    pool = new Pool({ connectionString: url, ssl, max: 3, idleTimeoutMillis: 10000, connectionTimeoutMillis: 8000 });
   }
   return pool;
 }

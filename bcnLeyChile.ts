@@ -202,7 +202,8 @@ async function getLeyesPool(): Promise<PgPool | null> {
   if (leyesPool) return leyesPool;
   try {
     const mod: any = await import("pg");
-    const pool: PgPool = new mod.Pool({ connectionString: url, max: 2, connectionTimeoutMillis: 8000 });
+    // Supabase: CA propia no incluida en Node (ver orderStore).
+    const pool: PgPool = new mod.Pool({ connectionString: url, ssl: url.includes("sslmode=") ? { rejectUnauthorized: false } : undefined, max: 2, connectionTimeoutMillis: 8000 });
     leyesSchemaP = pool
       .query(`CREATE TABLE IF NOT EXISTS leyes (
          ley_num     INTEGER PRIMARY KEY,
