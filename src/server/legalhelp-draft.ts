@@ -9,7 +9,7 @@ import { buscarJurisprudenciaMulti, buscarCasosJurisMulti, type ConsultaEtiqueta
 import { validarLegalHelp, notaBlindajeLegalHelp, type InsumosValidacionLegalHelp, type ValidacionLegalHelp } from "../../validadorLegalHelp.js";
 import { auditarVacios } from "../../auditorVacios.js";
 import { detectarArea, getAreaConfidence } from "../../area-detector.js";
-import { existePlazo, calcularPlazo, detectarFechaNotificacion, bloquePromptPlazos, chequearPlazosEnBorrador, type ResultadoPlazo } from "../../plazosChile.js";
+import { existePlazo, calcularPlazo, detectarFechaNotificacion, detectarFechasNotificacion, anotacionesPlazos, bloquePromptPlazos, chequearPlazosEnBorrador, type ResultadoPlazo, type FechasNotificacionResultado } from "../../plazosChile.js";
 import { getPlantilla, getArticulosClave } from "../../legalhelp-templates.js";
 import type { DraftInput, DraftOutput, VacioCritico } from "../types.js";
 // Fase 1: generateWithFallback consolidado en llmEngine.ts (versión completa:
@@ -97,10 +97,12 @@ const PLAZO_POR_TIPO: Record<string, { id: string; aplica: ("demanda" | "contest
   civil: { id: "civil_contestacion", aplica: ["contestacion"] },
   laboral: { id: "laboral_contestacion", aplica: ["contestacion"] },
 };
-function calcularPlazosMotor(area: string, tipo: string, combinedText: string): ResultadoPlazo[] {
+function calcularPlazosMotor(area: string, tipo: string, combinedText: string, fechasRes?: { primera: string | null }): ResultadoPlazo[] {
   const def = PLAZO_POR_TIPO[area];
   if (!def || !def.aplica.includes(tipo as any) || !existePlazo(def.id)) return [];
-  const fecha = detectarFechaNotificacion(combinedText);
+  // Calibración gate: fechasRes viene pre-detectado por el llamador
+  // (detectarFechasNotificacion) para reutilizarlo también en anotaciones.
+  const fecha = fechasRes ? fechasRes.primera : detectarFechaNotificacion(combinedText);
   if (!fecha) return [];
   const r = calcularPlazo({ plazoId: def.id, fechaNotificacion: fecha });
   return r.ok ? [r] : [r];
@@ -185,9 +187,13 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   // Fase 7: PLAN DE PLAZOS del motor determinista (plazosChile.ts). Los numeros
   // de fechas limites provienen de codigo, no del LLM. Solo aplica cuando el
   // tipo/area tienen plazo registrado y el relato permite inferir notificacion.
-  const plazosMotor = calcularPlazosMotor(area, input.tipo, combinedText);
+  const fechasNotificacion = detectarFechasNotificacion(combinedText); // used por motor + anotaciones
+  const plazosMotor = calcularPlazosMotor(area, input.tipo, combinedText, fechasNotificacion);
   const bloquePlazos = bloquePromptPlazos(plazosMotor);
   if (bloquePlazos) promptContent += bloquePlazos;
+  if (fechasNotificacion.ambigua) {
+    promptContent += `\n[VERIFICACION DE FECHA] El caso menciona ${fechasNotificacion.fechas.length} fechas de notificacion distintas (${fechasNotificacion.fechas.join("; ")}). El motor usó la primera (${fechasNotificacion.primera}); NO inventes cuál corre: usa la nota de verificación al pie.`;
+  }
   if (bloqueJuris) promptContent += bloqueJuris;
   if (bloqueCasos) promptContent += bloqueCasos;
   promptContent += `\n\n${plantilla}\n\n`;
@@ -289,13 +295,11 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   let chequeoPlazos: ReturnType<typeof chequearPlazosEnBorrador> = [];
   try {
     chequeoPlazos = chequearPlazosEnBorrador(plazosMotor, draft);
-    const faltantes = chequeoPlazos.filter((c) => !c.consignado);
-    if (faltantes.length) {
-      const lineas = faltantes.map((c) => {
-        const f = c.fechaLimite;
-        return `⚠️ Verificación de plazo (${c.plazoId}): el motor calculó como fecha límite **${f}** y el borrador no la consigna literalmente en ningún formato — confírmala contra el desglose del motor antes de presentar.`;
-      });
-      draft = draft + `\n\n## ⚠️ Nota de verificación de plazos (control automático)\n\n${lineas.join("\n\n")}\n`;
+    // Capa warn unificada: fecha ambigua + plazo vencido + límite no consignada
+    const anotaciones = anotacionesPlazos(plazosMotor, draft, fechasNotificacion);
+    if (anotaciones.length) {
+      const lineas = anotaciones.map((a) => `- ⚠️ ${a}`);
+      draft = draft + `\n\n## ⚠️ Nota de verificación de plazos (control automático)\n\n${lineas.join("\n")}\n`;
     }
   } catch { /* silencioso: el cross-check jamás rompe el borrador */ }
 

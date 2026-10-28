@@ -1,0 +1,37 @@
+# Calibración del gate (Fase 8-riesgos): corre el evaluador determinista
+# evaluation/gate-calibration contra los 35 casos etiquetados. Sin secretos.
+name: eval-gate
+
+on:
+  push:
+    paths:
+      - "evaluation/gate-calibration/**"
+      - "scripts/eval-gate.ts"
+      - "plazosChile.ts"
+      - "validadorInforme.ts"
+      - ".github/workflows/eval-gate.yml"
+  workflow_dispatch: {} # run manual desde la pestaña Actions
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Eval gate (tsc + corrida real)
+        run: |
+          npx tsc --noEmit
+          npm run eval:gate
+      - name: Guardar reporte como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-calibration-report
+          path: evaluation/gate-calibration/report.json

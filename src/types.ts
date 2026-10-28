@@ -184,7 +184,7 @@ export interface DraftMetadatos {
   }[];
   // Fase 7: cross-check ¿el borrador consigna la fecha límite del motor?
   chequeoPlazos?: {
-    ok: boolean; plazoId: string; fechaLimite: string; consignado: boolean;
+    ok: boolean; plazoId: string; fechaLimite: string; consignado: boolean; vencido?: boolean;
   }[];
 }
 

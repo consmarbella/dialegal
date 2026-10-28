@@ -84,5 +84,19 @@ chk("20 cross-check marca FALTANTE si el borrador omite la fecha", P.chequearPla
 
 function fmt(iso: string): string { return P.fmtFechaChilena(iso).variantes[0]; }
 
+// 21-24. calibración gate: ambigüedad, vencido, única fecha no ambigua
+const amb = P.detectarFechasNotificacion("Fue notificada en calle Santiago el 5 de mayo de 2024 y con cédula el 19 de mayo de 2024.");
+chk("21 dos fechas distintas -> ambigua=true", amb.ambigua && amb.fechas.length === 2, amb);
+const unica = P.detectarFechasNotificacion("La demanda fue notificada con fecha 05-05-2024. La misma fecha se resexo: notificada el 5 de mayo de 2024.");
+chk("22 misma fecha duplicada NO es ambigua", !unica.ambigua && unica.fechas.length === 1 && unica.primera === "2024-05-05", unica);
+const rv = P.calcularPlazo({ plazoId: "laboral_contestacion", fechaNotificacion: "2023-10-02" });
+chk("23 plazo pasado -> vencido=true", rv.ok && rv.vencido === true && (rv.fechaLimite || "") < P.hoyIso(), rv);
+const rvf = P.calcularPlazo({ plazoId: "laboral_contestacion", fechaNotificacion: "2027-03-03" });
+chk("24 plazo futuro -> vencido=false", rvf.ok && rvf.vencido === false, rvf);
+const not21 = P.anotacionesPlazos([rv], "El demandado debía contestar para el 23 de octubre de 2023.", { fechas: ["2023-10-02"], primera: "2023-10-02", ambigua: false });
+chk("25 nota plazo_vencido en anotaciones", not21.some((a) => a.includes("plazo_vencido") && a.includes("2023-10-23")), not21);
+const not22 = P.anotacionesPlazos([rv], "", { fechas: ["2024-05-05", "2024-05-19"], primera: "2024-05-05", ambigua: true });
+chk("26 nota fecha_notificacion_ambigua", not22.some((a) => a.includes("fecha_notificacion_ambigua")), not22);
+
 console.log(fail === 0 ? `\nQA plazos Fase 7: ${ok}/${ok + fail} PASS` : `\nQA plazos Fase 7: FAILURES=${fail}`);
 process.exit(fail === 0 ? 0 : 1);

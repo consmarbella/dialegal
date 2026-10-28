@@ -143,6 +143,7 @@ export interface ResultadoPlazo {
   diasOtorgados?: number;
   desglose?: string[];
   aviso?: string;               // [VERIFICAR ...] cuando el dato queda estimado
+  vencido?: boolean;            // Fase 6-calibración: fechaLimite < hoy (anotación, jamás bloqueo)
 }
 
 export function existePlazo(id: string): boolean {
@@ -194,33 +195,81 @@ export function calcularPlazo(entrada: EntradaPlazoP): ResultadoPlazo {
     fechaLimite: claveDia(limite),
     diasOtorgados: total,
     desglose,
+    // Calibración gate: anotar vencido. Contraste fecha-ISO lexicográfico
+    // (claveIso siempre YYYY-MM-DD) — determinista, sin zonas horarias.
+    vencido: claveDia(limite) < hoyIso(),
   };
 }
 
+/** "YYYY-MM-DD" de hoy en UTC (igual clave que claveDia/claveIso del motor). */
+export function hoyIso(): string {
+  return claveDia(new Date());
+}
+
 // ─── Detección de fecha de notificación en el texto del caso ────────────────
+const MESES_NOTIF: Record<string, number> = { enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6, julio: 7, agosto: 8, septiembre: 9, setiembre: 9, octubre: 10, noviembre: 11, diciembre: 12 };
+
+export interface FechasNotificacionResultado {
+  fechas: string[];        // todas las fechas de notificación detectadas, en orden del texto
+  primera: string | null;  // la que el motor usa (compatible con detectarFechaNotificacion)
+  ambigua: boolean;        // >= 2 fechas DISTINTAS: el relato no permite saber cuál corre el plazo
+}
+
+/** Recolecta TODAS las fechas en las cláusulas "notificada/os" (formato textual
+ *  y numérico), en orden del texto. Cada mención abre una ventana de ~200 chars
+ *  donde pueden caer varias fechas ("el 5 de mayo ... y con cédula el 19 de
+ *  mayo"): eso ES ambigüedad. Duplicados de la MISMA fecha no lo son. */
+export function detectarFechasNotificacion(texto: string): FechasNotificacionResultado {
+  const vacio: FechasNotificacionResultado = { fechas: [], primera: null, ambigua: false };
+  if (!texto) return vacio;
+  const t = texto.toLowerCase().slice(0, 6000)
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // sin tildes: "septiembre"/"marzo" robusto
+  const meses: Record<string, number> = {};
+  for (const k of Object.keys(MESES_NOTIF)) meses[k.normalize("NFD").replace(/[\u0300-\u036f]/g, "")] = (MESES_NOTIF as any)[k];
+  const hallazgos: Array<{ iz: number; iso: string | null }> = [];
+  // "notificada/os" y "notificación" (la sustantiva es habitual en la práctica:
+  // "la notificación de la demanda se practicó el ...").
+  const NOTIFICAD_RE = /notificad[oa]s?|notificacion\b/g;
+  let nm: RegExpExecArray | null;
+  while ((nm = NOTIFICAD_RE.exec(t)) !== null) {
+    const izCl = nm.index;
+    // Cosecha HASTA el fin de oración (punto o salto) para no arrastrar fechas
+    // ajenas de la oración siguiente (fecha de contrato, audiencia, etc.).
+    let fin = izCl;
+    while (fin < t.length && t[fin] !== "." && t[fin] !== "\n" && t[fin] !== ";" && fin - izCl < 250) fin++;
+    const ventana = t.slice(izCl, fin) + " ";
+    // textual: "el 12 de marzo de 2024"
+    const rxTexto = /(\d{1,2})\s+(?:de\s+)?([a-z]+)\s+(?:de\s+)?(\d{4})/g;
+    let m: RegExpExecArray | null;
+    while ((m = rxTexto.exec(ventana)) !== null) {
+      const mes = meses[m[2]];
+      const dia = Number(m[1]);
+      if (mes && dia >= 1 && dia <= 31) {
+        hallazgos.push({ iz: izCl + m.index, iso: claveIso(Number(m[3]), mes, dia) });
+        continue;
+      }
+    }
+    // numérico: "3/4/2024" o "3-4-2024"
+    const rxNum = /(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})\b/g;
+    while ((m = rxNum.exec(ventana)) !== null) {
+      let a = Number(m[3]);
+      if (a < 100) a += 2000;
+      const mes = Number(m[2]);
+      const dia = Number(m[1]);
+      if (mes >= 1 && mes <= 12 && dia >= 1 && dia <= 31) {
+        hallazgos.push({ iz: izCl + m.index, iso: claveIso(a, mes, dia) });
+      }
+    }
+  }
+  hallazgos.sort((a, b) => a.iz - b.iz);
+  const enOrden: string[] = [];
+  for (const h of hallazgos) if ((h.iso ?? "") && !enOrden.includes(h.iso as string)) enOrden.push(h.iso as string);
+  return { fechas: enOrden, primera: enOrden[0] || null, ambigua: enOrden.length >= 2 };
+}
+
+/** Compat: equivale a detectarFechasNotificacion(texto).primera */
 export function detectarFechaNotificacion(texto: string): string | null {
-  if (!texto) return null;
-  const MESES: Record<string, number> = { enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6, julio: 7, agosto: 8, septiembre: 9, setiembre: 9, octubre: 10, noviembre: 11, diciembre: 12 };
-  const t = texto.toLowerCase().slice(0, 6000);
-  // "notificada el 12 de marzo de 2024" / "notificado por cédula con fecha 3 de abril de 2023"
-  const rx1 = /notificad[oa]s?[^.\n]{0,86}?(?:el|de fecha|fecha)\s+(\d{1,2})\s+(?:de\s+)?([a-záéíóú]+)\s+(?:de\s+)?(\d{4})/;
-  const m1 = rx1.exec(t);
-  if (m1) {
-    const mes = MESES[m1[2]];
-    const dia = Number(m1[1]);
-    if (mes && dia >= 1 && dia <= 31) return claveIso(Number(m1[3]), mes, dia);
-  }
-  // "notificada el 3/4/2024" o "3-4-2024" (formato chileno DD-MM-YYYY -> mantenemos día/mes tal cual)
-  const rx2 = /notificad[oa]s?[^.\n]{0,86}?(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})\b/;
-  const m2 = rx2.exec(t);
-  if (m2) {
-    let a = Number(m2[3]);
-    if (a < 100) a += 2000;
-    const mes = Number(m2[2]);
-    const dia = Number(m2[1]);
-    if (mes >= 1 && mes <= 12 && dia >= 1 && dia <= 31) return claveIso(a, mes, dia);
-  }
-  return null;
+  return detectarFechasNotificacion(texto).primera;
 }
 
 // ─── Cross-check: ¿el borrador consigna la fecha límite del motor? ──────────
@@ -250,15 +299,35 @@ function sinTildes(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
-export interface ChequeoPlazoMotor { ok: boolean; plazoId: string; fechaLimite: string; consignado: boolean; }
+export interface ChequeoPlazoMotor { ok: boolean; plazoId: string; fechaLimite: string; consignado: boolean; vencido?: boolean; }
 
 export function chequearPlazosEnBorrador(calculos: ResultadoPlazo[], draft: string): ChequeoPlazoMotor[] {
   const dNorm = sinTildes(typeof draft === "string" ? draft : "");
   return calculos.filter((c) => c.ok && c.fechaLimite).map((c) => {
     const variantes = fmtFechaChilena(c.fechaLimite as string).variantes.map(sinTildes);
     const consignado = variantes.some((v) => dNorm.includes(v));
-    return { ok: true, plazoId: c.plazoId, fechaLimite: c.fechaLimite as string, consignado };
+    return { ok: true, plazoId: c.plazoId, fechaLimite: c.fechaLimite as string, consignado, vencido: c.vencido === true };
   });
+}
+
+// ─── Anotaciones de plazos (capa warn del gate híbrido) ──────────────────────
+// Determinista y pura: recibe el resultado del motor + el borrador/informe y
+// devuelve las advertencias visibles. NUNCA bloquea (decisión Fase 7).
+export function anotacionesPlazos(calculos: ResultadoPlazo[], escrito: string, fechas: FechasNotificacionResultado): string[] {
+  const out: string[] = [];
+  if (fechas.ambigua) {
+    out.push(`fecha_notificacion_ambigua: el relato menciona ${fechas.fechas.length} fechas de notificación distintas (${fechas.fechas.join(", ")}); el motor usó la primera (${fechas.primera}). Confirmar cuál computa.`);
+  }
+  for (const p of calculos) {
+    if (p.vencido === true && p.fechaLimite) out.push(`plazo_vencido: el límite ${p.fechaLimite} (${p.plazoId}) es anterior a hoy.`);
+  }
+  for (const c of chequearPlazosEnBorrador(calculos, escrito)) {
+    if (!c.consignado && c.vencido !== true) {
+      const f = c.fechaLimite;
+      out.push(`limite_no_consignada: el motor calculó la fecha límite ${f} (${c.plazoId}) y el escrito no la consigna en ningún formato — confírmala contra el desglose antes de presentar.`);
+    }
+  }
+  return out;
 }
 
 // ─── Bloque para el prompt del borrador ──────────────────────────────────────

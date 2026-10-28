@@ -42,6 +42,48 @@ const ROLES_RE = /\brol(?:\s*n?[°º]|\s*n?o|\s*numero|\s*nro)?\s*\.?\s*:?\s*([0
 const ARTS_RE = /art(?:[íi]culos?|[íi]culo|\.)?\s*n?[°º]?\s*([0-9]{1,4})/gi;
 const MONTOS_RE = /(?:\$|CLP)[\s]*(\d{1,3}(?:\.\d{3})+(?:,\d+)?)|(\d{1,3}(?:\.\d{3})+)\s*(?:CLP|pesos)/gi;
 
+/** Calibración gate (eval): extrae roles como lo hace validarInforme sobre el
+ *  documento fuente. Misma regex + normalización que producción. */
+export function extraerRolesDeTexto(texto: string): string[] {
+  const out: string[] = [];
+  let m: RegExpExecArray | null;
+  ROLES_RE.lastIndex = 0;
+  while ((m = ROLES_RE.exec(texto || "")) !== null) {
+    const bruto = normalizarRol(m[1]) + (m[2] ? `-${m[2].toLowerCase()}` : "");
+    if (/^\d{4}$/.test(bruto)) continue;
+    if (!out.includes(bruto)) out.push(bruto);
+    if (out.length >= 20) break;
+  }
+  return out;
+}
+
+/** Igual para montos (formatos de producción). */
+export function extraerMontosDeTexto(texto: string): string[] {
+  const out: string[] = [];
+  let m: RegExpExecArray | null;
+  MONTOS_RE.lastIndex = 0;
+  while ((m = MONTOS_RE.exec(texto || "")) !== null) {
+    const v = m[1] || m[2];
+    if (v && !out.includes(v)) out.push(v);
+    if (out.length >= 12) break;
+  }
+  return out;
+}
+
+/** Números de artículos citados en texto (proxy BCN de calibración:
+ *  en producción artsCubiertos viene del canal BCN; el evaluador usa los
+ *  artículos presentes en el documento fuente como cobertura declarada). */
+export function extraerArtsDeTexto(texto: string): string[] {
+  const out: string[] = [];
+  let m: RegExpExecArray | null;
+  ARTS_RE.lastIndex = 0;
+  while ((m = ARTS_RE.exec(texto || "")) !== null) {
+    if (!out.includes(m[1])) out.push(m[1]);
+    if (out.length >= 30) break;
+  }
+  return out;
+}
+
 export function validarInforme(report: string, insumos: InsumosValidacion): ValidacionInforme {
   const base: ValidacionInforme = {
     rolesInforme: [], rolesEnCorpus: [], rolesNoEnCorpus: [],
