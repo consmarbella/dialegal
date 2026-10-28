@@ -299,3 +299,12 @@ Verificado ademas: prod (legalhelp.cl) 200/400/402 correctos con orden fake 404;
   contra prod sin costo).
 - Pendiente del dueno: credencial MP de PRODUCCION (APP_USR-). Con la clave de
   desarrollador (TEST-) las compras son sandbox y no desbloquean dictamen.
+
+## juris-test sin area ahora detecta por keywords (2026-10-28)
+
+El default de `/api/juris-test` caia a la base laboral pura (disenio Fase 1),
+lo que hacia parecer que "el corpus solo tiene lo laboral". Ahora, sin area
+declarada, detecta el slug del corpus por keywords (`detectAreaFromContext`),
+mismo camino que el dictamen premium (server.ts ~633). Verificado en prod:
+laboral/penal/civil detectados -> 8 fichas cada uno. Con area declarada, gana
+el area explicita.
