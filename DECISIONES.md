@@ -439,3 +439,47 @@ el area explicita.
    traen mas rectores y NO hay rescatables en texto (0 hallados). Ampliar
    cobertura exigiria otra fuente (ingesta BCN / scraping PJ) — fuera del
    alcance de este riesgo; queda como limite documentado, no como promesa.
+
+## Riesgo 3 (Fase 3/5 riesgos) - Auditoria de fichas descartadas - 2026-10-28
+
+1. **Numeros reales (scripts/audit-descartadas.ts -> evaluation/jurisprudencia/audit-descartadas.json)**:
+   descartadas total **4.993** (institucion_corrupta 2.212 · institucion_prosa
+   1.854 · corrupta_cita 920 · ambiental_fuera 7) — concilia exacto con la
+   corrida de produccion (el auditor replica la cadena FULL en TS con regex
+   unicode-aware; diffs 0 contra el clasificador Python fila por fila,
+   verificado sobre las 11.858).
+2. **Muestra estratificada determinista de 100 fichas** (28/30/25/7,
+   seleccionadas por POSICION del archivo, reproducible sin azar), cada una
+   con motivo + institucion + len_definicion + concordancias + cabeza de
+   definicion + `decision_humana: pendiente_revision_humana`.
+3. **Señal automatica declarada**: "probable FN" = parece_titulo (mayuscula
+   inicial, >=3 palabras, termina en palabra) AND sustancia (definicion
+   >=120 + concordancias). Resultado señal: prosa 4/30 (13,3%),
+   corrupta_cita 6/25 (24%) → umbral >=5% del mandato Activado.
+4. **Revision humana de los candidatos (10/10 revisados a mano)**: 9/10 NO
+   son FN: bibliografia cortada ("HOLMES, Stephen y SUNSTEIN (2011)...",
+   "ALEXY, Robert (2001)..."), prosa real ("Sentencia de la Corte Suprema,
+   24 de septiembre de 2018..."), 1 FN aparente ("Determinacion de la
+   maternidad"). La SENAL sobrestima FN (le falta detectar cita
+   bibliografica) — las metricas de señal NO son veredicto.
+5. **Cambio propuesto, probado y RECHAZADO**: generalizar la excepcion de
+   prosa a colas-mayuscula con sustancia (sin requerir rector). REGRESsion
+   medida: liberaria 43 filas; revision COMPLETA a mano (no muestra): ~20
+   titulos legítimos vs ~23 prosas ("Para Frieyro (2017: 182)...", "Por
+   ejemplo, el Segundo Juzgado de Letras del Trabajo...", dups) -> precision
+   ~47%, inaceptable para el matcher. REVERTIDO antes de dejar software
+   con datos contaminados: los filtros quedan como en el estado post-Riesgo
+   2 (5711 fichas, prosa 1854, verificacion de regeneracion igual a la
+   corrida anterior).
+6. **Propuesta concretas que QUEDAN documentedas (NO aplicadas, exigen su
+   propia validacion)**: (a) canonicalizacion de titulos prosa-bibliografia
+   (extraer el concepto de la cita antes de indexar) — requiere nueva
+   capa de parsing y tests propios; (b) liberacion POR LISTA blanca manual
+   de los ~20 titulos legítimos identificados (determinista, cero
+   contaminacion, sin heuristica); (c) auditoria de los 699 cola-minuscula
+   con sustancia (38% de la subpoblacion) como trabajo separado.
+7. **Veredicto honesto**: NO hay evidencia de que el pipeline este
+   perdiendo fichas de calidad de forma masiva. FN aparentes en muestra:
+   1/100 revisados (1%); los heuristicos descartan sobre todo ruido real
+   (bibliografia, prosa, titulos rotos). Regeneracion final verificada, QA
+   corpus 13/13, recency 6/6, tsc 0.

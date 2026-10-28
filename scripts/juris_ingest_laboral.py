@@ -108,13 +108,18 @@ def main():
             # Prosa que se colo como titulo (arranca en mayuscula pero es una frase).
             # Riesgo 2 (audit falloRector): NO descartar por prosa una fila que
             # trae fallo_rector parseable (5 fichas perdidas por cola "del X").
+            # Riesgo 3 (audit descartadas): la generalización cola-mayúscula
+            # +sustancia fue probada y rechazada (precisión ~47% en la revisión
+            # de las 43 que liberaría: ~20 títulos vs ~23 prosas). Ver
+            # DECISIONES.md y evaluation/jurisprudencia/audit-descartadas.json.
             tiene_rector = bool((d.get("fallo_rector") or "").strip())
-            if (re.match(r"^(Por |Parte de |Reclamar |Explique |Sentencia del |En todos |Conclusi|Esta ley |La Direcci|De los |Además|Ademas|Sin embargo|Al efecto|Según|Segun|Cabe |De este |De esa |De este modo)", institucion) or institucion.endswith("-") or re.search(r"\s(en la|de la|de el|y la|del |los )\s?\w{0,20}$", institucion)) and not tiene_rector:
+            definicion = (d.get("definicion") or "").strip()
+            prosa = re.match(r"^(Por |Parte de |Reclamar |Explique |Sentencia del |En todos |Conclusi|Esta ley |La Direcci|De los |Además|Ademas|Sin embargo|Al efecto|Según|Segun|Cabe |De este |De esa |De este modo)", institucion) or institucion.endswith("-") or re.search(r"\s(en la|de la|de el|y la|del |los )\s?\w{0,20}$", institucion)
+            if prosa and not tiene_rector:
                 motivos["institucion_prosa"] += 1
                 continue
             # Fichas sin fallo rector: solo si son fichas dogmáticas sanas (definición
             # con sustancia + normas citadas). Se agregan como fichas de contexto.
-            definicion = (d.get("definicion") or "").strip()
             if not tiene_rector:
                 if len(definicion) < 120 or not (d.get("concordancias") or "").strip():
                     motivos["sin_fallo_rector_debil"] += 1

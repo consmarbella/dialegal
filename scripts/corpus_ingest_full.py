@@ -106,11 +106,20 @@ def main() -> None:
             # si la fila trae fallo_rector parseable NO se descarta por prosa.
             # Evidencia: evaluation/jurisprudencia/audit-fallo-rector.json
             # (104 filas crudas con rector -> 99 deben llegar a fichas).
+            #
+            # Riesgo 3 (audit descartadas): la generalización a colas-mayúscula
+            # SIN rector fue PROBADA Y RECHAZADA: liberó 43 filas, de las que la
+            # revisión completa a mano arrojó ~20 legítimas vs ~23 prosas reales
+            # ("Para Frieyro (2017: 182)...", "Por ejemplo, el Segundo Juzgado
+            # ...") -> precisión ~47%, inaceptable para el matcher. La excepción
+            # queda SOLO para filas con rector; propuesta de mejora detallada en
+            # evaluation/jurisprudencia/audit-descartadas.json y DECISIONES.md.
             tiene_rector = bool((d.get("fallo_rector") or "").strip())
-            if (re.match(r"^(Por |Parte de |Reclamar |Explique |Sentencia del |En todos |Conclusi|Esta ley |La Direcci|De los |Adem?s|Ademas|Sin embargo|Al efecto|Seg?n|Cabe |De este |De esa |De este modo)", institucion) or institucion.endswith("-") or re.search(r"\s(en la|de la|de el|y la|del |los )\s?\w{0,20}$", institucion)) and not tiene_rector:
+            definicion = (d.get("definicion") or "").strip()
+            prosa = re.match(r"^(Por |Parte de |Reclamar |Explique |Sentencia del |En todos |Conclusi|Esta ley |La Direcci|De los |Adem?s|Ademas|Sin embargo|Al efecto|Seg?n|Cabe |De este |De esa |De este modo)", institucion) or institucion.endswith("-") or re.search(r"\s(en la|de la|de el|y la|del |los )\s?\w{0,20}$", institucion)
+            if prosa and not tiene_rector:
                 motivos["institucion_prosa"] += 1
                 continue
-            definicion = (d.get("definicion") or "").strip()
             if not tiene_rector and not FULL_MODE:
                 if len(definicion) < 120 or not (d.get("concordancias") or "").strip():
                     motivos["sin_fallo_rector_debil"] += 1
