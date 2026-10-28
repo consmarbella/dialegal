@@ -308,3 +308,26 @@ declarada, detecta el slug del corpus por keywords (`detectAreaFromContext`),
 mismo camino que el dictamen premium (server.ts ~633). Verificado en prod:
 laboral/penal/civil detectados -> 8 fichas cada uno. Con area declarada, gana
 el area explicita.
+
+## Fase 6 - Actualizacion continua del corpus (2026-10-28)
+
+1. **`scripts/corpus_update.py`**: orquestra 1 comando (y el cron lo usa):
+   - Descarga el snapshot HF vigente y compara **sha256** contra `.corpus-version`
+     -> sin delta: exit 0 sin regenerar ni commitear (cero deploys inutiles).
+   - Con delta: re-ingesta FULL (`corpus_ingest_full.py`) -> **guardia de
+     tamaño** (CORPUS_MAX_MB, default 100; hoy 16.9 MB) -> **candado QA**
+     (qa-corpus-fase5, 13/13; falla = exit 1 y el workflow aborta SIN commit/push)
+     -> guarda nueva `.corpus-version` (hash + fecha + totales por area).
+2. **`.github/workflows/corpus-update.yml`**: corre el día 3 de cada mes 06:00
+   UTC + disparo manual. Si commitea, Vercel despieza automaticamente (repo
+   vinculado). Python 3.12 + node 24 en ubuntu-latest.
+3. **Recency boost** (`jurisprudenciaChile.ts`): fichas con fallo rector del
+   año en curso ganan empates sutiles en el scorer (max +0.15, decay
+   1/(1+0.8*aniosAtras)) -> "criterio vigente" se filtra arriba en ties, sin
+   perturbar el orden general (QA 13/13 y validador 7/7 re-corridos).
+4. **Verificaciones**: corpus_update idempotente (2da corrida = "Sin
+   cambios"); primera corrida OK (5706 fichas, 16.9 MB, QA verde). Prod:
+   juris-test laboral 8 fichas. Commit `da3de22`.
+5. Nota: la fuente sigue siendo el dataset doctrinal de Open Legal Chile en
+   HF (se actualiza cuando su autor lo hace). Fallos crudos recien dictados
+   (PJUD/OJV directo) quedan como Fase 7 candidata si el dataset se atrasa.
