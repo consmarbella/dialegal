@@ -36,6 +36,12 @@ from juris_ingest_laboral import (  # noqa: E402
 OUT_DIR = os.path.join(os.path.dirname(BASE), "data", "corpus-full")
 MAX_CONTENIDO = 2500
 
+# Fase 5.1 (full): por defecto el filtro de calidad deja pasar TODO lo que
+# mantiene el matching usable (institucion legible >= 3 palabras) y deja de
+# exigir fallo rector / concordancias. Con CORPUS_MODE=base se vuelve al
+# criterio estricto de la Fase 1 (fallo rector obligatorio o ficha completa).
+FULL_MODE = os.environ.get("CORPUS_MODE", "full") != "base"
+
 AREAS_APP = {
     "laboral": {"Laboral", "Derecho del Trabajo (Laboral)"},
     "civil": {"Civil", "Derecho Civil", "Derecho Comercial"},
@@ -98,7 +104,7 @@ def main() -> None:
                 continue
             tiene_rector = bool((d.get("fallo_rector") or "").strip())
             definicion = (d.get("definicion") or "").strip()
-            if not tiene_rector:
+            if not tiene_rector and not FULL_MODE:
                 if len(definicion) < 120 or not (d.get("concordancias") or "").strip():
                     motivos["sin_fallo_rector_debil"] += 1
                     continue
