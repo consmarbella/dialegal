@@ -76,5 +76,13 @@ chk("16 falta de fecha -> null", P.detectarFechaNotificacion(t16) === null);
 // 17. bloque de prompt vacio cuando no hay calculos ok
 chk("17 bloquePromptPlazos vacio sin exitos", P.bloquePromptPlazos([r11, r12]) === "");
 
+// 18-20. cross-check: ¿el borrador consigna la fecha límite del motor?
+const f6 = fmt(r1.fechaLimite as string);
+chk("18 cross-check detecta fecha ISO en borrador", P.chequearPlazosEnBorrador([r1], "El demandado debe contestar para el " + f6).every((c) => c.consignado));
+chk("19 cross-check detecta formato '13 de junio de 2025'", P.chequearPlazosEnBorrador([r1], "notifique el vencimiento el 13 de junio de 2025").every((c) => c.consignado));
+chk("20 cross-check marca FALTANTE si el borrador omite la fecha", P.chequearPlazosEnBorrador([r1], "Pedimos se rechace la demanda.").some((c) => !c.consignado));
+
+function fmt(iso: string): string { return P.fmtFechaChilena(iso).variantes[0]; }
+
 console.log(fail === 0 ? `\nQA plazos Fase 7: ${ok}/${ok + fail} PASS` : `\nQA plazos Fase 7: FAILURES=${fail}`);
 process.exit(fail === 0 ? 0 : 1);

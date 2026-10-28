@@ -182,6 +182,10 @@ export interface DraftMetadatos {
     ok: boolean; plazoId: string; fuente: string;
     fechaLimite?: string; diasOtorgados?: number; desglose?: string[]; aviso?: string;
   }[];
+  // Fase 7: cross-check ¿el borrador consigna la fecha límite del motor?
+  chequeoPlazos?: {
+    ok: boolean; plazoId: string; fechaLimite: string; consignado: boolean;
+  }[];
 }
 
 export interface DraftOutput {

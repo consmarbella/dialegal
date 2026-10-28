@@ -223,9 +223,46 @@ export function detectarFechaNotificacion(texto: string): string | null {
   return null;
 }
 
+// ─── Cross-check: ¿el borrador consigna la fecha límite del motor? ──────────
+// Enforcement de ANOTACIÓN (decisión Fase 7: los borradores gratuitos no
+// bloquean). Detecta la fecha límite en cualquier formato razonable; si no
+// aparece en ningún formato, devuelve nota que lo advierte. Numeros que SALen
+// del motor: el LLM ya no puede cambiarlos sin que se note.
+const MESES_NOMBRE = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+export function fmtFechaChilena(iso: string): { canonico: string; variantes: string[] } {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return { canonico: iso, variantes: [iso] };
+  const [_, y, mm, dd] = m;
+  const nombre = MESES_NOMBRE[Number(mm) - 1];
+  const diaNum = String(Number(dd));
+  const variantes = [
+    iso,
+    `${dd}-${mm}-${y}`,
+    `${dd}/${mm}/${y}`,
+    `${diaNum} de ${nombre} de ${y}`,
+    `${diaNum} de ${nombre} del ${y}`,
+  ];
+  return { canonico: variantes[3], variantes };
+}
+
+function sinTildes(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+export interface ChequeoPlazoMotor { ok: boolean; plazoId: string; fechaLimite: string; consignado: boolean; }
+
+export function chequearPlazosEnBorrador(calculos: ResultadoPlazo[], draft: string): ChequeoPlazoMotor[] {
+  const dNorm = sinTildes(typeof draft === "string" ? draft : "");
+  return calculos.filter((c) => c.ok && c.fechaLimite).map((c) => {
+    const variantes = fmtFechaChilena(c.fechaLimite as string).variantes.map(sinTildes);
+    const consignado = variantes.some((v) => dNorm.includes(v));
+    return { ok: true, plazoId: c.plazoId, fechaLimite: c.fechaLimite as string, consignado };
+  });
+}
+
 // ─── Bloque para el prompt del borrador ──────────────────────────────────────
-export function bloquePromptPlazos(calculos: ResultadoPlazo[]): string {
-  const ok = calculos.filter((c) => c.ok);
+export function bloquePromptPlazos(calculos: ResultadoPlazo[]): string {  const ok = calculos.filter((c) => c.ok);
   if (!ok.length) return "";
   let s = "\n\nPLAN DE PLAZOS (MOTOR DETERMINISTA plazosChile.ts — calculado por código, NO por estimación tuya):\n";
   s += "ESTA FECHA ES UN DATO DEL MOTOR, NO UNA ESTIMACIÓN. Reutilízala literal; si el caso menciona datos que la contradicen, prioriza el desglose del motor y consígignala con [DATO FALTANTE: confirmar fecha de notificación].\n";

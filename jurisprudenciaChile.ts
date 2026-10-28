@@ -69,7 +69,12 @@ const D_W = 3;   // definicion
 const C_W = 1;   // contenido (grande, peso bajo)
 // Fase 6: sesgo de vigencia. Las fichas con fallo rector reciente ganan empates
 // sutiles (max +0.15) sobre las antiguas: "argumentar con el criterio de HOY".
-const REC_MAX_W = 0.15;
+// Fase 7 (A/B): peso env-overridable (RECENCY_W) y override por llamada
+// (opts.recencyW) para el QA.
+function recencyW(): number {
+  const v = Number(process.env.RECENCY_W);
+  return Number.isFinite(v) && v >= 0 ? v : 0.15;
+}
 const N_W = 2;   // normas/concordancias
 
 interface RegionPredistribuida { [token: string]: number }
@@ -237,7 +242,8 @@ function bonusFrase(queryTokens: string[], blobFrases: string[]): number {
 export async function buscarJurisprudencia(
   textos: string[],
   maxResultados = 6,
-  slugArea?: string
+  slugArea?: string,
+  opts?: { recencyW?: number }
 ): Promise<RecomendacionJuris[]> {
   try {
     const indiceL = getIndice().concat(getIndiceExtendido(slugArea));
@@ -286,11 +292,18 @@ export async function buscarJurisprudencia(
       }
       if (score < 1.2) continue;
       score += bonusFrase(queryTokens, [blobFrase]);
-      // Fase 6: recency boost del fallo rector (fecha "DD-MM-YYYY").
-      const mYr = ficha.falloRector?.fecha ? /-(\d{4})(?: |$|,)/.exec(ficha.falloRector.fecha) : null;
-      if (mYr) {
-        const aniosAtras = new Date().getFullYear() - Number(mYr[1]);
-        if (aniosAtras >= 0) score += REC_MAX_W / (1 + 0.8 * aniosAtras);
+      // Fase 6: recency boost del fallo rector. Fecha del corpus en "DD-MM-YYYY"
+      // o año solo ("2023") — Fase 7 A/B: ambos parseados. Limitación real:
+      // solo ~98/5.706 fichas traen falloRector; boost real pero de alcance
+      // acotado (medido en qa-recency-fases7.ts / DECISIONES.md).
+      const w = opts?.recencyW !== undefined ? opts.recencyW : recencyW();
+      const frFecha = ficha.falloRector?.fecha;
+      if (w > 0 && frFecha) {
+        const mYr = /(?:^|[\s-])(20\d{2})(?=\s|$|\.|,)/.exec(String(frFecha));
+        if (mYr) {
+          const aniosAtras = new Date().getFullYear() - Number(mYr[1]);
+          if (aniosAtras >= 0) score += w / (1 + 0.8 * aniosAtras);
+        }
       }
       resultados.push({
         institucion: ficha.institucion,

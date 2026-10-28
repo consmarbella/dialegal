@@ -9,7 +9,7 @@ import { buscarJurisprudenciaMulti, buscarCasosJurisMulti, type ConsultaEtiqueta
 import { validarLegalHelp, notaBlindajeLegalHelp, type InsumosValidacionLegalHelp, type ValidacionLegalHelp } from "../../validadorLegalHelp.js";
 import { auditarVacios } from "../../auditorVacios.js";
 import { detectarArea, getAreaConfidence } from "../../area-detector.js";
-import { existePlazo, calcularPlazo, detectarFechaNotificacion, bloquePromptPlazos, type ResultadoPlazo } from "../../plazosChile.js";
+import { existePlazo, calcularPlazo, detectarFechaNotificacion, bloquePromptPlazos, chequearPlazosEnBorrador, type ResultadoPlazo } from "../../plazosChile.js";
 import { getPlantilla, getArticulosClave } from "../../legalhelp-templates.js";
 import type { DraftInput, DraftOutput, VacioCritico } from "../types.js";
 // Fase 1: generateWithFallback consolidado en llmEngine.ts (versión completa:
@@ -281,6 +281,25 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     vacios = auditarVacios(draft, input);
   } catch { /* silencioso */ }
 
+  // 10.6 Cross-check plazos (Fase 7, enforcement de ANOTACIÓN): verifica que la
+  // fecha límite calculada por el motor aparezca consignada en el borrador (en
+  // cualquier formato razonable). Si no aparece, se appenda una nota visible.
+  // NUNCA bloquea (decisión Fase 7: los borradores gratuitos no bloquean por
+  // falso positivo; solo el dictamen pagado tiene gate, y ese es otro endpoint).
+  let chequeoPlazos: ReturnType<typeof chequearPlazosEnBorrador> = [];
+  try {
+    chequeoPlazos = chequearPlazosEnBorrador(plazosMotor, draft);
+    const faltantes = chequeoPlazos.filter((c) => !c.consignado);
+    if (faltantes.length) {
+      const lineas = faltantes.map((c) => {
+        const f = c.fechaLimite;
+        return `⚠️ Verificación de plazo (${c.plazoId}): el motor calculó como fecha límite **${f}** y el borrador no la consigna literalmente en ningún formato — confírmala contra el desglose del motor antes de presentar.`;
+      });
+      draft = draft + `\n\n## ⚠️ Nota de verificación de plazos (control automático)\n\n${lineas.join("\n\n")}\n`;
+    }
+  } catch { /* silencioso: el cross-check jamás rompe el borrador */ }
+
+
   // 11. Output
   const output: DraftOutput = {
     draft,
@@ -303,6 +322,8 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
       tokensEstimados: Math.round(promptContent.length / 4),
       // Fase 7: plazos calculados por el motor (para QA y UI card de plazos)
       plazosMotor: plazosMotor.length ? plazosMotor : undefined,
+      // Fase 7: cross-check (¿el borrador consigna la fecha límite del motor?)
+      chequeoPlazos: chequeoPlazos.length ? chequeoPlazos : undefined,
     },
   };
 
