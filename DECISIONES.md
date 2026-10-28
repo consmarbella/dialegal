@@ -369,3 +369,40 @@ el area explicita.
 5. Conocido donde NO debe aplicarse: /api/analyze (gratuito) sigue sin
    capas (por decisión de funnel); embeddings (Fase 8) quedan pendientes según
    lo puesto con el usuario, tras pisar esta línea base.
+
+## Fase 7 (cierre de gaps de la auditoria) - 2026-10-28 - deploy `9f843ec`
+
+1. **GAP 1 - cross-check de fechas (enforcement ANOTACION)**: `chequearPlazosEnBorrador()`
+   compara la fechaLimite del motor contra el borrador final en 5 formatos (ISO,
+   dd-mm-yyyy, dd/mm/yyyy, "3 de abril de 2024", "… del 2024") normalizados sin
+   tildes. Si el borrador NO consigna la fecha del motor, se appenda una nota de
+   verificación visible y se expone `metadatos.chequeoPlazos[].consignado`.
+   NUNCA bloquea (decisión: los borradores gratuitos no bloquean por falso
+   positivo). QA plazos passa a 20/20 (chks 18-20).
+   E2E prod: motor 2024-04-03 (Viernes Santo detectado), corrida real con LLM
+   que NO consignó la fecha → detectada consignado:false + nota añadida. Esto
+   es justamente el caso que el "prompt-instruction-only" anterior no cubría:
+   ahora hay medición, no promesa.
+2. **GAP 2 - A/B del recency boost (verificado con números)**: REC_MAX_W ahora
+   es env-overridable (`RECENCY_W`, default 0.15) + override por llamada para
+   el QA. `qa-recency-fases7.ts` (6/6): 5 consultas x top-30 con W=0 vs W=0.15
+   → efecto existe, magnitud acotada (maxDelta=0.03 <= 0.2), ninguna ficha
+   empeora, delta coincide con la fórmula 0.15/(1+0.8*años) (tol 0.03 por
+   redondeo), dirección correcta (más reciente = mayor delta).
+   **Honestidad sobre cobertura**: del corpus completo SOLO ~98/5.706 fichas
+   traen `falloRector` (limite del dataset HF). En la muestra A/B (150 fichas
+   top), 6 sufrieron el boost. El boost es real y funciona como diseñado, pero
+   su alcance en el ranking agregado es pequeño de facto. Además se amplió el
+   parseo para fechas año-solo ("2023").
+3. **GAP 3 - auto-deploy VERIFICADO**: `vercel inspect` del deploy de 17min
+   muestra alias `dialegal-git-main-...` (deploy disparado por GitHub push,
+   no por CLI) y juris-test=8 en él: includeFiles data/** intacto en el flujo
+   git. El 1er run real del workflow `corpus-update.yml` sigue pendiente
+   (cron día-3 o "Run workflow" desde la pestaña Actions — no gh CLI local).
+   Riesgo residual: pip/npx en ubuntu del runner sin probar (probable OK).
+4. **Caveats que siguen abiertos (honestidad)**: (a) gateAccuracy=1.0 es
+   consistencia interna determinista, NO tasa de error real (necesita
+   demandas privadas del usuario / modo --llm); (b) fundamentos de los 6
+   plazos (CPC 258/107/486, CT 446/533, Ley 19.968 art.51) NO contrastados
+   contra BCN aún; (c) sandbox de MP no probado con compra real; (d) ~5.000
+   fichas descartadas del corpus son filtro heurístico, no revisadas a mano.
