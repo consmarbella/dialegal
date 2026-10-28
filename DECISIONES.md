@@ -274,3 +274,28 @@ Verificado ademas: prod (legalhelp.cl) 200/400/402 correctos con orden fake 404;
    desbloquea).
 5. Restan: rotar MP_ACCESS_TOKEN; QA determinista de orderStore contra Supabase
    requiere la URL fuera de Vercel (opcional; el e2e de prod ya la cubre).
+
+## Fase 5.1 - Corpus FULL y fix de despliegue (2026-10-28)
+
+- **Causa raiz detectada en prod**: el packer de serverless de Vercel solo incluye
+  los archivos que traza por `require`. Los JSON de `data/` se leen con
+  `fs.readFileSync` de ruta dinamica (`rutaCorpus`/`getCorpusArea`) -> excluidos
+  del lambda. Desde la Fase 1 el corpus NO salia en legalhelp.cl (los
+  /api/juris-test en prod devolvian 0 resultados; local devolvia 6). El chequeo
+  previo "data/corpus-full 404 = no expuesto" era falso consuelo: no existian en
+  el lambda.
+- **Fix**: `vercel.json` -> `functions."api/index.ts".includeFiles: "data/**"`.
+- **Corpus full**: dataset HF re-descargado (pablobenavidesj/doctrina-...,
+  79.8 MB). `corpus_ingest_full.py` con modo FULL (default): se relaja el filtro
+  de Fase 1 (ya no exige fallo rector o concordancias como condicion de entrada);
+  siguen el saneo de institucion (>= 3 palabras, anti-prosa, anti-cita), dedup
+  por institucion y cap de contenido en 2500. Resultado: **5706 fichas**
+  (laboral 456 · civil 532 · familia 618 · penal 811 · administrativo 80 ·
+  constitucional 550 · transversal 2659). Modo estricto previo disponible con
+  `CORPUS_MODE=base`.
+- **QA**: tsc 0 · local 13/13 PASS · prod verificado: juris-test 6 fichas
+  (base) y 8 fichas con `area=penal` (prision preventiva, archivo penal.json).
+- Endpoints: `/api/juris-test` acepta `area` opcional (QA de corpus por area
+  contra prod sin costo).
+- Pendiente del dueno: credencial MP de PRODUCCION (APP_USR-). Con la clave de
+  desarrollador (TEST-) las compras son sandbox y no desbloquean dictamen.
