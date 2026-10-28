@@ -177,6 +177,11 @@ export interface DraftMetadatos {
   area: DraftArea;
   articulosClave: string[];
   tokensEstimados: number;
+  // Fase 7: plazos calculados por plazosChile.ts (motor determinista)
+  plazosMotor?: {
+    ok: boolean; plazoId: string; fuente: string;
+    fechaLimite?: string; diasOtorgados?: number; desglose?: string[]; aviso?: string;
+  }[];
 }
 
 export interface DraftOutput {

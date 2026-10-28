@@ -115,10 +115,43 @@ export function validarInforme(report: string, insumos: InsumosValidacion): Vali
   }
 }
 
+// ── Fase 7 (B+C híbrido): GATE de errores estructurales graves ─────────────
+// Solo para /api/premium-report (decisión DECISIONES: el borrador gratuito
+// sigue como anotación por conversión). Estrategia de falsos positivos:
+// se bloquea SOLO lo que es factualmente verificable por código; las señales
+// probabilísticas (rol no en corpus pero posiblemente verificado por la web,
+// monto calculado por el sistema, art. pendiente por flakiness BCN) siguen
+// siendo ANOTACIÓN, nunca gate.
+const RIT_RUC_RE = /\bR(?:IT|UC)\b[^0-9A-Za-z]{0,3}[:\)\s-]*([A-Z]?-?[\d.\-]{5,18})/gi; // RIT/RUC</think><tool_call>edit<arg_key>newString</arg_key><arg_value>const RIT_RUC_RE = /\bR(?:IT|UC)\b[^0-9A-Za-z]{0,3}[:\)\s-]*([A-Z]?-?[\d.\-]{5,18})/gi; // RIT/RUC
+
+export function hallazgosBloqueantes(v: ValidacionInforme, report: string, textoDoc: string): string[] {
+  const out: string[] = [];
+  const texto = typeof report === "string" ? report : "";
+
+  // 1) Marcadores "XX" crudos en el informe (hueco sin resolver visible).
+  if (/(^|[^A-Za-záéíóúÁÉÍÓÚ])XX([^A-Za-záéíóúÁÉÍÓÚ]|$)/m.test(texto)) {
+    out.push("institucion_hueco_XX: el informe contiene marcadores crudos 'XX' (la regla del motor es [DATO FALTANTE: ...]).");
+  }
+
+  // 2) RIT/RUC del encabezado que NO aparece en ninguna fuente del caso
+  //    (documento/dictamen/relato): ese numero no nacio de parte del motor.
+  const encabezado = texto.slice(0, 500);
+  const docClean = (textoDoc || "").replace(/[^0-9A-Za-z]/g, "").toUpperCase();
+  let m: RegExpExecArray | null;
+  RIT_RUC_RE.lastIndex = 0;
+  while ((m = RIT_RUC_RE.exec(encabezado)) !== null) {
+    const num = (m[1] || "").replace(/[^0-9]/g, "");
+    if (num.length >= 4 && !docClean.includes(num)) {
+      out.push(`encabezado_rit_ruc_fuente_desconocida: "RIT/RUC ${m[1]}" del encabezado no aparece en el documento/dictamen del caso (riesgo: rol heredado de la contraparte o inventado).`);
+      break; // con un solo caso grave bloquea
+    }
+  }
+  return out;
+}
+
 // Apendice Markdown con la nota de trazabilidad automatica (se agrega al final
 // del informe antes de devolverlo al abogado).
-export function notaBlindajeReporte(v: ValidacionInforme): string {
-  if (!v.rolesInforme.length && !v.artsInforme.length) return "";
+export function notaBlindajeReporte(v: ValidacionInforme): string {  if (!v.rolesInforme.length && !v.artsInforme.length) return "";
   const lineas: string[] = [];
   lineas.push("\n## 5. Trazabilidad Automática del Informe");
   lineas.push("(QA determinista hecho EN LOCAL, sobre este texto ya generado. Lo que está marcado NO VERIFICADO debe confirmarse en las fuentes antes de usar el informe.)\n");

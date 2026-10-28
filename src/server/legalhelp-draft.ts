@@ -9,6 +9,7 @@ import { buscarJurisprudenciaMulti, buscarCasosJurisMulti, type ConsultaEtiqueta
 import { validarLegalHelp, notaBlindajeLegalHelp, type InsumosValidacionLegalHelp, type ValidacionLegalHelp } from "../../validadorLegalHelp.js";
 import { auditarVacios } from "../../auditorVacios.js";
 import { detectarArea, getAreaConfidence } from "../../area-detector.js";
+import { existePlazo, calcularPlazo, detectarFechaNotificacion, bloquePromptPlazos, type ResultadoPlazo } from "../../plazosChile.js";
 import { getPlantilla, getArticulosClave } from "../../legalhelp-templates.js";
 import type { DraftInput, DraftOutput, VacioCritico } from "../types.js";
 // Fase 1: generateWithFallback consolidado en llmEngine.ts (versión completa:
@@ -91,6 +92,20 @@ function cacheKey(input: DraftInput): string {
   return `draft:${Math.abs(hash).toString(36)}`;
 }
 
+// ── Fase 7: mapeo tipo/area -> plazo registrado y calculo determinista ────
+const PLAZO_POR_TIPO: Record<string, { id: string; aplica: ("demanda" | "contestacion" | "minuta")[] }> = {
+  civil: { id: "civil_contestacion", aplica: ["contestacion"] },
+  laboral: { id: "laboral_contestacion", aplica: ["contestacion"] },
+};
+function calcularPlazosMotor(area: string, tipo: string, combinedText: string): ResultadoPlazo[] {
+  const def = PLAZO_POR_TIPO[area];
+  if (!def || !def.aplica.includes(tipo as any) || !existePlazo(def.id)) return [];
+  const fecha = detectarFechaNotificacion(combinedText);
+  if (!fecha) return [];
+  const r = calcularPlazo({ plazoId: def.id, fechaNotificacion: fecha });
+  return r.ok ? [r] : [r];
+}
+
 export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutput> {
   // 1. Cache
   const cKey = cacheKey(input);
@@ -167,6 +182,12 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     promptContent += `\n[DATOS COMPLETADOS POR EL USUARIO] — respuestas a la auditoría de vacíos de una versión anterior del borrador. Insértalas en su lugar exacto (RIT, techo de notificación, patrocinante, testigos, etc.), con la ortografía y detalle que el usuario entregó, y ELIMINA los marcadores que reemplazan:\n${input.respuestasAuditoria.slice(0, 4000)}\n`;
   }
   if (bloqueBCN) promptContent += bloqueBCN;
+  // Fase 7: PLAN DE PLAZOS del motor determinista (plazosChile.ts). Los numeros
+  // de fechas limites provienen de codigo, no del LLM. Solo aplica cuando el
+  // tipo/area tienen plazo registrado y el relato permite inferir notificacion.
+  const plazosMotor = calcularPlazosMotor(area, input.tipo, combinedText);
+  const bloquePlazos = bloquePromptPlazos(plazosMotor);
+  if (bloquePlazos) promptContent += bloquePlazos;
   if (bloqueJuris) promptContent += bloqueJuris;
   if (bloqueCasos) promptContent += bloqueCasos;
   promptContent += `\n\n${plantilla}\n\n`;
@@ -280,6 +301,8 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
       area,
       articulosClave,
       tokensEstimados: Math.round(promptContent.length / 4),
+      // Fase 7: plazos calculados por el motor (para QA y UI card de plazos)
+      plazosMotor: plazosMotor.length ? plazosMotor : undefined,
     },
   };
 

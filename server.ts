@@ -19,7 +19,7 @@ import { COMUNAS_RM } from "./src/data/tribunales.js";
 import { verificarCitasBCN, bloquePromptBCN } from "./bcnLeyChile.js";
 import { buscarJurisprudencia, bloquePromptJuris, resumenJuris, buscarCasosJuris, bloquePromptCasos, resumenCasos, buscarJurisprudenciaMulti, buscarCasosJurisMulti, esSlugCorpusArea, type ConsultaEtiquetada } from "./jurisprudenciaChile.js";
 import { extraerChileno, planoBlindajePrompt } from "./extractorChile.js";
-import { validarInforme, notaBlindajeReporte } from "./validadorInforme.js";
+import { validarInforme, notaBlindajeReporte, hallazgosBloqueantes } from "./validadorInforme.js";
 import { handleLegalHelpDraft } from "./src/server/legalhelp-draft.js";
 import { detectarArea, detectAreaFromContext } from "./area-detector.js";
 import type { DraftInput } from "./src/types.js";
@@ -805,6 +805,24 @@ app.post("/api/premium-report", async (req, res) => {
       if (nota) report = report + nota;
     } catch (valErr: any) {
       console.warn(`[premium][validador] fallo (informe sin nota): ${String(valErr?.message || valErr).slice(0, 150)}`);
+    }
+
+    // ── Fase 7 (B+C híbrido): GATE premium de errores estructurales graves ──
+    // Solo por decisión explicita (DECISIONES): el dictamen PAGADO no se
+    // entrega si hay error de bulto (RIT/RUC colado de la contraparte o huecos
+    // XX crudos). El uso NO se consume en ese caso (el cobro está más abajo).
+    // Los hallazgos probabilísticos siguen siendo ANOTACIÓN (nota blindaje).
+    if (validacion) {
+      const bloqueantes = hallazgosBloqueantes(validacion, report, combinedText);
+      if (bloqueantes.length) {
+        console.warn(`[premium][gate] dictamen ${orderId} retenido: ${bloqueantes.join(" | ").slice(0, 300)}`);
+        return res.status(422).json({
+          error: "El dictamen fue retenido por el control de integridad (errores estructurales graves detectados en el borrador del sistema). No se consumió ningún uso: corrige los datos del caso y reintenta.",
+          bloqueantes,
+          sugerencia: "Si el RIT/RUC del encabezado es correcto, inclúyelo en el documento del caso o en el relato; el sistema solo entrega roles que provengan de tus fuentes.",
+          orderId,
+        });
+      }
     }
 
     const result = {

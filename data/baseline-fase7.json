@@ -1,0 +1,98 @@
+{
+ "fecha": "2026-10-28",
+ "casosReales": 15,
+ "gateAccuracy": 1,
+ "plazosConsistencia": 1,
+ "mediciones": [
+  {
+   "caso": "23456-2022",
+   "defecto": "rit_herido",
+   "bloqueado": true,
+   "anotado": true
+  },
+  {
+   "caso": "45123-2021",
+   "defecto": "xx_crudo",
+   "bloqueado": true,
+   "anotado": true
+  },
+  {
+   "caso": "12890-2023",
+   "defecto": "rol_fuera",
+   "bloqueado": false,
+   "anotado": true
+  },
+  {
+   "caso": "9876-2020-",
+   "defecto": "monto_no",
+   "bloqueado": false,
+   "anotado": true
+  },
+  {
+   "caso": "34567-2022",
+   "defecto": "limpio",
+   "bloqueado": false,
+   "anotado": true
+  },
+  {
+   "caso": "89124-2021",
+   "defecto": "rit_herido",
+   "bloqueado": true,
+   "anotado": true
+  },
+  {
+   "caso": "16762-06-",
+   "defecto": "xx_crudo",
+   "bloqueado": true,
+   "anotado": true
+  },
+  {
+   "caso": "16651-06-",
+   "defecto": "rol_fuera",
+   "bloqueado": false,
+   "anotado": true
+  },
+  {
+   "caso": "16622-06-",
+   "defecto": "monto_no",
+   "bloqueado": false,
+   "anotado": true
+  },
+  {
+   "caso": "16808-06-",
+   "defecto": "limpio",
+   "bloqueado": false,
+   "anotado": true
+  },
+  {
+   "caso": "16812-06-",
+   "defecto": "rit_herido",
+   "bloqueado": true,
+   "anotado": true
+  },
+  {
+   "caso": "16824-06-",
+   "defecto": "xx_crudo",
+   "bloqueado": true,
+   "anotado": true
+  },
+  {
+   "caso": "16665-06-",
+   "defecto": "rol_fuera",
+   "bloqueado": false,
+   "anotado": true
+  },
+  {
+   "caso": "16691-06-",
+   "defecto": "monto_no",
+   "bloqueado": false,
+   "anotado": true
+  },
+  {
+   "caso": "16699-06-",
+   "defecto": "limpio",
+   "bloqueado": false,
+   "anotado": true
+  }
+ ]
+}
