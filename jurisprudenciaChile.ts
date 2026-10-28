@@ -67,6 +67,9 @@ const P_W = 6;   // institucion
 const M_W = 4;   // materia
 const D_W = 3;   // definicion
 const C_W = 1;   // contenido (grande, peso bajo)
+// Fase 6: sesgo de vigencia. Las fichas con fallo rector reciente ganan empates
+// sutiles (max +0.15) sobre las antiguas: "argumentar con el criterio de HOY".
+const REC_MAX_W = 0.15;
 const N_W = 2;   // normas/concordancias
 
 interface RegionPredistribuida { [token: string]: number }
@@ -283,6 +286,12 @@ export async function buscarJurisprudencia(
       }
       if (score < 1.2) continue;
       score += bonusFrase(queryTokens, [blobFrase]);
+      // Fase 6: recency boost del fallo rector (fecha "DD-MM-YYYY").
+      const mYr = ficha.falloRector?.fecha ? /-(\d{4})(?: |$|,)/.exec(ficha.falloRector.fecha) : null;
+      if (mYr) {
+        const aniosAtras = new Date().getFullYear() - Number(mYr[1]);
+        if (aniosAtras >= 0) score += REC_MAX_W / (1 + 0.8 * aniosAtras);
+      }
       resultados.push({
         institucion: ficha.institucion,
         materia: ficha.materia,

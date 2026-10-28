@@ -1,0 +1,54 @@
+# Fase 6: actualización mensual del corpus chileno.
+# Descarga el snapshot vigente del dataset HF, compara por hash con
+# .corpus-version; si cambió, reingesta FULL + candado QA 13/13. Solo commitea
+# si TODO pasa (QA falla -> aborta sin commit). El push a main dispara el
+# deploy de Vercel.
+name: corpus-update
+
+on:
+  schedule:
+    - cron: "0 6 3 * *" # día 3 de cada mes, 06:00 UTC
+  workflow_dispatch: {} # permite correrlo a mano desde la pestaña Actions
+
+permissions:
+  contents: write
+
+concurrency:
+  group: corpus-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Instalar dependencias
+        run: |
+          pip install huggingface_hub
+          npm ci
+
+      - name: Actualizar corpus (hash + ingesta + QA)
+        run: python scripts/corpus_update.py
+
+      - name: Commit y push (solo si hubo cambios)
+        run: |
+          CAMBIOS=$(git status --porcelain -- data/corpus-full data .corpus-version | head -50)
+          if [ -z "$CAMBIOS" ]; then
+            echo "Sin cambios en el corpus: nada que commitear."
+            exit 0
+          fi
+          git config user.name "legalhelp-corpus-bot"
+          git config user.email "corpus-bot@legalhelp.cl"
+          git add data/corpus-full data .corpus-version
+          git commit -m "corpus: actualización automática $(date +%F) [corpus-update]"
+          git push origin main
+          echo "Corpus actualizado y pusheado; Vercel despliega automáticamente."
