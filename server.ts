@@ -870,7 +870,13 @@ app.post("/api/juris-test", async (req, res) => {
   try {
     const { texto, area } = req.body || {};
     const q = typeof texto === "string" ? texto : "despedido por necesidades de la empresa con carta que solo invoca reestructuración, no acredita antecedentes objetivos";
-    const slug = typeof area === "string" && area.trim() ? area.trim() : undefined;
+    // Fase 5.1: sin area declarada se detecta por keywords (como hace premium);
+    // si ni eso calza con un slug del corpus completo, corre solo la base.
+    let slug: string | undefined = typeof area === "string" && area.trim() ? area.trim() : undefined;
+    if (!slug) {
+      const det = detectAreaFromContext(q.slice(0, 4000));
+      slug = esSlugCorpusArea(det) ? det : undefined;
+    }
     const resultados = await buscarJurisprudencia([q], 8, slug);
     res.json({ total: resultados.length, area: slug || "sin-area", resultados: resumenJuris(resultados) });
   } catch (err: any) {
