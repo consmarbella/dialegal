@@ -331,3 +331,41 @@ el area explicita.
 5. Nota: la fuente sigue siendo el dataset doctrinal de Open Legal Chile en
    HF (se actualiza cuando su autor lo hace). Fallos crudos recien dictados
    (PJUD/OJV directo) quedan como Fase 7 candidata si el dataset se atrasa.
+
+## Fase 7 - Plazos con codigo y gate premium (2026-10-28)
+
+1. **`plazosChile.ts`** (motor determinista, cero LLM): dia por dia con
+   regla CPC 251 (corrige en el dia siguiente de transcurridas 24h), sab/dom
+   inhábiles, feriados ley 2977 completos + movilos (Pascua Meeus),
+   **vacaciones judiciales civiles** (feb suspende, art. 70 CPC; laboral y
+   familia no suspenden) y tabla de emplazamiento arts. 258/259 (+2 dias por
+   cada 100 km o fracción >50). 6 plazos registrados con fundamento. Los
+   escenarios fuera del registro devuelven [VERIFICAR]: jamas un numero
+   silencioso. QA **17/17** (escenarios con feriados de septiembre 2024,
+   vacaciones feb, emplazamiento km 400, feriado movil Viernes Santo 2024).
+   Conectado a borrador: `PLAZO_POR_TIPO` (contestación civil/laboral con
+   notificación detectada en el relato) -> bloque "PLAN DE PLAZOS" en prompt +
+   `metadatos.plazosMotor` en la salida para la UI/QA.
+2. **Gate premium B+C híbrido** (decisión: gratuito siempre como anotación;
+   el dictamen pagado se retiene apenas por errores de bulto): `hallazgosBloqueantes()` en `validadorInforme` bloquea con 422 SOLO dos
+   hallazgos verificables por código: (a) marcadores "XX" crudos, (b) RIT/RUC
+   del encabezado ausente en el documento/dictamen del caso (rol heredado o
+   inventado). El resto sigue siendo ANOTACIÓN (rol no en corpus, art. sin
+   BCN y monto no corroborado son probabil(políticas)), SALIMOS antes del
+   `consumeUse`: el caso bloqueado NO gasta uso. Nota: el dictamen traído de
+   caché no re-valida (ya pasó el gate al crearse).
+3. **Harness de tasa de error** (`qa-tasa-error-fase7.ts`): línea base
+   determinista sobre 15 casos REALES de `jurisprudencia-casos.json` con
+   defectos inyectados rotados (RIT heredado/XX/rol fuera/monto bajo desde
+   0/limpio). Checa que el gate bloquee SIEMPRE lo grave y NUNCA lo que es
+   anotación (falsos positivos=0). Resultado **2026-10-28**:
+   `gateAccuracy=1.0` · `plazosConsistencia=1.0` -> `data/baseline-fase7.json`.
+   Preparado para calibrar con demandas privadas lokales (.gitignore) y modo
+   --llm cuando toque.
+4. **E2E prod**: /legalhelp/draft contestación laboral con "notificada el 12
+   de marzo de 2024" -> limite motor 2024-04-03 (EL MOTOR detectó Viernes
+   Santo 29-03-2024, algo que un LLM calcula mal con frecuencia) +
+   /juris-test 8 fichas. Deploy `0acd35e`.
+5. Conocido donde NO debe aplicarse: /api/analyze (gratuito) sigue sin
+   capas (por decisión de funnel); embeddings (Fase 8) quedan pendientes según
+   lo puesto con el usuario, tras pisar esta línea base.
