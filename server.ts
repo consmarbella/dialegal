@@ -868,10 +868,11 @@ app.post("/api/legalhelp/draft", async (req, res) => {
 // Piloto del retriever jurisprudencial (sin LLM): valida el corpus y el scoring.
 app.post("/api/juris-test", async (req, res) => {
   try {
-    const { texto } = req.body || {};
+    const { texto, area } = req.body || {};
     const q = typeof texto === "string" ? texto : "despedido por necesidades de la empresa con carta que solo invoca reestructuración, no acredita antecedentes objetivos";
-    const resultados = await buscarJurisprudencia([q]);
-    res.json({ total: resultados.length, resultados: resumenJuris(resultados) });
+    const slug = typeof area === "string" && area.trim() ? area.trim() : undefined;
+    const resultados = await buscarJurisprudencia([q], 8, slug);
+    res.json({ total: resultados.length, area: slug || "sin-area", resultados: resumenJuris(resultados) });
   } catch (err: any) {
     res.status(500).json({ error: String(err?.message || err) });
   }
