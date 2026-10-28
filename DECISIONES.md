@@ -406,3 +406,36 @@ el area explicita.
    plazos (CPC 258/107/486, CT 446/533, Ley 19.968 art.51) NO contrastados
    contra BCN aún; (c) sandbox de MP no probado con compra real; (d) ~5.000
    fichas descartadas del corpus son filtro heurístico, no revisadas a mano.
+
+## Riesgo 2 (Fase 2/5 riesgos) - Auditoria de ingesta falloRector - 2026-10-28
+
+1. **Hallazgo con numeros (scripts/audit-fallo-rector.ts -> evaluation/jurisprudencia/audit-fallo-rector.json)**:
+   dataset crudo HF = 11.858 filas; solo **104 (0,88%)** traen `fallo_rector`
+   no vacio; **104/104 parsean rol+fecha** (0 parciales, 0 vacios) -> el
+   parser NO tenia defectos: no se reparo por que no habia nada que reparar.
+2. **Causa raiz de la perdida real (reconciliacion exacta)**: 104 filas ->
+   91 roles unicos -> 86 roles en produccion (91-5=86 EXACTO). Las 5 fichas
+   CON rector perdidas eran falsos positivos del filtro `institucion_prosa`
+   (titulos dogmaticos que terminan en "del X"/"de la X": "...Teoria del
+   Emplazamiento", "...Primacia de la Realidad"). 566 colas en minuscula =
+   prosa real (correctamente descartadas); las 5 perdidas tienen la palabra
+   final en Mayuscula. Medido con el regex PYTHON de produccion, no con proxy.
+3. **Fix quirurgico**: corpus_ingest_full.py + juris_ingest_laboral.py ya no
+   descartan por prosa una fila que trae `fallo_rector` parseable (el
+   heuristico de titulo no mata fichas cuyo campo juridico ya se extrajo).
+   Alcance medido: solo cambia el trato de filas con rector; las 566 prosas
+   reales siguen fuera.
+4. **Regeneracion y verificacion**: corpus-full 5.706 -> **5.711 fichas**
+   (civil 532->535, laboral 456->457, transversal 2.659->2.660); los 5 roles
+   recuperados verificados presentes (4821-2019, 18940-2019, 24312-2018,
+   33190-2020, 33102-2019). 1 perdida NO reparable: institucion duplicada en
+   el dataset con 2 roles distintos ("El Principio de Juridicidad..." con
+   45120-2017 y 17890-2020; el dedup conserva 1) — aceptada y documentada.
+   QA after: corpus 13/13 PASS, recency 6/6 PASS (maxDelta 0,04, ninguna
+   ficha empeora). RECENCY_W NO tocado (orden de la fase respetada).
+   Rollback determinista = `git revert` de los 4 JSON de datos + 2 .py.
+5. **Queda estructural (honestidad)**: el boost recency sigue limitado por
+   la fuente (~103/5.711 fichas con rector, ~1,8%): los datos crudos no
+   traen mas rectores y NO hay rescatables en texto (0 hallados). Ampliar
+   cobertura exigiria otra fuente (ingesta BCN / scraping PJ) — fuera del
+   alcance de este riesgo; queda como limite documentado, no como promesa.

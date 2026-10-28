@@ -1,0 +1,113 @@
+{
+  "generado": "2026-10-28T12:53:36.853Z",
+  "fuente_cruda": "C:\\Users\\matte\\AppData\\Local\\Temp\\opencode\\hf\\data\\instituciones.jsonl",
+  "raw_total_filas": 11858,
+  "raw_con_fallo_rector": 104,
+  "raw_sin_fallo_rector": 11754,
+  "parse_campo_no_vacio": {
+    "rol_y_fecha": 104,
+    "rol_o_fecha_parcial": 0,
+    "ninguno": 0
+  },
+  "ejemplos_extraccion_fallida": [],
+  "rescatables_con_rector_en_texto": {
+    "medidos": "solo filas sin fallo_rector examinadas",
+    "total_hallados": 0,
+    "muestra": []
+  },
+  "produccion_por_archivo": {
+    "administrativo.json": {
+      "fichas": 80,
+      "con_falloRector": 8,
+      "con_rol_vacio": 0,
+      "con_fecha_vacia": 0
+    },
+    "civil.json": {
+      "fichas": 535,
+      "con_falloRector": 61,
+      "con_rol_vacio": 0,
+      "con_fecha_vacia": 0
+    },
+    "constitucional.json": {
+      "fichas": 550,
+      "con_falloRector": 7,
+      "con_rol_vacio": 0,
+      "con_fecha_vacia": 0
+    },
+    "familia.json": {
+      "fichas": 618,
+      "con_falloRector": 0,
+      "con_rol_vacio": 0,
+      "con_fecha_vacia": 0
+    },
+    "laboral.json": {
+      "fichas": 457,
+      "con_falloRector": 7,
+      "con_rol_vacio": 0,
+      "con_fecha_vacia": 0
+    },
+    "penal.json": {
+      "fichas": 811,
+      "con_falloRector": 9,
+      "con_rol_vacio": 0,
+      "con_fecha_vacia": 0
+    },
+    "transversal.json": {
+      "fichas": 2660,
+      "con_falloRector": 11,
+      "con_rol_vacio": 0,
+      "con_fecha_vacia": 0
+    },
+    "jurisprudencia-laboral.json": {
+      "fichas": 166,
+      "con_falloRector": 9,
+      "con_rol_vacio": 0,
+      "con_fecha_vacia": 0
+    }
+  },
+  "causa_raiz": {
+    "parser": "parse_fallo_rector NO tiene defectos: 104/104 filas crudas extraen rol+fecha (0 parciales, 0 vacios). No aplica reparar el regex.",
+    "limite_fuente": "El dataset HF solo trae 104/11858 filas (0.88%) con fallo_rector no vacio -> techo estructural del boost recency (~1.8% de fichas de produccion).",
+    "perdidas_cerradas": [
+      {
+        "rol": "4821-2019",
+        "institucion": "Concepto Dogmático y Estructura Trilateral de la Obligación",
+        "motivo": "falso positivo filtro institucion_prosa (cola 'de la X' con palabra final en Mayúscula)",
+        "estado": "RECUPERADO en civil.json (fix de scripts: no descartar por prosa filas con fallo_rector)"
+      },
+      {
+        "rol": "18940-2019",
+        "institucion": "Causales de Exoneración y Reducción del Daño",
+        "motivo": "falso positivo institucion_prosa (cola 'del X' mayúscula)",
+        "estado": "RECUPERADO (civil.json)"
+      },
+      {
+        "rol": "24312-2018",
+        "institucion": "La Voluntad Jurídica y Formación del Consentimiento",
+        "motivo": "falso positivo institucion_prosa (cola 'del X' mayúscula)",
+        "estado": "RECUPERADO (civil.json)"
+      },
+      {
+        "rol": "33190-2020",
+        "institucion": "La Relación Procesal y la Teoría del Emplazamiento",
+        "motivo": "falso positivo institucion_prosa (cola 'del X' mayúscula)",
+        "estado": "RECUPERADO (transversal.json)"
+      },
+      {
+        "rol": "33102-2019",
+        "institucion": "Principio de Primacía de la Realidad",
+        "motivo": "falso positivo institucion_prosa (cola 'de la X' mayúscula)",
+        "estado": "RECUPERADO (laboral.json y jurisprudencia-laboral.json)"
+      }
+    ],
+    "perdidas_no_reparables": [
+      {
+        "institucion": "El Principio de Juridicidad y Estado de Derecho (Arts. 6 y 7 CPR)",
+        "motivo": "duplicada real en el dataset con 2 roles distintos (45120-2017 y 17890-2020); el dedup por institucion conserva 1 instancia",
+        "estado": "pérdida aceptada y documentada (no es un defecto de filtro)"
+      }
+    ],
+    "reconciliation": "104 filas crudas con rector -> 91 roles únicos -> 86 roles en producción (91-5=86 EXACTO) · fichas corpus-full: 5706->5711 (+5) · 1 pérdida por dedup real.",
+    "verificacion_post_fix": "qa-corpus-fase5 13/13 PASS · qa-recency-fase7 6/6 PASS (maxDelta 0.04, sin empeoramiento)"
+  }
+}

@@ -99,10 +99,17 @@ def main() -> None:
                 motivos["institucion_corrupta"] += 1
                 continue
             institucion = institucion_limpia
-            if re.match(r"^(Por |Parte de |Reclamar |Explique |Sentencia del |En todos |Conclusi|Esta ley |La Direcci|De los |Adem?s|Ademas|Sin embargo|Al efecto|Seg?n|Cabe |De este |De esa |De este modo)", institucion) or institucion.endswith("-") or re.search(r"\s(en la|de la|de el|y la|del |los )\s?\w{0,20}$", institucion):
+            # Riesgo 2 (audit falloRector): el heurístico anti-prosa descartaba
+            # 5 fichas CON fallo_rector por terminar en "del X"/"de la X"
+            # ("... Teoría del Emplazamiento", "... Primacía de la Realidad").
+            # Títulos dogmáticos con palabra final en Mayúscula son legítimos;
+            # si la fila trae fallo_rector parseable NO se descarta por prosa.
+            # Evidencia: evaluation/jurisprudencia/audit-fallo-rector.json
+            # (104 filas crudas con rector -> 99 deben llegar a fichas).
+            tiene_rector = bool((d.get("fallo_rector") or "").strip())
+            if (re.match(r"^(Por |Parte de |Reclamar |Explique |Sentencia del |En todos |Conclusi|Esta ley |La Direcci|De los |Adem?s|Ademas|Sin embargo|Al efecto|Seg?n|Cabe |De este |De esa |De este modo)", institucion) or institucion.endswith("-") or re.search(r"\s(en la|de la|de el|y la|del |los )\s?\w{0,20}$", institucion)) and not tiene_rector:
                 motivos["institucion_prosa"] += 1
                 continue
-            tiene_rector = bool((d.get("fallo_rector") or "").strip())
             definicion = (d.get("definicion") or "").strip()
             if not tiene_rector and not FULL_MODE:
                 if len(definicion) < 120 or not (d.get("concordancias") or "").strip():
