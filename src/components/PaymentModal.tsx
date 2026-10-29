@@ -5,6 +5,8 @@ interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  /** Desbloqueo admin validado en el servidor: recibe el orderId de la orden de cortesía. */
+  onAdminSuccess?: (orderId: string) => void;
   areaLabel: string;
 }
 
@@ -14,9 +16,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  onAdminSuccess,
   areaLabel,
 }) => {
   const [adminCode, setAdminCode] = useState('');
+  const [adminError, setAdminError] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -29,16 +33,39 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const handleAdminBypass = (code: string) => {
     setAdminCode(code);
+    setAdminError(false);
     if (code === atob('NDMyMQ==')) {
       setIsProcessing(true);
-      setTimeout(() => {
+      (async () => {
+        let ok = false;
+        try {
+          // Validación SERVER-SIDE: el servidor compara contra ADMIN_UNLOCK_CODE
+          // (Vercel env) y crea la orden de cortesía aprobada con 3 usos. Sin
+          // esa orden, /api/premium-report devolvía 400 (paywall Fase 3).
+          const r = await fetch('/api/payment/admin-unlock', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code }),
+          });
+          const data = await r.json().catch(() => null);
+          if (r.ok && data?.ok && data?.orderId && onAdminSuccess) {
+            onAdminSuccess(String(data.orderId));
+            ok = true;
+          }
+        } catch {
+          // red u origin sin CORS: cae al estado de error abajo
+        }
         setIsProcessing(false);
-        setIsSuccess(true);
-        setTimeout(() => {
-          onSuccess();
-          setIsSuccess(false);
-        }, 1000);
-      }, 800);
+        if (ok) {
+          setIsSuccess(true);
+          setTimeout(() => {
+            onSuccess();
+            setIsSuccess(false);
+          }, 1000);
+        } else {
+          setAdminError(true);
+        }
+      })();
     }
   };
 
@@ -95,6 +122,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   className="w-24 bg-white border border-amber-300 rounded px-2.5 py-1 text-center font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               </div>
+            </div>
+          )}
+
+          {adminError && !isSuccess && !isProcessing && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2 text-xs text-red-800 font-semibold">
+              Código no válido o servicio no disponible en este momento.
             </div>
           )}
 

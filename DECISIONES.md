@@ -483,3 +483,53 @@ el area explicita.
    1/100 revisados (1%); los heuristicos descartan sobre todo ruido real
    (bibliografia, prosa, titulos rotos). Regeneracion final verificada, QA
    corpus 13/13, recency 6/6, tsc 0.
+
+## Desbloqueo admin del premium server-side (2026-10-29)
+
+Sintoma reportado por el dueño: "no genera el analisis premium cuando ingreso
+el codigo del desarrollador 4321" en legalhelp.cl.
+
+1. **Diagnostico (cadena de evidencia)**: el campo "Codigo Administrador" del
+   modal vivia SOLO en el frontend (`atob('NDMyMQ==')`, PaymentModal.tsx) y al
+   aceptar llamaba `onSuccess()` sin crear orden ni `orderId`. El efecto
+   premium de App.tsx enviaba `orderId: undefined` a `/api/premium-report`,
+   que desde el paywall Fase 3 responde 400 ("orderId es requerido",
+   verificado en prod) -> `premiumFailed` -> banner rojo. Comportamiento
+   DOCUMENTADO como intencional en Fase 3 punto 4; NO era una caida del
+   servicio (home 200, juris-test 200, orderStore respondiendo).
+2. **Solucion**: nuevo endpoint `POST /api/payment/admin-unlock` que valida el
+   codigo contra la variable de entorno `ADMIN_UNLOCK_CODE` (Vercel
+   Production, NO hardcodeada en el repo; comparacion timing-safe con
+   `crypto.timingSafeEqual` y trim defensivo) y crea una orden de cortesia
+   aprobada con `usos: 0` (tope de 3 usos del F3 aplica igual). Rate limit
+   estricto `admin-unlock:<ip>` = 5/min (override `ADMIN_UNLOCK_RATE_LIMIT_MAX`
+   para QA). El modal ahora hace fetch al endpoint, usa el `orderId` devuelto
+   (solo en memoria, NO pisa `pjud_legal_last_orderId` de un pago real) y con
+   codigo valido sin servidor disponible muestra error en vez del exito falso.
+3. **Hallazgo colateral (sin cambiar, decision del dueño)**: el campo del
+   codigo se muestra en produccion a cualquier visitante; el dueño decide
+   mantenerlo ("solo yo se el codigo pero sigue siendo 4321"). Riesgo
+   residual honesto: 4321 es adivinable y fuerza bruta solo la frena el
+   rate limit de 5/min/IP.
+4. **QA e2e local** (`scripts/qa-admin-unlock.ts`, servidor tsx :3210, memoria
+   por ausencia de Docker Postgres): 5/5 PASS — 401 codigo malo; 401 sin
+   codigo; 200 + orderId `ADMIN-*` con codigo bueno; premium sin orderId
+   sigue 400; premium CON orden de cortesia generacion real 200
+   (10.637 chars, grounded=true, 31,2 s; usosRestantes null = degradacion
+   F3.3 documentada). Suite de regresion: plazos 26/26, gate 5/5,
+   tasa-error OK (gateAccuracy=1), corpus 13/13, validador 7/7,
+   eval-gate accuracy 1.0, tsc 0, build 0.
+5. **Deploy + verificacion prod** (`npx vercel --prod --yes`, aliased
+   legalhelp.cl): codigo malo 401; codigo bueno 200 con orden
+   `ADMIN-cc01d1e6-75f5-4410-9080-3d7a716ba8ac`; premium real con esa orden
+   200 en 29,7 s, 13.580 chars, grounded=true.
+6. **Incidente de tooling (resuelto)**: `vercel env add` por stdin/pipe
+   en Windows PowerShell guardo el valor VACIO dos veces (pull mostraba
+   `ADMIN_UNLOCK_CODE=""`); el flag `--value <VAL> --no-sensitive` lo dejo
+   correcto. Nota: por defecto Production crea vars SENSITIVE y `vercel env
+   pull` no las devuelve (escribe "") — por eso se uso `--no-sensitive`
+   para poder verificar el largo almacenado (4).
+7. **Pendiente honesto**: en prod NO hay DATABASE_URL (accion pendiente del
+   dueño, F3.3), de modo que `usosRestantes` vuelve null y el tope de 3 usos
+   NO se aplica entre lambdas: la orden de cortesia vive en la memoria de la
+   lambda que la creo. El tope funcionara al crear Vercel Postgres/Neon.

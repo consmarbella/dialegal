@@ -7,7 +7,7 @@ import mammoth from "mammoth";
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import crypto from "crypto";
 import { saveOrder, getOrderByOrderId, getOrderByPreferenceId, updateOrder, consumeUseAtomic, dbUrl } from "./src/lib/orderStore.js";
-import { checkRateLimit, getClientIp, PAYMENT_RATE_LIMIT, ANALYZE_RATE_LIMIT, GENERAL_API_RATE_LIMIT } from "./src/lib/rateLimit.js";
+import { checkRateLimit, getClientIp, PAYMENT_RATE_LIMIT, ANALYZE_RATE_LIMIT, GENERAL_API_RATE_LIMIT, ADMIN_UNLOCK_RATE_LIMIT } from "./src/lib/rateLimit.js";
 import { generateWithFallback, GeminiQuotaExhaustedError, GeminiUnavailableError } from "./src/server/llmEngine.js";
 import { SEO_PAGES } from "./src/data/seoPages.js";
 import { SEO_PAGES_EXTRA } from "./src/data/seoPagesExtra.js";
@@ -1280,6 +1280,55 @@ app.post("/api/payment/create", async (req, res) => {
   } catch (err: any) {
     console.error("Error en /api/payment/create:", err);
     res.status(500).json({ error: "Error iniciando pago con MercadoPago: " + (err.message || String(err)) });
+  }
+});
+
+// ── Desbloqueo de cortesia del dueño (codigo admin server-side) ────────────
+// Historia: el "Codigo Administrador" del modal vivia SOLO en el frontend
+// (atob('NDMyMQ==')), de modo que tras aceptarlo el flujo premium moria en
+// /api/premium-report con 400 (sin orderId): la capa premium exige orden
+// aprobada en DB/MP (Fase 3). Ahora el modal envia el codigo al servidor; si
+// coincide con ADMIN_UNLOCK_CODE (variable de entorno en Vercel, NUNCA
+// hardcodeada en el repo), se crea una orden de cortesia aprobada con 3 usos
+// y el flujo premium opera igual que con un pago real. Codigo incorrecto ->
+// 401 generico. Rate limit estricto: el codigo es corto y sin limite seria
+// trivial de fuerza bruta.
+const ADMIN_UNLOCK_CODE = (process.env.ADMIN_UNLOCK_CODE || "").trim();
+
+function compararCodigoSeguro(a: string, b: string): boolean {
+  const ab = Buffer.from(a, "utf8");
+  const bb = Buffer.from(b, "utf8");
+  if (ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}
+
+app.post("/api/payment/admin-unlock", async (req, res) => {
+  try {
+    const adminIp = getClientIp(req.headers as Record<string, string | string[] | undefined>);
+    const adminRl = checkRateLimit(`admin-unlock:${adminIp}`, ADMIN_UNLOCK_RATE_LIMIT);
+    if (!adminRl.allowed) {
+      return res.status(429).json({ ok: false, error: "Demasiados intentos. Espera un minuto." });
+    }
+    const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
+    if (!ADMIN_UNLOCK_CODE || !code || !compararCodigoSeguro(code, ADMIN_UNLOCK_CODE)) {
+      console.warn(`[admin-unlock] intento fallido (ip=${adminIp.slice(0, 24)})`);
+      return res.status(401).json({ ok: false, error: "Código incorrecto." });
+    }
+    const orderId = `ADMIN-${crypto.randomUUID()}`;
+    await saveOrder({
+      orderId,
+      preferenceId: `admin-${orderId}`,
+      status: "approved",
+      amount: PRECIO_DICTAMEN,
+      title: `${TITULO_DICTAMEN} (cortesia dueño)`,
+      paidAt: Date.now(),
+      createdAt: Date.now(),
+      usos: 0,
+    });
+    return res.json({ ok: true, orderId });
+  } catch (err: any) {
+    console.error("Error en /api/payment/admin-unlock:", err);
+    res.status(500).json({ ok: false, error: "Error en desbloqueo de cortesía." });
   }
 });
 

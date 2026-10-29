@@ -45,6 +45,8 @@ interface AnalysisReportProps {
   onNewAnalysis: () => void;
   isPaidInitial?: boolean;
   onPaymentSuccess?: () => void;
+  /** Desbloqueo admin (código dueño): fija el orderId de cortesía y marca pagado. */
+  onAdminUnlock?: (orderId: string) => void;
   premium?: PremiumResult | null;
   premiumFailed?: boolean;
   onRetryPremium?: () => void;
@@ -62,6 +64,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
   onNewAnalysis,
   isPaidInitial = false,
   onPaymentSuccess,
+  onAdminUnlock,
   premium = null,
   premiumFailed = false,
   onRetryPremium,
@@ -99,6 +102,15 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
     setIsPaymentModalOpen(false);
     if (onPaymentSuccess) {
       onPaymentSuccess();
+    }
+  };
+
+  // Desbloqueo admin (código dueño): el servidor devolvió la orden de cortesía.
+  const handleAdminUnlockSuccess = (orderId: string) => {
+    setIsUnlocked(true);
+    setIsPaymentModalOpen(false);
+    if (onAdminUnlock) {
+      onAdminUnlock(orderId);
     }
   };
 
@@ -1063,6 +1075,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
         onSuccess={handleUnlockSuccess}
+        onAdminSuccess={handleAdminUnlockSuccess}
         areaLabel={area.toUpperCase()}
       />
 

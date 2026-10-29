@@ -123,6 +123,15 @@ export default function App() {
     setAnalysisResult((prev) => (prev && prev.isPaid ? { ...prev, premiumFailed: false } : prev));
   };
 
+  // Desbloqueo admin (código del dueño, validado server-side): el servidor creó
+  // una orden de cortesía aprobada con 3 usos y devolvió su orderId. Se fija SOLO
+  // en memoria (no pisa pjud_legal_last_orderId de un pago real) y se marca
+  // isPaid para que el efecto premium reenvíe el payload con ese orderId.
+  const handleAdminUnlock = (orderId: string) => {
+    orderIdRef.current = orderId;
+    setAnalysisResult((prev) => (prev ? { ...prev, isPaid: true, premiumFailed: false } : prev));
+  };
+
   // Save to localStorage helper
   const saveCasesToStorage = (cases: SavedAnalysis[]) => {
     setSavedCases(cases);
@@ -263,6 +272,7 @@ export default function App() {
                   onPaymentSuccess={() =>
                     setAnalysisResult((prev) => (prev ? { ...prev, isPaid: true } : null))
                   }
+                  onAdminUnlock={handleAdminUnlock}
                 />
               ) : (
                 <CaseAnalyzer onAnalyze={handleAnalyze} isLoading={isLoading} />
@@ -291,6 +301,10 @@ export default function App() {
         onClose={() => setIsPaymentModalOpen(false)}
         onSuccess={() => {
           setAnalysisResult((prev) => (prev ? { ...prev, isPaid: true } : null));
+          setIsPaymentModalOpen(false);
+        }}
+        onAdminSuccess={(orderId) => {
+          handleAdminUnlock(orderId);
           setIsPaymentModalOpen(false);
         }}
         areaLabel={analysisResult?.area.toUpperCase() || 'CIVIL'}

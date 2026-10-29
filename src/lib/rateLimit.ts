@@ -69,6 +69,12 @@ export function getClientIp(headers: Record<string, string | string[] | undefine
 
 export const PAYMENT_RATE_LIMIT = { maxRequests: 5, windowMs: 60_000 };
 export const ANALYZE_RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 };
+// Desbloqueo admin: el codigo es corto -> limite mas estricto para frenar
+// fuerza bruta (5 intentos/minuto por IP, override por env para QA local).
+export const ADMIN_UNLOCK_RATE_LIMIT = {
+  maxRequests: Number(process.env.ADMIN_UNLOCK_RATE_LIMIT_MAX) || 5,
+  windowMs: 60_000,
+};
 
 // Limitador general por IP para endpoints caros (analyze, chat, borradores).
 // Nota: en serverless (Vercel) este almacen en memoria es por instancia y se
