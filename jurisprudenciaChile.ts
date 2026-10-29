@@ -37,6 +37,9 @@ export interface RecomendacionJuris {
   normas: string[];
   dictamenes: string[];
   definicion: string;
+  contenido: string;
+  operativaProcesal: string;
+  relleno: boolean;
   puntuacion: number;
 }
 
@@ -83,6 +86,25 @@ interface FichaIndexada {
   ficha: FichaJuris;
   regiones: Array<{ p: number; mapa: RegionPredistribuida }>;
   blobFrase: string; // para bonus de frases (lowcase sin acentos)
+  relleno: string | null; // motivo si la ficha es relleno administrativo (Fase 8)
+}
+
+// ── Fase 8: deteccion de fichas-relleno administrativo ─────────────────────
+// Auditoria: evaluation/jurisprudencia/audit-corpus-calidad.json (1.906/5.711
+// candidatos, 33.4%; revision manual de 34: ~26-28 basura clara, ~80% precision,
+// las "borderline" igual tienen titulo truncado). Decision MEDIDA (leccion Fase 3):
+// NO exclusion dura del corpus -> degradacion en resultados con fallback: el
+// relleno solo aparece si no alcanzan fichas sustantivas (maxResultados).
+// Nunca aplica a fichas CON falloRector (las 103 citables quedan intactas).
+const INFINITIVO_START = /^(chequear|atender|ejercer|entregar|publicar|canalizar|supervisar|verificar|registrar|remitir|administrar|coordinar|llevar|mantener|cumplir|controlar|informar|emitir|confeccionar|otorgar|realizar|efectuar|preparar|archivar|enviar|recibir|custodiar|elaborar|implementar|difundir|garantizar|procurar|velar|fiscalizar|designar|nombrar|convocar|decretar|disponer|resolver|conocer|devenir)\b/i;
+const TRUNCADA_END = /(\s(y|o|u|e|de|del|la|el|los|las|un|una|su|sus|para|por|con|en|a|que|se|al|lo)\.?)$/i;
+
+export function esFichaRelleno(ficha: { institucion?: string; falloRector?: { rol?: string } | null }): string | null {
+  const inst = String(ficha.institucion || "").trim();
+  if (ficha.falloRector && ficha.falloRector.rol) return null; // citable: nunca relleno
+  if (INFINITIVO_START.test(inst)) return "infinitivo_inicio";
+  if (TRUNCADA_END.test(inst) && inst.length > 20) return "truncada";
+  return null;
 }
 
 let corpusCache: Corpus | null = null;
@@ -133,13 +155,18 @@ function construirIndice(corpus: Corpus): FichaIndexada[] {
     const agregar = (texto: string, peso: number) => {
       if (!texto) return;
       const mapa: RegionPredistribuida = {};
+      // Fase 8b: saturacion de TF (estandar IR/BM25). Antes mapa[t] += peso por
+      // CADA repeticion: una ficha base de 46k chars repetia "empresa" 39 veces
+      // y sumaba ~80 puntos con UN token comun, tapando fichas enfocadas
+      // (medido en scripts/_probe_desglose.ts). Cap = 3x el peso de region.
+      const cap = peso * 3;
       for (const t of tokenizar(texto)) {
-        mapa[t] = (mapa[t] || 0) + peso;
+        mapa[t] = Math.min((mapa[t] || 0) + peso, cap);
         // Clave de prefijo para tolerar variantes morfologicas (despido/despedido,
         // necesidades/caso de necesidad) en espanol juridico sin un stemmer completo.
         if (t.length >= 6) {
           const pref = t.slice(0, 5);
-          mapa[pref] = (mapa[pref] || 0) + peso * 0.5;
+          mapa[pref] = Math.min((mapa[pref] || 0) + peso * 0.5, cap);
         }
       }
       regiones.push({ p: peso, mapa });
@@ -153,7 +180,7 @@ function construirIndice(corpus: Corpus): FichaIndexada[] {
     const blobFrase = quitarAcentos(
       `${ficha.institucion || ""} ${ficha.materia || ""} ${ficha.definicion || ""} ${ficha.contenido || ""}`.toLowerCase()
     );
-    out.push({ ficha, regiones, blobFrase });
+    out.push({ ficha, regiones, blobFrase, relleno: esFichaRelleno(ficha) });
   }
   return out;
 }
@@ -230,6 +257,59 @@ function getIndiceExtendido(slug: string | undefined): FichaIndexada[] {
   return extras;
 }
 
+// Fase 8b: ventana de proximidad (NLP-lite). El bag-of-words trata igual un
+// par de conceptos a 5 palabras de distancia que a 2.000; por eso fichas
+// genericas largas ("Suministro de mano de obra") acumulan puntos dispersos y
+// le ganan a la ficha donde los conceptos estan juntos. Aqui un PAR de tokens
+// de la consulta que co-ocurren dentro de VENTANA palabras en la ficha suma
+// bonus proporcional al IDF menor del par (los pares raros -conceptos
+// juridicos- pesan; los genericos no). Generaliza el bigrama exacto (+3), que
+// exige adyacencia total y muere con stopwords intercaladas ("plazo para
+// contestar"). Medido en scripts/_probe_proximidad.ts (antes/despues).
+export const VENTANA_PROXIMIDAD = 12; // palabras
+const MAX_BONUS_VENTANA = 8;          // cota por ficha
+const MAX_OCURRENCIAS = 8;            // por token (costo acotado)
+
+export function bonusVentana(
+  queryTokens: string[],
+  blob: string,
+  idf: (t: string) => number
+): number {
+  const uniq = [...new Set(queryTokens)].filter((t) => t.length >= 3);
+  if (uniq.length < 2 || !blob) return 0;
+  const exactos = new Set(uniq);
+  const tokenPorPref = new Map<string, string>();
+  for (const t of uniq) if (t.length >= 6) tokenPorPref.set(t.slice(0, 5), t);
+  const pos = new Map<string, number[]>();
+  let i = 0;
+  for (const crudo of blob.split(/\s+/)) {
+    i++;
+    const w = crudo.replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, "");
+    if (!w || w.length < 3) continue;
+    const tok = exactos.has(w) ? w : w.length >= 6 ? tokenPorPref.get(w.slice(0, 5)) : undefined;
+    if (!tok) continue;
+    const arr = pos.get(tok);
+    if (arr) { if (arr.length < MAX_OCURRENCIAS) arr.push(i); } else pos.set(tok, [i]);
+  }
+  const toks = [...pos.keys()];
+  if (toks.length < 2) return 0;
+  let bonus = 0;
+  for (let a = 0; a < toks.length - 1; a++) {
+    for (let b = a + 1; b < toks.length; b++) {
+      const pa = pos.get(toks[a]) as number[];
+      const pb = pos.get(toks[b]) as number[];
+      let cerca = false;
+      par: for (const x of pa) {
+        for (const y of pb) {
+          if (Math.abs(x - y) <= VENTANA_PROXIMIDAD) { cerca = true; break par; }
+        }
+      }
+      if (cerca) bonus += Math.min(idf(toks[a]), idf(toks[b]));
+    }
+  }
+  return Math.min(bonus * 0.5, MAX_BONUS_VENTANA);
+}
+
 function bonusFrase(queryTokens: string[], blobFrases: string[]): number {
   let bonus = 0;
   for (let i = 0; i < queryTokens.length - 1; i++) {
@@ -271,7 +351,7 @@ export async function buscarJurisprudencia(
     };
 
     const resultados: RecomendacionJuris[] = [];
-    for (const { ficha, regiones, blobFrase } of indiceL) {
+    for (const { ficha, regiones, blobFrase, relleno } of indiceL) {
       let score = 0;
       const vistosQ = new Set<string>();
       for (const t of queryTokens) {
@@ -292,6 +372,7 @@ export async function buscarJurisprudencia(
       }
       if (score < 1.2) continue;
       score += bonusFrase(queryTokens, [blobFrase]);
+      score += bonusVentana(queryTokens, blobFrase, idf); // Fase 8b: ventana de proximidad
       // Fase 6: recency boost del fallo rector. Fecha del corpus en "DD-MM-YYYY"
       // o año solo ("2023") — Fase 7 A/B: ambos parseados. Limitación real:
       // solo ~98/5.706 fichas traen falloRector; boost real pero de alcance
@@ -314,11 +395,30 @@ export async function buscarJurisprudencia(
         normas: ficha.normas || [],
         dictamenes: ficha.fallos || [],
         definicion: ficha.definicion,
+        contenido: ficha.contenido || "",
+        operativaProcesal: ficha.operativaProcesal || "",
+        relleno: !!relleno,
         puntuacion: Math.round(score * 100) / 100,
       });
     }
+    // Fase 8: sustantivas primero; el relleno SOLO rellena cupos restantes
+    // (fallback anti-hambre: nunca se excluye del corpus, solo se degrada).
+    // Fase 8b: dedup base+full (la misma institucion esta indexada en ambos
+    // corpus y salia 2 veces gastando cupos).
     resultados.sort((a, b) => b.puntuacion - a.puntuacion);
-    return resultados.slice(0, maxResultados);
+    const vistosInst = new Set<string>();
+    const unicos: RecomendacionJuris[] = [];
+    for (const r of resultados) {
+      const k = `${(r.institucion || "").trim().toLowerCase()}|${r.falloRector?.rol || ""}`;
+      if (vistosInst.has(k)) continue;
+      vistosInst.add(k);
+      unicos.push(r);
+    }
+    const sustantivas = unicos.filter(r => !r.relleno);
+    const degradadas = unicos.filter(r => r.relleno);
+    return sustantivas.slice(0, maxResultados).concat(
+      degradadas.slice(0, Math.max(0, maxResultados - sustantivas.length))
+    );
   } catch (e: any) {
     console.warn(`[juris] busqueda fallo (no bloquea): ${String(e?.message || e).slice(0, 150)}`);
     return [];
@@ -339,6 +439,12 @@ export function bloquePromptJuris(r: RecomendacionJuris[]): string {
     }
     if (i.normas && i.normas.length) s += `Normas/complementariedades: ${i.normas.slice(0, 5).join(" · ")}\n`;
     if (i.definicion) s += `Estándar: ${i.definicion.slice(0, 420)}\n`;
+    // Fase 8: la doctrina completa solo scoreaba, no llegaba al modelo. Ahora
+    // llega un corte acotado (p50 del corpus = 2.500 chars) + la operativa
+    // procesal cuando existe (solo 41 fichas la tienen). Cota máxima del bloque
+    // con 6 fichas: ~9.7k chars — menor que el dictamen/documento que ya viajan.
+    if (i.operativaProcesal) s += `Operativa procesal: ${i.operativaProcesal.slice(0, 300)}\n`;
+    if (i.contenido) s += `Contenido: ${i.contenido.slice(0, 900)}\n`;
   }
   s += `\nCon esto construyes la sección "Criterio Jurisprudencial Dominante y Estrategia": criterio dominante, su fallo rector, cómo lo usa el caso y riesgo si la Contraparte tiene criterio contrario.\n`;
   return s;
@@ -353,6 +459,7 @@ export function resumenJuris(r: RecomendacionJuris[]) {
     rolFalloRector: i.falloRector?.rol || "",
     fechaFalloRector: i.falloRector?.fecha || "",
     normas: (i.normas || []).slice(0, 5),
+    relleno: !!i.relleno, // Fase 8: observable en juris-test para verificacion en prod
   }));
 }
 
@@ -473,6 +580,22 @@ function getIndiceCasos(): IndiceCasos {
   return indiceCasos;
 }
 
+// ── Fase 8: entradas semilla NO citables ────────────────────────────────────
+// Procedencia: pjud_connector.FALLOS_RECTORES_CHILE (datos demo hardcodeados del
+// paquete instalado, NO fallos reales verificables): roles redondos (23.456,
+// 45.123, 12.890, 34.567, 89.124, 9876), caratulas genericas ("González con
+// Empresa Nacional S.A.") y link generico https://juris.pjud.cl. Los 3.135
+// ficha_cs y 303 de TC del mismo archivo tienen roles/caratulas reales y quedan.
+// No se borran del data file (procedencia visible); se excluyen de resultados.
+export const ROLES_SEMILLA_NO_CITABLES = new Set([
+  "Rol N° 23.456-2022",
+  "Rol N° 45.123-2021",
+  "Rol N° 12.890-2023",
+  "Rol N° 34.567-2022",
+  "Rol N° 89.124-2021",
+  "Rol N° 9876-2020-INA",
+]);
+
 export async function buscarCasosJuris(textos: string[], maxResultados = 4): Promise<RecomendacionCaso[]> {
   try {
     const idx = getIndiceCasos();
@@ -486,6 +609,7 @@ export async function buscarCasosJuris(textos: string[], maxResultados = 4): Pro
     };
     const resultados: RecomendacionCaso[] = [];
     for (const { caso, mapa, blobFrase } of idx.docs) {
+      if (ROLES_SEMILLA_NO_CITABLES.has(caso.rol)) continue; // Fase 8: semilla demo
       let score = 0;
       const vistosQ = new Set<string>();
       for (const t of queryTokens) {
@@ -557,9 +681,11 @@ async function fusionar(runs: { consulta: string; resultados: Array<Recomendacio
       }
     }
   }
-  return Array.from(porInstitucion.values())
-    .sort((a, b) => b.puntuacion - a.puntuacion)
-    .slice(0, max);
+  const valores = Array.from(porInstitucion.values());
+  // Fase 8: misma politica que el single — sustantivas primero, relleno al final.
+  const sust = valores.filter(r => !r.relleno).sort((a, b) => b.puntuacion - a.puntuacion);
+  const degr = valores.filter(r => r.relleno).sort((a, b) => b.puntuacion - a.puntuacion);
+  return sust.concat(degr).slice(0, max);
 }
 
 export async function buscarJurisprudenciaMulti(consultas: ConsultaEtiquetada[], maxResultados = 6, slugArea?: string): Promise<RecomendacionJuris[]> {

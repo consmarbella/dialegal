@@ -533,3 +533,65 @@ el codigo del desarrollador 4321" en legalhelp.cl.
    dueño, F3.3), de modo que `usosRestantes` vuelve null y el tope de 3 usos
    NO se aplica entre lambdas: la orden de cortesia vive en la memoria de la
    lambda que la creo. El tope funcionara al crear Vercel Postgres/Neon.
+
+## Fase 8 - Calidad del retrieval jurisprudencial (2026-10-29)
+
+Disparador: verificacion en vivo contra prod mostro basura administrativa
+encabezando el retrieval ("Chequear diariamente el encendido y apagado" top-1;
+"Suministro de mano de obra" tapando la ficha correcta de despido art. 161).
+
+1. **Auditoria antes de tocar nada** (`scripts/audit-corpus-calidad.ts` ->
+   `evaluation/jurisprudencia/audit-corpus-calidad.json`): de 5.711 fichas,
+   1.906 candidatos a relleno (33,4%): truncada 1.825 + infinitivo_inicio 81.
+   Revision manual de muestra estratificada de 34: ~26-28 basura clara (~80%
+   de precision) y las "borderline" igual traen titulo roto. Composicion del
+   corpus: Academia Judicial 4.579/5.711 (80,2%); solo 103 (1,8%) con fallo
+   rector citable; `operativaProcesal` en 41 fichas (campo muerto hasta hoy);
+   contenido p50=2.500 chars.
+2. **Procedencia de "casos anologos" rastreada (miedo descartado)**: los
+   3.135 "ficha_cs" y 303 de TC de `data/jurisprudencia-casos.json` tienen
+   roles/caratulas REALES (ej: "1039-2025", "LABARCA/VILLEGAS"). Los
+   sospechosos son SOLO 6 entradas semilla de `pjud_connector.FALLOS_RECTORES_
+   CHILE` (demo hardcodeado del paquete: roles redondos 23.456/45.123/12.890/
+   34.567/89.124/9876, caratulas genericas). Decision: denylist en codigo
+   (`ROLES_SEMILLA_NO_CITABLES`), NO borrado del data file (procedencia
+   visible); nunca salen en "casos anologos".
+3. **Degradacion con fallback, no exclusion dura** (leccion Fase 3): las
+   fichas-relleno se detectan con `esFichaRelleno()` (patron infinitivo-inicio
+   o titulo truncado; guard: con falloRector NUNCA es relleno) y solo ocupan
+   cupos restantes tras las sustantivas. El flag `relleno` es observable en
+   `resumenJuris`/juris-test para verificacion en prod.
+4. **Doctrina al prompt**: `bloquePromptJuris` ahora agrega `contenido`
+   (900 chars) y `operativaProcesal` (300 chars) por ficha; cota del bloque
+   con 6 fichas ~9.7k chars (menor que el dictamen que ya viaja). Antes el
+   contenido completo solo scoreaba y el LLM veia 420 chars de definicion.
+5. **Fase 8b - causa raiz del ranking malo medida, no adivinada**: desglose
+   por token mostro que una ficha base de 46.077 chars repite "empresa" 39
+   veces y `mapa[t] += peso` por CADA repeticion le daba ~80 puntos con UN
+   token comun (top-1 "Suministro" 136.55 vs ficha correcta 115.60). Fixes:
+   (a) **saturacion de TF** en `agregar` (cap 3x el peso de region, estandar
+   BM25); (b) **ventana de proximidad** `bonusVentana` (par de tokens de la
+   consulta que co-ocurren dentro de 12 palabras suma 0.5xIDF-del-par, cota
+   8; generaliza el bigrama exacto que moria con stopwords intercaladas
+   "plazo para contestar"); (c) **dedup base/full** (la misma institucion
+   salia 2 veces gastando cupos; `fusionar` multi ya deduplicaba).
+6. **Medido antes/despues** (`scripts/_probe_proximidad.ts`, corpus real):
+   control-despido top-1 pasa de "Suministro" (136.55) a "Terminacion por
+   Necesidades de la Empresa (Art. 161 CT)" (123.60, Suministro cae a 40.86);
+   "requisitos ley 21.643" top-1 pasa a "Ley Karin (Ley N° 21.643)";
+   paráfrasis "desvinculado" pasa de "agentes quimicos" a "Indemnizacion por
+   falta de aviso previo"; coloquial "me echaron" pasa de basura (111) a
+   doctrina laboral real (30). Honestidad: `bonusVentana` SOLO sumaba +3.9 a
+   +8 y NO invertia rankings — la inversion la provoco la saturacion de TF.
+7. **Residuales documentados**: (a) consulta "plazo para contestar la
+   demanda" en civil sigue encabezada por fichas Q&A de Academia Judicial —
+   la ficha ideal no existe en el corpus; (b) no hay capa de sinonimos
+   ("echaron" no conecta con "despido") — eso es embedding/vecinos, trabajo
+   futuro con su propia medicion.
+8. **QA y verificacion**: `scripts/qa-retrieval-fase8.ts` **38/38 PASS**
+   (unidades de deteccion, 6 consultas e2e sin relleno en top-8, fallback
+   probado por contrato [nunca vacio + relleno solo al final], semillas fuera
+   de resultados, unidades y e2e de ventana/saturacion/dedup). Suite
+   regresion: plazos 26/26, gate 5/5, tasa-error OK (gateAccuracy=1),
+   corpus 13/13, validador 7/7, eval-gate 1.0, tsc 0, build 0. Probes
+   temporales eliminados antes del commit.

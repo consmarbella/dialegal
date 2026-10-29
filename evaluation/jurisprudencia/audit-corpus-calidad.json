@@ -1,0 +1,439 @@
+{
+  "generado": "2026-10-29T14:54:20.506Z",
+  "areas": {
+    "laboral": {
+      "fichas": 457,
+      "ok": 306,
+      "candidatos": 151
+    },
+    "civil": {
+      "fichas": 535,
+      "ok": 347,
+      "candidatos": 188
+    },
+    "familia": {
+      "fichas": 618,
+      "ok": 405,
+      "candidatos": 213
+    },
+    "penal": {
+      "fichas": 811,
+      "ok": 551,
+      "candidatos": 260
+    },
+    "administrativo": {
+      "fichas": 80,
+      "ok": 58,
+      "candidatos": 22
+    },
+    "constitucional": {
+      "fichas": 550,
+      "ok": 370,
+      "candidatos": 180
+    },
+    "transversal": {
+      "fichas": 2660,
+      "ok": 1768,
+      "candidatos": 892
+    }
+  },
+  "porMotivo": {
+    "truncada": 1825,
+    "infinitivo_inicio": 81
+  },
+  "totalFichas": 5711,
+  "totalCandidatos": 1906,
+  "ok": 3805,
+  "casos": {
+    "total": 3444,
+    "fichaCs": 3135,
+    "casoTc": 308,
+    "semillasSospechosas": [
+      {
+        "rol": "Rol N° 23.456-2022",
+        "caratula": "Acuña con Municipalidad de Santiago",
+        "link": "https://juris.pjud.cl",
+        "tipo": "caso"
+      },
+      {
+        "rol": "Rol N° 45.123-2021",
+        "caratula": "González con Empresa Nacional S.A.",
+        "link": "https://juris.pjud.cl",
+        "tipo": "caso"
+      },
+      {
+        "rol": "Rol N° 12.890-2023",
+        "caratula": "Pérez con Servicios Mineros SpA",
+        "link": "https://juris.pjud.cl",
+        "tipo": "caso"
+      },
+      {
+        "rol": "Rol N° 9876-2020-INA",
+        "caratula": "Requerimiento de Inaplicabilidad por Inconstitucionalidad Art. 161 Código del Trabajo",
+        "link": "https://www.tribunalconstitucional.cl",
+        "tipo": "fallo_rector"
+      },
+      {
+        "rol": "Rol N° 34.567-2022",
+        "caratula": "Rojas con Constructora del Pacífico Ltda.",
+        "link": "https://juris.pjud.cl",
+        "tipo": "caso"
+      },
+      {
+        "rol": "Rol N° 89.124-2021",
+        "caratula": "Soto con Distribuidora Central SpA",
+        "link": "https://juris.pjud.cl",
+        "tipo": "caso"
+      }
+    ]
+  },
+  "contenido": {
+    "n": 5667,
+    "p50": 2500,
+    "p90": 2500,
+    "p99": 2500,
+    "max": 2500
+  },
+  "muestraManual": [
+    {
+      "id": "inst_0385",
+      "area": "laboral",
+      "institucion": "Algunas cuestiones importantes en",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 357,
+      "definicionHead": "relación con la competencia"
+    },
+    {
+      "id": "inst_2505",
+      "area": "laboral",
+      "institucion": "Acreditación de pago de",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 183,
+      "definicionHead": "cotizaciones previsionales\n                                               Para proceder al despido de un trabajador por "
+    },
+    {
+      "id": "inst_5284",
+      "area": "laboral",
+      "institucion": "Según consigna el propio documento, este manual es fruto de las experiencias y",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 144,
+      "definicionHead": "recomendaciones que surgieron a propósito del Programa Piloto de Seguimiento y\nPromoción del Teletrabajo en Empresas Pri"
+    },
+    {
+      "id": "inst_0837",
+      "area": "civil",
+      "institucion": "Presupuesto para el ejercicio de la acción indemnizatoria de daños en contra de un",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 76,
+      "definicionHead": "prestador de salud: la mediación prejudicial\b                                                            240"
+    },
+    {
+      "id": "inst_10006",
+      "area": "civil",
+      "institucion": "En caso de tratarse de un inmueble situado en zona fronteriza, las",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Juan Andrés Orrego Acuña",
+      "tokens": 470,
+      "definicionHead": "PARTES DEBEN DECLARAR QUE TIENEN NACIONALIDAD CHILENA:"
+    },
+    {
+      "id": "inst_10438",
+      "area": "civil",
+      "institucion": "Velar por la observancia de las disposiciones legales y reglamentarias sobre",
+      "motivo": "infinitivo_inicio",
+      "conRector": false,
+      "autor": "Juan Andrés Orrego Acuña",
+      "tokens": 93,
+      "definicionHead": "copropiedad inmobiliaria y las del reglamento de copropiedad y poner en conocimiento\ndel Comité de Administración las tr"
+    },
+    {
+      "id": "inst_0365",
+      "area": "familia",
+      "institucion": "Acta 41-2020: Auto Acordado que regula el",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 46,
+      "definicionHead": "Teletrabajo y el uso de Videoconferencia en el\n                                                           Poder Judicial"
+    },
+    {
+      "id": "inst_3034",
+      "area": "familia",
+      "institucion": "Elaborar una decisión (sentencia) en un plazo razonable, con prioridad, dirigida a asegurar la",
+      "motivo": "infinitivo_inicio",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 313,
+      "definicionHead": "igualdad, la no discriminación y el acceso a la justicia"
+    },
+    {
+      "id": "inst_8974",
+      "area": "familia",
+      "institucion": "Comenta Tomasello que este sistema difiere del contemplado en el proyecto del",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 557,
+      "definicionHead": "ejecutivo de 1991 y también de la indicación sustitutiva de 1992, los que proponían\nque la declaración de desafectación "
+    },
+    {
+      "id": "inst_10071",
+      "area": "familia",
+      "institucion": "Sanciones para quienes no cumplan las obligaciones previstas en el",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Juan Andrés Orrego Acuña",
+      "tokens": 235,
+      "definicionHead": "art. 29."
+    },
+    {
+      "id": "inst_1623",
+      "area": "penal",
+      "institucion": "El DNO y la ley que regula las entrevistas grabadas en video y otras medidas de resguardo a",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 35,
+      "definicionHead": "menores de edad víctimas de delito sexuales\b                                                            117"
+    },
+    {
+      "id": "inst_3914",
+      "area": "penal",
+      "institucion": "Véase v.g. Corte de Apelaciones de Santiago: considerandos cuarto y decimocuarto del voto en contra del",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 906,
+      "definicionHead": "abogado integrante Pozo en Urrutia con Ruiz y otros (2007, rol N° 14281-2006); Contra Gómez Aguilar (2006,\n             "
+    },
+    {
+      "id": "inst_7085",
+      "area": "penal",
+      "institucion": "Corte Suprema, rol 95.545-21, del 9 de junio de 2022. Autorización otorgada por",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 3777,
+      "definicionHead": "el Ministerio Público, vía correo electrónico."
+    },
+    {
+      "id": "inst_8082",
+      "area": "penal",
+      "institucion": "Que, adicionalmente, y tal como se ha señalado en sentencia de",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 685,
+      "definicionHead": "fecha 9 de Abril de 2013 de la Iltma. Corte de Apelaciones de la Sere-\n      na, (autos rol 70-2013), de acogerse la tes"
+    },
+    {
+      "id": "inst_8441",
+      "area": "penal",
+      "institucion": "Artículo 2: «Responsabilidad de las personas morales. Cada parte tomará las",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 221,
+      "definicionHead": "medidas que sean necesarias, de conformidad con sus principios jurídicos, para establecer la responsabilidad de las pers"
+    },
+    {
+      "id": "inst_3529",
+      "area": "administrativo",
+      "institucion": "Párr. 230),34 al señalar que en cuanto al Derecho a la libertad de",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 445,
+      "definicionHead": "pensamiento y de expresión, a las garantías judiciales y a la protección\n                                               "
+    },
+    {
+      "id": "inst_3057",
+      "area": "constitucional",
+      "institucion": "Confusión entre el derecho a la",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 326,
+      "definicionHead": "vida y el derecho a la salud\n                                                                           A juicio de Figu"
+    },
+    {
+      "id": "inst_5212",
+      "area": "constitucional",
+      "institucion": "La acción de amparo constitucional como vía de reclamación en contra de",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 984,
+      "definicionHead": "2010                          11                           8                             3                             2"
+    },
+    {
+      "id": "inst_6635",
+      "area": "constitucional",
+      "institucion": "Renovación de la Política Nacional para la Gestión del Riesgo de",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 276,
+      "definicionHead": "Desastres (ID 522). Cumplimiento total. La nueva Política Nacio-\n      nal para la Reducción del Riesgo de Desastres 202"
+    },
+    {
+      "id": "inst_0118",
+      "area": "transversal",
+      "institucion": "Rebecca Cook, profesora emérita y codirectora del Programa Internacional de Derecho en Salud Sexual y",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 717,
+      "definicionHead": "Reproductiva de la Facultad de Derecho de la Universidad de Toronto. Es LL.M y J.S.D de la Universidad de\n              "
+    },
+    {
+      "id": "inst_1067",
+      "area": "transversal",
+      "institucion": "Recibir causas inadmisibles derivadas de la sala de cuenta para",
+      "motivo": "infinitivo_inicio",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 70,
+      "definicionHead": "cambiar a estado de causa fallada, archivando la causa una vez\n                                                   transc"
+    },
+    {
+      "id": "inst_1435",
+      "area": "transversal",
+      "institucion": "MacKinnon, Catharine, Feminismo inmodificado. Discursos sobre la",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 70,
+      "definicionHead": "vida y el derecho. 2ª Edición, Colección Política y Derecho, Siglo\n                                              Veintiu"
+    },
+    {
+      "id": "inst_1596",
+      "area": "transversal",
+      "institucion": "La polifuncionalidad además se deberá reflejar en los turnos de",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 292,
+      "definicionHead": "día sábado, donde los funcionarios que asistan al mismo deberán\n                                                        "
+    },
+    {
+      "id": "inst_3720",
+      "area": "transversal",
+      "institucion": "Corte de Apelaciones de Temuco, 16 de noviembre de",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 254,
+      "definicionHead": "2015, “Lof Trancura y otros vs. Comisión de Evaluación\n                                                                 "
+    },
+    {
+      "id": "inst_4779",
+      "area": "transversal",
+      "institucion": "Tener siempre presente el interés superior del niño, esto es, en todas las",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 88,
+      "definicionHead": "etapas del proceso, independiente de la calidad en la que intervengan,\n                                                 "
+    },
+    {
+      "id": "inst_5144",
+      "area": "transversal",
+      "institucion": "El derecho de acceso de las mujeres a la justicia es esencial para",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 1510,
+      "definicionHead": "la realización de todos los derechos protegidos en virtud de la\n                                                        "
+    },
+    {
+      "id": "inst_5574",
+      "area": "transversal",
+      "institucion": "Matus y Ramírez (2019: 514). Comparten este predicamento García (2013: 45) y",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 396,
+      "definicionHead": "Aravena (2013: 96)."
+    },
+    {
+      "id": "inst_5791",
+      "area": "transversal",
+      "institucion": "Artículo 231: «La ejecución de las resoluciones corresponde a los tribunales que las",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 529,
+      "definicionHead": "hayan pronunciado en primera o en única instancia. Se procederá a ella una vez que\nlas resoluciones queden ejecutoriadas"
+    },
+    {
+      "id": "inst_6003",
+      "area": "transversal",
+      "institucion": "Comisión Interamericana de Derechos Humanos, «Relatoría Especial sobre los",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 464,
+      "definicionHead": "Derechos Económicos, Sociales, Culturales y Ambientales». Disponible en https://\nbit.ly/3vah4bS."
+    },
+    {
+      "id": "inst_6215",
+      "area": "transversal",
+      "institucion": "Para más información, véase «Historia de la Ley 19.906», p. 48, disponible en",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 540,
+      "definicionHead": "https://bit.ly/3S69Pe7.\n 8 En efecto, Juan Bustos señaló durante la discusión de estos verbos: «con la eliminación del v"
+    },
+    {
+      "id": "inst_8184",
+      "area": "transversal",
+      "institucion": "Situaciones de               1. Igualdad de acceso a los alimentos, la",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 59,
+      "definicionHead": "emergencia                         vivienda y la atención médica y otros\n                                               "
+    },
+    {
+      "id": "inst_8682",
+      "area": "transversal",
+      "institucion": "En cualquier materia, inclusive en la laboral y la administrativa, la",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Academia Judicial de Chile",
+      "tokens": 114,
+      "definicionHead": "discrecionalidad de la administración tiene límites infranqueables, sien-\n      do uno de ellos el respeto de los derech"
+    },
+    {
+      "id": "inst_10054",
+      "area": "transversal",
+      "institucion": "Los actos de emulación; y",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Juan Andrés Orrego Acuña",
+      "tokens": 5954,
+      "definicionHead": "3. Los actos de inmisión."
+    },
+    {
+      "id": "inst_11007",
+      "area": "transversal",
+      "institucion": "Pregunta: CUALES SON LAS GESTIONES PREPARATORIAS DE LA",
+      "motivo": "truncada",
+      "conRector": false,
+      "autor": "Manuales de estudio",
+      "tokens": 357,
+      "definicionHead": "El juez no puede declarar un plazo de prescripcion menor,"
+    }
+  ]
+}
