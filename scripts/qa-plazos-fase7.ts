@@ -144,5 +144,16 @@ chk("34 laboral cruza 31-dic (ya corre): 07-01-2027", r34.ok && r34.fechaLimite 
 const r35 = P.calcularPlazo({ plazoId: "laboral_contestacion", fechaNotificacion: "2026-06-24", kmDemandado: 0 });
 chk("35 laboral cruza 29-jun y 16-jul-2026: 17-07-2026", r35.ok && r35.fechaLimite === "2026-07-17", r35);
 
+// ── Fase B.2 (2026-10-29): detector de notificaciones con formas verbales ──
+// 36. "nos notificaron" (verbo 3a persona, frase tipica de usuario) ahora se
+//     detecta; el dia de la semana ("jueves") no estorba.
+const t36 = "Nos notificaron la demanda civil el jueves 29 de octubre de 2026 mediante cedula.";
+chk("36 detecta 'nos notificaron ... el jueves 29 de octubre de 2026'", P.detectarFechaNotificacion(t36) === "2026-10-29", P.detectarFechaNotificacion(t36));
+// 37. "me notifico" (3a persona con tilde, texto normalizado sin tildes).
+const t37 = "El receptor me notifico la demanda el 5 de mayo de 2024.";
+chk("37 detecta 'me notifico ... 5 de mayo de 2024'", P.detectarFechaNotificacion(t37) === "2024-05-05", P.detectarFechaNotificacion(t37));
+// 38. regresion: los formatos previos siguen detectando.
+chk("38 regresion notificada/notificacion", P.detectarFechaNotificacion("La demanda fue notificada el 12 de marzo de 2024.") === "2024-03-12" && P.detectarFechaNotificacion("La notificación de la demanda se practicó el 19 de mayo de 2024.") === "2024-05-19");
+
 console.log(fail === 0 ? `\nQA plazos Fase 7: ${ok}/${ok + fail} PASS` : `\nQA plazos Fase 7: FAILURES=${fail}`);
 process.exit(fail === 0 ? 0 : 1);

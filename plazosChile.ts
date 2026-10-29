@@ -279,9 +279,10 @@ export function detectarFechasNotificacion(texto: string): FechasNotificacionRes
   const meses: Record<string, number> = {};
   for (const k of Object.keys(MESES_NOTIF)) meses[k.normalize("NFD").replace(/[\u0300-\u036f]/g, "")] = (MESES_NOTIF as any)[k];
   const hallazgos: Array<{ iz: number; iso: string | null }> = [];
-  // "notificada/os" y "notificación" (la sustantiva es habitual en la práctica:
-  // "la notificación de la demanda se practicó el ...").
-  const NOTIFICAD_RE = /notificad[oa]s?|notificacion\b/g;
+  // "notificada/os", "notificación", y las formas verbales comunes en relatos
+  // de usuarios ("nos notificaron la demanda", "me notificó el receptor"):
+  // mismo criterio de ventana; el texto llega normalizado (sin tildes).
+  const NOTIFICAD_RE = /notificad[oa]s?|notificacion\b|notificaron\b|notifico\b/g;
   let nm: RegExpExecArray | null;
   while ((nm = NOTIFICAD_RE.exec(t)) !== null) {
     const izCl = nm.index;

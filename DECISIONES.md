@@ -737,3 +737,22 @@ encabezando el retrieval ("Chequear diariamente el encendido y apagado" top-1;
    emplazamiento de la Corte Suprema (quinquenal) usa +2/100 km con
    [VERIFICAR]; feriado anual variable de COT art. 313 no es modelable
    deterministamente.
+7. **Verificacion en prod** (deploy `dpl_89nPSSrmSVrd4vX6uSdg7r7woRpQ`,
+   aliado a legalhelp.cl): POST /api/legalhelp/draft (civil/contestacion,
+   notificacion 29-10-2026) -> metadatos.plazosMotor.fechaLimite = **2026-11-20**
+   (18 dias, fuente CPC art. 258 segun Ley 21.394) y, al no consignar el
+   borrador la fecha, el sistema appendeo la anotacion visible
+   "limite_no_consignada: el motor calculo 2026-11-20" SIN bloquear la
+   entrega (decision del dueno: anotacion, nunca bloqueo).
+8. **Mejora del detector hallada en la verificacion** (commiteada con esta
+   entrada, despliega con la Fase D): el regex de deteccion solo cubria
+   participios ("notificada/o") y el sustantivo; la frase hipercomun de
+   usuario "nos notificaron la demanda el ..." quedaba sin fecha y el motor
+   no corria. Agregadas formas verbales "notificaron"/"notifico" (texto
+   normalizado sin tildes); QA 36-38. Hallazgo de CI aparte: el workflow
+   eval-gate de GitHub Actions arrastraba startup_failure en TODOS los pushes
+   del 29-10 (path "BuildFailed", 0 jobs, sin logs; tambien por
+   workflow_dispatch; el YAML parsea bien) y sus 2 corridas del 28-10
+   murieron en 3-4 s sin logs: problema de repo/cuenta GitHub que el dueno
+   debe revisar en Settings -> Billing/Actions; no bloquea deploy ni QA local
+   (eval:gate 100% local).
