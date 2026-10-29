@@ -700,3 +700,40 @@ encabezando el retrieval ("Chequear diariamente el encendido y apagado" top-1;
    suspenden): qa #3 -> 2025-02-17 sin cambio; #10 -> 2026-02-06 sin cambio;
    gate C1 -> 2027-02-17 sin cambio (la nota preliminar decia 16-02; conteo
    dia a dia da 17, validar contra el motor); caso del dueno -> 2026-11-20.
+
+## Fase B: motor de plazos corregido contra XML oficial BCN (2026-10-29)
+
+1. **Que cambio en `plazosChile.ts`** (todo sentenciado contra XML de Ley Chile
+   descargado 2026-10-29, ver Fase A): (a) `civil_contestacion` 15 -> **18 dias**
+   y corren **lunes-sabado** (CPC art. 258 segun Ley 21.394 art. 3 N.12; art. 66
+   suspende solo feriados; Ley 2.977 no lista sabados); (b) `FERIADOS_FIJOS`
+   sin 24-dic ni 31-dic (no son feriados legales; el 24-dic es solo vespertino
+   irrenunciable de comercio) y con 1-nov; (c) traslados agregados: 29-jun y
+   12-oct -> lunes (Ley 19.668), 31-oct -> viernes (Ley 20.299 art. 2: mar ->
+   viernes semana anterior, mie -> viernes misma semana, resto fecha propia);
+   (d) solsticio de invierno (Ley 21.357, "Dia Nacional de los Pueblos
+   Indigenas") con formula de Meeus validada 2021-2026 contra gob.cl;
+   (e) desglose del resultado materia-aware. Laboral y familia siguen lun-vie.
+2. **Caso del dueno verificado**: notificacion jue 29-10-2026 -> limite
+   **viernes 20-11-2026** (18 dias; el sab 31-oct-2026 es feriado evangelico
+   que NO se traslada y dom 01-nov es feriado; ambos fuera del conteo).
+   El informe premium real habia dicho 19 en el dictamen y 21 en el
+   complemento: internamente inconsistente y con la regla derogada de 15
+   habiles lun-vie.
+3. **Recalibracion honesta de golden cases** (golpe de la correccion, no
+   encubrimiento): qa #23/#25 -> limite laboral 2023-10-24 (el feriado 12-oct-
+   2023 se traslado a lun 09-oct); gate C4 -> 2027-01-04 (antes 06-01: contaba
+   sabados inhabiles y 31-dic feriado, ambos contrarios a la ley vigente);
+   gate E2 -> 2027-04-17 (antes 16-04: regla vieja de 15 habiles lun-vie).
+   Cada nuevo valor recalculado a mano dia a dia Y verificado contra el motor.
+4. **Correccion de un error propio del plan**: el test 30 original probe el
+   traslado de 31-oct con 2027, pero 31-oct-2027 cae DOMINGO -> fecha propia.
+   Test reescrito con los tres dias de semana reales (Date.UTC): 2027 dom
+   fecha propia; 2028 mar -> vie 27-oct; 2029 mie -> vie 02-nov.
+5. **Suite**: plazos 35/35 (26 legacy + 9 nuevos), gate 5/5, corpus 13/13,
+   validador 7/7, bcn-resiliencia 7/7 (canario CT art. 161 vivo), retrieval
+   38/38, eval:gate accuracy 100% / macro-F1 1.0 (35 casos). tsc 0, build 0.
+6. **Pendiente menor declarado** (fuera del motor, documentado): tabla de
+   emplazamiento de la Corte Suprema (quinquenal) usa +2/100 km con
+   [VERIFICAR]; feriado anual variable de COT art. 313 no es modelable
+   deterministamente.

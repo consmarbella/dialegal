@@ -7,14 +7,29 @@
 // escenario no esta contemplado, devolvemos ok:false con aviso [VERIFICAR]:
 // jamas un numero silenciosamente equivoco.
 
-// ─── Feriados Chile (ley 2.977 y modificaciones) ────────────────────────────
+// ─── Feriados Chile (Ley 2.977 y modificaciones) ─────────────────────────────
 // FIJOS dia-mes. VARIABLES: Pascua (Meeus/Jones/Butcher) -> Viernes/Sabado Santo.
+// Fase B (audit. 2026-10-29, evaluation/fidelidad/hallazgos.md): se eliminan las
+// entradas espurias 24-dic y 31-dic ("Feriado judicial" que ninguna ley crea;
+// el 24-dic es solo vespertino irrenunciable de comercio) y se agregan los
+// feriados que faltaban: 1-nov (Ley 2.977 art. 1, nunca derogado), 29-jun y
+// 12-oct con traslado a lunes (Ley 19.668 art. unico), 31-oct con traslado a
+// viernes (Ley 20.299 art. 2) y el solsticio de invierno (Ley 21.357).
 export const FERIADOS_FIJOS: [number, number, string][] = [
   [1, 1, "Año Nuevo"], [1, 5, "Día del Trabajo"], [21, 5, "Glorias Navales"],
   [16, 7, "Virgen del Carmen"], [15, 8, "Asunción"], [18, 9, "Primera Junta"],
-  [19, 9, "Glorias del Ejército"], [8, 12, "Inmaculada Concepción"], [25, 12, "Navidad"],
-  [24, 12, "Feriado judicial"], [31, 12, "Feriado judicial"],
+  [19, 9, "Glorias del Ejército"], [1, 11, "Todos los Santos"],
+  [8, 12, "Inmaculada Concepción"], [25, 12, "Navidad"],
 ];
+
+// Traslado a LUNES (Ley 19.668): si caen mar/mié/jue -> lunes de la misma
+// semana; si cae viernes -> lunes de la semana siguiente; lun/sáb/dom -> fecha propia.
+export const FERIADOS_TRASLADO_LUNES: [number, number, string][] = [
+  [29, 6, "San Pedro y San Pablo"], [12, 10, "Encuentro de Dos Mundos"],
+];
+// Traslado a VIERNES (Ley 20.299 art. 2): 31-oct en martes -> viernes de la
+// semana anterior; en miércoles -> viernes de la misma semana; resto -> fecha propia.
+export const FERIADO_TRASLADO_VIERNES: [number, number, string] = [31, 10, "Día Nacional de las Iglesias Evangélicas y Protestantes"];
 
 function pascua(anio: number): Date {
   const a = anio % 19, b = Math.floor(anio / 100), c = anio % 100;
@@ -34,7 +49,36 @@ export function feriadosAnio(anio: number): Set<string> {
   out.add(claveDia(new Date(p.getTime() - 2 * 864e5))); // Viernes Santo
   out.add(claveDia(new Date(p.getTime() - 1 * 864e5))); // Sábado Santo
   for (const [dia, mes] of FERIADOS_FIJOS) out.add(claveIso(anio, mes, dia));
+  // Traslados Ley 19.668: mar/mié/jue -> lunes misma semana; vie -> lunes siguiente.
+  for (const [dia, mes] of FERIADOS_TRASLADO_LUNES) {
+    const d = new Date(Date.UTC(anio, mes - 1, dia));
+    const dow = d.getUTCDay();
+    if (dow >= 2 && dow <= 4) out.add(claveDia(new Date(d.getTime() - (dow - 1) * 864e5)));
+    else if (dow === 5) out.add(claveDia(new Date(d.getTime() + 3 * 864e5)));
+    else out.add(claveIso(anio, mes, dia));
+  }
+  // Traslado Ley 20.299 art. 2 (31-oct): mar -> viernes semana anterior; mié -> viernes misma semana.
+  {
+    const d = new Date(Date.UTC(anio, FERIADO_TRASLADO_VIERNES[1] - 1, FERIADO_TRASLADO_VIERNES[0]));
+    const dow = d.getUTCDay();
+    if (dow === 2) out.add(claveDia(new Date(d.getTime() - 4 * 864e5)));
+    else if (dow === 3) out.add(claveDia(new Date(d.getTime() + 2 * 864e5)));
+    else out.add(claveDia(d));
+  }
+  // Solsticio de invierno (Ley 21.357): Meeus cap. 27 (JDE0, error ~2 min);
+  // dia chileno = instante en hora local de invierno (UTC-4). Validado contra
+  // 2021-2026 (20/21/21/20/20/21 jun; gob.cl 2025 "viernes 20" y 2026 "domingo 21").
+  {
+    const Y = (anio - 2000) / 1000;
+    const jde0 = 2451716.56767 + 365241.72632 * Y + 0.18188 * Y * Y - 0.00597 * Y ** 3 + 0.00048 * Y ** 4;
+    out.add(fechaChilenaSolsticio((jde0 - 2440587.5) * 86400000));
+  }
   return out;
+}
+
+function fechaChilenaSolsticio(msUtc: number): string {
+  const d = new Date(msUtc - 4 * 3600 * 1000); // UTC-4 (hora estandar de invierno)
+  return claveDia(d);
 }
 
 function claveDia(d: Date): string {
@@ -45,27 +89,30 @@ function claveIso(anio: number, mes: number, dia: number): string {
 }
 
 // ─── Días hábiles por materia ────────────────────────────────────────────────
-// Civil (CPC art. 66): inhábiles sábado, domingo y feriados legales. La
-// suspensión de plazos por feriado judicial de FEBRERO fue ELIMINADA por la
-// Ley 20.774 (D.O. 04-09-2014, "Suprime feriado judicial"): su art. 2° N° 2
-// eliminó el inciso segundo del art. 66 CPC y su art. 7° derogó toda
-// referencia al feriado judicial de febrero; el CPC vigente (XML BCN
-// idNorma=22740, verificado 2026-10-29) no menciona vacaciones judiciales en
-// ningún artículo. El "feriado anual de un mes" (COT art. 313, texto según
-// Ley 20.774) es variable por tribunal y auto acordado: no es modelable
-// determinísticamente, queda cubierto por el marco [VERIFICAR]. Laboral y
-// familia: nunca suspendieron en este motor.
-export interface ReglaHabiles { feriados: boolean; vacacionesJudiciales: "si" | "no"; }
+// Civil (Fase B, audit. 2026-10-29): el art. 258 CPC vigente dice "dieciocho
+// días" A SECAS (texto según Ley 21.394 art. 3 N.12) y el art. 66 vigente
+// suspende los plazos SOLO durante los feriados; la Ley 2.977 no lista sábados
+// (salvo Sábado Santo) y el CPC ni el COT mencionan sábados -> los sábados
+// CORREN en civil. La suspensión por feriado judicial de FEBRERO fue eliminada
+// por la Ley 20.774 (D.O. 04-09-2014): su art. 2° N°2 eliminó el inciso segundo
+// del art. 66 CPC y su art. 7° derogó toda referencia al feriado judicial de
+// febrero; el CPC vigente (XML BCN idNorma=22740, verificado 2026-10-29) no
+// menciona vacaciones judiciales. El "feriado anual de un mes" (COT art. 313,
+// texto según Ley 20.774) es variable por tribunal y auto acordado: no es
+// modelable determinísticamente, queda cubierto por el marco [VERIFICAR].
+// Laboral y familia: lunes a viernes (CT); nunca suspendieron en este motor.
+export interface ReglaHabiles { feriados: boolean; vacacionesJudiciales: "si" | "no"; sabadosHabiles: boolean; }
 const HABILES: Record<"civil" | "laboral" | "familia", ReglaHabiles> = {
-  civil: { feriados: true, vacacionesJudiciales: "no" }, // Ley 20.774: febrero ya no suspende
-  laboral: { feriados: true, vacacionesJudiciales: "no" },
-  familia: { feriados: true, vacacionesJudiciales: "no" },
+  civil: { feriados: true, vacacionesJudiciales: "no", sabadosHabiles: true }, // Ley 20.774: febrero ya no suspende; CPC art. 258/66: sábados corren
+  laboral: { feriados: true, vacacionesJudiciales: "no", sabadosHabiles: false },
+  familia: { feriados: true, vacacionesJudiciales: "no", sabadosHabiles: false },
 };
 
 export function esDiaHabil(fecha: Date, materia: keyof typeof HABILES): boolean {
   const dow = fecha.getUTCDay();
-  if (dow === 0 || dow === 6) return false; // domingo y sábado
+  if (dow === 0) return false; // domingo: feriado semanal (Ley 2.977 art. 1 N.1)
   const regla = HABILES[materia];
+  if (dow === 6 && !regla.sabadosHabiles) return false; // sábado: inhábil salvo civil
   const y = fecha.getUTCFullYear();
   if (regla.vacacionesJudiciales === "si" && fecha.getUTCMonth() + 1 === 2) return false;
   if (regla.feriados && feriadosAnio(y).has(claveDia(fecha))) return false;
@@ -102,8 +149,8 @@ export const PLAZOS: PlazoEmpateDef[] = [
   {
     id: "civil_contestacion",
     descripcion: "Plazo para contestar demanda civil ordinaria",
-    materia: "civil", diasHabiles: 15, emplazamiento: true,
-    fundamento: "CPC art. 258 (notificación) y arts. 258/259 (emplazamiento). No se suspende en febrero (Ley 20.774, D.O. 04-09-2014).",
+    materia: "civil", diasHabiles: 18, emplazamiento: true,
+    fundamento: "CPC art. 258 (texto según Ley 21.394 art. 3° N°12, D.O. 30-11-2021): dieciocho días, que corren de lunes a sábado — suspenden solo domingos y feriados (CPC art. 66; Ley 2.977 art. 1°). Emplazamiento por distancia: arts. 258/259. No se suspende en febrero (Ley 20.774, D.O. 04-09-2014).",
   },
   {
     id: "laboral_contestacion",
@@ -115,13 +162,13 @@ export const PLAZOS: PlazoEmpateDef[] = [
     id: "civil_apelacion_auto",
     descripcion: "Apelación de resoluciones interlocutorias en civil",
     materia: "civil", diasHabiles: 5, emplazamiento: false,
-    fundamento: "CPC art. 107 Nº 2 (5 días hábiles). No se suspende en febrero (Ley 20.774, D.O. 04-09-2014).",
+    fundamento: "CPC art. 107 Nº 2 (5 días). Corren lunes a sábado — suspenden solo domingos y feriados (CPC art. 66; Ley 2.977). No se suspende en febrero (Ley 20.774, D.O. 04-09-2014).",
   },
   {
     id: "civil_oposicion_medida",
     descripcion: "Oposición a la ejecución de medida (cump. ejecución civil)",
     materia: "civil", diasHabiles: 3, emplazamiento: false,
-    fundamento: "CPC art. 486 Nº 3 (3 días hábiles para la oposición). No se suspende en febrero (Ley 20.774, D.O. 04-09-2014).",
+    fundamento: "CPC art. 486 Nº 3 (3 días para la oposición). Corren lunes a sábado — suspenden solo domingos y feriados (CPC art. 66; Ley 2.977). No se suspende en febrero (Ley 20.774, D.O. 04-09-2014).",
   },
   {
     id: "familia_apelacion",
@@ -182,18 +229,16 @@ export function calcularPlazo(entrada: EntradaPlazoP): ResultadoPlazo {
   let limite: Date | null = null;
   while (diasCuenta < total) {
     if (fechaIter.getUTCFullYear() > anioFin) break;
-    const dow = fechaIter.getUTCDay();
-    const hab = dow !== 0 && dow !== 6
-      && !(regla.vacacionesJudiciales === "si" && fechaIter.getUTCMonth() + 1 === 2)
-      && !feriadosAnio(fechaIter.getUTCFullYear()).has(claveDia(fechaIter));
-    if (hab) diasCuenta++;
+    if (esDiaHabil(fechaIter, def.materia)) diasCuenta++;
     if (diasCuenta < total) fechaIter = new Date(fechaIter.getTime() + 24 * 60 * 60 * 1000);
     else limite = fechaIter;
   }
   if (!limite) return { ok: false, plazoId: entrada.plazoId, fuente: "sin-fecha-limite", aviso: "[VERIFICAR: no se consinto fecha limite dentro del margen anual]" };
 
-  desglose.push(`Días hábiles computados: ${total} (${def.diasHabiles} base${extra ? ` + ${extra} emplazamiento` : ""}).`);
-  desglose.push(`Inhábiles aplicados: sábado/domingo + feriados${regla.vacacionesJudiciales === "si" ? " + vacaciones judiciales (febrero)" : ""}.`);
+  desglose.push(`Días computados: ${total} (${def.diasHabiles} base${extra ? ` + ${extra} emplazamiento` : ""}).`);
+  desglose.push(regla.sabadosHabiles
+    ? "Inhábiles aplicados: domingo + feriados (el sábado corre: CPC art. 258 'dieciocho días' a secas + art. 66 solo suspende feriados; Ley 2.977)."
+    : `Inhábiles aplicados: sábado/domingo + feriados${regla.vacacionesJudiciales === "si" ? " + vacaciones judiciales (febrero)" : ""}.`);
 
   return {
     ok: true,
