@@ -659,3 +659,44 @@ encabezando el retrieval ("Chequear diariamente el encendido y apagado" top-1;
 5. **Verificacion**: qa-bcn-resiliencia 7/7, plazos 26/26, gate 5/5,
    tasa-error OK (gateAccuracy=1), eval:gate exit 0 (matriz 13/17/5
    clasifica exacta), corpus 13/13, validador 7/7, tsc 0, build 0.
+
+## Fase A: auditoria de fidelidad - informe premium vs fuente normativa (2026-10-29)
+
+1. **Disparador**: informe premium real (demanda civil de incendio ~$550M,
+   notificacion jue 29-10-2026) con fecha limite inconsistente (dictamen 19,
+   complemento 21; correcto **viernes 20-11-2026**), materia con elementos de
+   "tutela laboral" en un caso civil, y etiqueta "(100%)" hardcodeada. Auditoria
+   completa en `evaluation/fidelidad/hallazgos.md`; cada regla sentenciada contra
+   XML oficial de Ley Chile descargado y decodificado ese dia (CPC idNorma 22740
+   de 57 MB, COT idNorma 25563, Leyes 2.977/19.668/20.299/21.394/20.774/20.215/20.069).
+2. **Cadena civil verificada**: CPC art. 258 vigente = "dieciocho dias" (segun
+   Ley 21.394 art. 3 N.12, que reemplazo "quince" y suprimio el inciso 2; la
+   cita del informe era CORRECTA); art. 66 vigente suspende solo durante
+   feriados; Ley 2.977 art. 1: domingos SON feriados, sabados NO (salvo sabado
+   santo) -> **civil corre lunes-sabado menos feriados**. El motor tenia la
+   regla doblemente mal (15 dias habiles lun-vie). Faltan en su tabla: 29-jun,
+   12-oct (traslado a lunes, Ley 19.668), 31-oct (traslado a viernes,
+   Ley 20.299 art. 2) y 1-nov; y trae entradas espurias 24-dic y 31-dic que
+   no existen en la ley.
+3. **Correccion del diagnostico preliminar**: un output truncado + un filtro
+   case-sensitive del probe hizo concluir que la Ley 21.394 no tocaba el art.
+   258; con el XML completo se prueba lo contrario. El verificador de citas de
+   la Fase E debe CONFIRMAR esa cita, no refutarla. Ademas: el COT art. 6 no
+   trata de dias habiles (es jurisdicccion extraterritorial); el idNorma
+   canonico del COT es 25563.
+4. **Materia mixta - causa raiz en codigo**: `jurisprudenciaChile.ts:329`
+   concatena el corpus base (laboral) SIEMPRE, aunque el area declarada sea
+   civil; verificado conductualmente en prod via /api/juris-test (query civil
+   limpia devuelve una ficha "Laboral" que vive en laboral.json). El corpus
+   por area civil carga bien en prod y CORPUS_COMPLETO existe en Production.
+   Priming contradictorio en server.ts:576-580 y llamada sin slug en :639.
+5. **Premium sin motor**: /api/premium-report no invoca plazosMotor ni
+   anotacionesPlazos (0 matches): las fechas del informe son estimacion del
+   LLM. La Fase C lo conecta como anotacion (nunca bloqueo, decision del
+   dueno). Artefactos verbatim del informe/demanda quedan pendientes de pegado
+   del dueno (el endpoint tiene paywall server-side y no es re-ejecutable;
+   no se parafrasea de memoria).
+6. **Recalculos previstos para Fase B** (18 dias lun-sab, domingos+feriados
+   suspenden): qa #3 -> 2025-02-17 sin cambio; #10 -> 2026-02-06 sin cambio;
+   gate C1 -> 2027-02-17 sin cambio (la nota preliminar decia 16-02; conteo
+   dia a dia da 17, validar contra el motor); caso del dueno -> 2026-11-20.
