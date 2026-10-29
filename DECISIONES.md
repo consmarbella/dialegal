@@ -595,3 +595,67 @@ encabezando el retrieval ("Chequear diariamente el encendido y apagado" top-1;
    regresion: plazos 26/26, gate 5/5, tasa-error OK (gateAccuracy=1),
    corpus 13/13, validador 7/7, eval-gate 1.0, tsc 0, build 0. Probes
    temporales eliminados antes del commit.
+
+## Resiliencia BCN + Fase 4 (Ley 20.774: febrero no suspende) - 2026-10-29
+
+### A. Resiliencia de la ingesta BCN (antes de tocar plazos)
+
+1. **Diagnostico del "bcn 0/0" en prod**: reproducido un draft real contra
+   prod con citas explicitas -> `bcn.citados` volvio con 7+ articulos de XML
+   oficial vigente (CT arts. 5/161/162/168/171/485 + CPC art. 7,
+   fechaVersion 2026-07-23, URLs con idParte). La fuente NO estaba caida: el
+   0/0 previo fue input sin citas pareables o un blip transitorio no
+   observable. Lo vulnerable era el silencio, no la fuente.
+2. **Fragilidades corregidas en `bcnLeyChile.ts`**: (a) un solo intento de
+   fetch ante blips transitorios (conn refused/5xx/HTML sin XML) dejaba ciego
+   el draft; ahora hay **1 retry solo si la falla fue rapida (<5s,
+   `conReintentosRapido`)** — un timeout largo (25s) NO se reintenta para no
+   duplicar la latencia; (b) la cuota diaria (LIMITA_DIARIO) ahora cuenta
+   INTENTOS, no solo exitos (cortesia real hacia leychile); (c) los catch
+   silenciosos del draft (BCN pre y post) pasan a `console.warn` etiquetado
+   (`[draft][bcn-pre/bcn-post]`): si BCN cae, queda senal en logs.
+3. **QA nueva** (`scripts/qa-bcn-resiliencia.ts`): **7/7 PASS** — 4 unitarios
+   deterministas del reintento (blip recupera en 2 llamadas; blip persistente
+   falla tras 2; falla lenta NO reintenta; exito directo 1 llamada), umbral
+   default 5s, y 2 canarios EN VIVO contra leychile (CT art. 161 en 402ms con
+   XML oficial; art. 66 CPC vigente). Si la fuente cae, este QA falla: es la
+   alarma pedida, no un falso verde.
+4. **Pendiente estructural honesto**: sin DATABASE_URL en prod, la cache de
+   XML sigue siendo por-lambda (TTL 24h in-memory); cada lambda fria
+   re-descarga el cuerpo completo la primera vez. La cache persistente
+   (tabla leyes/xml_normas en Postgres) se activara cuando el dueño cree la
+   DB — no se simula con SQLite ni files efimeros.
+
+### B. Fase 4: febrero ya no suspende los plazos civiles
+
+1. **Cadena de evidencia BCN (verificada en vivo, no de memoria)**: Ley
+   20.774 "SUPRIME FERIADO JUDICIAL, PARA LOS TRIBUNALES QUE INDICA" —
+   D.O. **04-09-2014** (fechaPromulgacion 29-08-2014, normaId 1064893):
+   art. 1°-3a da al COT art. 313 el texto "corresponderá a un feriado anual
+   de un mes"; art. 2°-N°2 **elimina el inciso segundo del art. 66 CPC**
+   (la regla que suspendia los plazos de dias por feriado judicial);
+   art. 7°: "Las referencias al feriado judicial de febrero consignadas en
+   cualquier cuerpo legal... se entenderan derogadas". El XML del CPC
+   vigente (idNorma 22740, fechaVersion 2022-06-30) NO menciona vacaciones
+   judiciales en ningun articulo (busqueda sobre las partes Art completa).
+   El comentario viejo del motor citaba "CPC art. 70" para las vacaciones —
+   el art. 70 vigente habla de formacion del proceso: comentario obsoleto.
+2. **Cambio en `plazosChile.ts`**: `HABILES.civil.vacacionesJudiciales`
+   "si" -> **"no"** (laboral y familia ya eran "no"). El campo y la rama de
+   desglose quedan como mecanismo documentado (extensibilidad). Los
+   fundamentos de los 3 plazos civiles llevan la cita: "No se suspende en
+   febrero (Ley 20.774, D.O. 04-09-2014)".
+3. **Alcance del feriado anual variable**: el feriado anual de un mes por
+   tribunal (COT art. 313) depende de auto acordado por corte/tribunal y no
+   es modelable determinísticamente; queda fuera del motor, cubierto por el
+   marco [VERIFICAR] existente (misma filosofia que la distancia de
+   emplazamiento).
+4. **Expectativas corregidas a mano con la regla nueva**: qa-plazos #3
+   (notif 27-01-2025): 2025-03-17 -> **2025-02-17** (28-31 ene=4; feb 3-7=9,
+   10-14=14, 17=15); #10 (notif 03-02-2026): 2026-03-04 -> **2026-02-06**
+   (4,5,6 feb); gate C1 (notif 27-01-2027): 2027-03-17 -> **2027-02-17**,
+   con el informe del caso editado para que la fecha declarada coincida con
+   la del motor (17 de febrero de 2027).
+5. **Verificacion**: qa-bcn-resiliencia 7/7, plazos 26/26, gate 5/5,
+   tasa-error OK (gateAccuracy=1), eval:gate exit 0 (matriz 13/17/5
+   clasifica exacta), corpus 13/13, validador 7/7, tsc 0, build 0.

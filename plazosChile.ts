@@ -45,12 +45,19 @@ function claveIso(anio: number, mes: number, dia: number): string {
 }
 
 // ─── Días hábiles por materia ────────────────────────────────────────────────
-// Civil (CPC art. 66): inhábiles sábado, domingo y feriados legales; los
-// plazos de días suspenden además en vacaciones judiciales (art. 70: del 1 de
-// febrero al 1 de marzo). Laboral y familia: no suspenden por vacaciones.
+// Civil (CPC art. 66): inhábiles sábado, domingo y feriados legales. La
+// suspensión de plazos por feriado judicial de FEBRERO fue ELIMINADA por la
+// Ley 20.774 (D.O. 04-09-2014, "Suprime feriado judicial"): su art. 2° N° 2
+// eliminó el inciso segundo del art. 66 CPC y su art. 7° derogó toda
+// referencia al feriado judicial de febrero; el CPC vigente (XML BCN
+// idNorma=22740, verificado 2026-10-29) no menciona vacaciones judiciales en
+// ningún artículo. El "feriado anual de un mes" (COT art. 313, texto según
+// Ley 20.774) es variable por tribunal y auto acordado: no es modelable
+// determinísticamente, queda cubierto por el marco [VERIFICAR]. Laboral y
+// familia: nunca suspendieron en este motor.
 export interface ReglaHabiles { feriados: boolean; vacacionesJudiciales: "si" | "no"; }
 const HABILES: Record<"civil" | "laboral" | "familia", ReglaHabiles> = {
-  civil: { feriados: true, vacacionesJudiciales: "si" },
+  civil: { feriados: true, vacacionesJudiciales: "no" }, // Ley 20.774: febrero ya no suspende
   laboral: { feriados: true, vacacionesJudiciales: "no" },
   familia: { feriados: true, vacacionesJudiciales: "no" },
 };
@@ -96,7 +103,7 @@ export const PLAZOS: PlazoEmpateDef[] = [
     id: "civil_contestacion",
     descripcion: "Plazo para contestar demanda civil ordinaria",
     materia: "civil", diasHabiles: 15, emplazamiento: true,
-    fundamento: "CPC art. 258 (notificación) y arts. 258/259 (emplazamiento).",
+    fundamento: "CPC art. 258 (notificación) y arts. 258/259 (emplazamiento). No se suspende en febrero (Ley 20.774, D.O. 04-09-2014).",
   },
   {
     id: "laboral_contestacion",
@@ -108,13 +115,13 @@ export const PLAZOS: PlazoEmpateDef[] = [
     id: "civil_apelacion_auto",
     descripcion: "Apelación de resoluciones interlocutorias en civil",
     materia: "civil", diasHabiles: 5, emplazamiento: false,
-    fundamento: "CPC art. 107 Nº 2 (5 días hábiles).",
+    fundamento: "CPC art. 107 Nº 2 (5 días hábiles). No se suspende en febrero (Ley 20.774, D.O. 04-09-2014).",
   },
   {
     id: "civil_oposicion_medida",
     descripcion: "Oposición a la ejecución de medida (cump. ejecución civil)",
     materia: "civil", diasHabiles: 3, emplazamiento: false,
-    fundamento: "CPC art. 486 Nº 3 (3 días hábiles para la oposición).",
+    fundamento: "CPC art. 486 Nº 3 (3 días hábiles para la oposición). No se suspende en febrero (Ley 20.774, D.O. 04-09-2014).",
   },
   {
     id: "familia_apelacion",

@@ -135,7 +135,11 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   let citasBCN: Awaited<ReturnType<typeof verificarCitasBCN>> = { verificados: [], pendientes: [] };
   try {
     citasBCN = await verificarCitasBCN([combinedText]);
-  } catch { /* silencioso */ }
+  } catch (e: any) {
+    // Resiliencia BCN: visible en logs (antes silencioso, indistinguible de un
+    // caso sin citas si BCN caia).
+    console.warn(`[draft][bcn-pre] verificacion fallo (sigue sin BCN): ${String(e?.message || e).slice(0, 150)}`);
+  }
 
   // 5. Multi-retrieval jurisprudencial adaptativo
   const consultas: ConsultaEtiquetada[] = [];
@@ -253,7 +257,9 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
       const k = `${p.keyNorma}:${(p.articulosPedidos || []).join(",")}`;
       if (!pendVistos.has(k)) { citasBCNFinal.pendientes.push(p); pendVistos.add(k); }
     }
-  } catch { /* silencioso */ }
+  } catch (e: any) {
+    console.warn(`[draft][bcn-post] verificacion del borrador fallo (sigue con BCN pre): ${String(e?.message || e).slice(0, 150)}`);
+  }
 
   // 10. Validador LegalHelp
   const rolesCorpus = [

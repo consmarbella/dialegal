@@ -119,10 +119,13 @@ function limpiarTexto(s: string): string {
     .trim();
 }
 
-async function fetchXML(id: number, byLey = false): Promise<string> {
+async function fetchXMLOnce(id: number, byLey = false): Promise<string> {
   const url = byLey
     ? `https://www.leychile.cl/Consulta/obtxml?opt=7&idLey=${id}`
     : `https://www.leychile.cl/Consulta/obtxml?opt=7&idNorma=${id}`;
+  // La cuota diaria cuenta INTENTOS (no solo exitos): es la cortesia real
+  // hacia leychile (un retry cuenta como consulta).
+  registrarConsulta();
   const res = await fetch(url, {
     headers: { "User-Agent": "legalhelp.cl/1.0 (uso verificacion normativa; contacto soporte@legalhelp.cl)" },
     signal: AbortSignal.timeout(25000),
@@ -131,8 +134,30 @@ async function fetchXML(id: number, byLey = false): Promise<string> {
   const ct = res.headers.get("content-type") || "";
   const body = await res.text();
   if (!ct.includes("xml") && !body.includes("<Identificador") && !body.includes("<Norma")) throw new Error("obtxml sin XML");
-  registrarConsulta();
   return body;
+}
+
+// ── Resiliencia de ingesta BCN (2026-10-29, auditoria post-prod) ────────────
+// Evidencia: prod funciona (draft con citas -> XML oficial vigente), pero un
+// blip transitorio (conn refused, 5xx, HTML sin XML) dejaba el bloque BCN
+// ciego para ese draft: 1 solo intento, error cacheado 3 min en la lambda y
+// catchs silenciosos. Ahora: 1 retry SOLO si la falla fue rapida (<5s). Un
+// timeout largo (25s) NO se reintenta para no duplicar la latencia del draft.
+// maxMs inyectable para QA determinista.
+export const RETRY_UMBRAL_MS = 5000;
+
+export async function conReintentosRapido(fn: () => Promise<string>, maxMs: number = RETRY_UMBRAL_MS): Promise<string> {
+  const t0 = Date.now();
+  try {
+    return await fn();
+  } catch (e) {
+    if (Date.now() - t0 >= maxMs) throw e;
+    return await fn();
+  }
+}
+
+function fetchXML(id: number, byLey = false): Promise<string> {
+  return conReintentosRapido(() => fetchXMLOnce(id, byLey));
 }
 
 async function getNorma(id: number, byLey = false): Promise<NormaCacheEntry | null> {

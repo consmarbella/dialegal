@@ -24,11 +24,12 @@ chk("1 civil 15 habiles desde vie 23-05: 13-06-2025", r1.ok && r1.fechaLimite ==
 const r2 = P.calcularPlazo({ plazoId: "laboral_contestacion", fechaNotificacion: "2024-09-06", kmDemandado: 0 });
 chk("2 laboral 15 habiles cruzando 18/19-09: 01-10-2024", r2.ok && r2.fechaLimite === "2024-10-01", r2);
 
-// 3. vacaciones judiciales civiles (febrero suspende): notif lun 27-01-2025.
-//    Empeza mar 28-01; 28,29,30,31 (4) + feb FOSSIL por vacaciones + mar 03-07 (9),
-//    10-14 (14) y 17 (15) => 2025-03-17
+// 3. Ley 20.774 (D.O. 04-09-2014): febrero ya NO suspende los plazos civiles
+//    (elimina inc. 2º del art. 66 CPC; art. 7º deroga referencias al feriado
+//    judicial de febrero). Notif lun 27-01-2025: empieza mar 28-01; 28,29,30,31
+//    (4); feb 3-7 (9), 10-14 (14), 17 (15) => 2025-02-17
 const r3 = P.calcularPlazo({ plazoId: "civil_contestacion", fechaNotificacion: "2025-01-27", kmDemandado: 0 });
-chk("3 civil desde 27-01 con feb suspendido: 17-03-2025", r3.ok && r3.fechaLimite === "2025-03-17", r3);
+chk("3 civil desde 27-01 sin feb suspendido (Ley 20.774): 17-02-2025", r3.ok && r3.fechaLimite === "2025-02-17", r3);
 
 // 4. emplazamiento km 400 => +8 dias (2*ceil((400-50)/100)=8): notif lun 03-03-2025
 //    laboral sin vacaciones: desde mar 04, 15+8=23 habiles => 2025-04-03
@@ -49,10 +50,10 @@ chk("8 laboral apelacion 5 habiles: 13-08-2025", r8.ok && r8.fechaLimite === "20
 const r9 = P.calcularPlazo({ plazoId: "familia_apelacion", fechaNotificacion: "2025-01-31" });
 chk("9 familia 5 habiles en feb (no suspende): 07-02-2025", r9.ok && r9.fechaLimite === "2025-02-07", r9);
 
-// 10. civil notificado DENTRO de feb (suspende el mes saron): notif mar 03-02-2026:
-//     contable solo en marzo: lun 02 (1), 3 (2), 4 (3) => 2026-03-04
+// 10. civil notificado DENTRO de febrero (Ley 20.774: corre normal): notif mar
+//     03-02-2026: desde mie 04: 4 (1), 5 (2), 6 (3) => 2026-02-06
 const r10 = P.calcularPlazo({ plazoId: "civil_oposicion_medida", fechaNotificacion: "2026-02-03" });
-chk("10 civil notificado en feb suspende hasta marzo: 04-03-2026", r10.ok && r10.fechaLimite === "2026-03-04", r10);
+chk("10 civil notificado en feb corre (Ley 20.774): 06-02-2026", r10.ok && r10.fechaLimite === "2026-02-06", r10);
 
 // 11. plazoId inexistente no arroja y marca VERIFICAR
 const r11 = P.calcularPlazo({ plazoId: "inexistente", fechaNotificacion: "2025-05-23" });
