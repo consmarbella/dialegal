@@ -818,3 +818,85 @@ indeterminada (null) y el conflicto es ANOTACION VISIBLE, nunca bloqueo.
    "BuildFailed", 0 jobs, sin logs, tambien por workflow_dispatch; el YAML
    parsea bien) - problema pre-existente de repo/cuenta que el dueno debe
    revisar en Settings -> Billing/Actions; no bloquea deploy ni QA local.
+
+## Fase E - Verificador de citas contra XML oficial leychile - 2026-10-29
+
+**Objetivo del plan**: automatizar la confirmacion que la Fase A hizo a mano
+(mandato 7.1: sentenciar la cita "CPC art. 258 segun Ley 21.394" contra el XML
+oficial) y extender la sentencia documental a TODO el registro de plazos.
+Canal: `Consulta/obtxml?opt=7` (mismo del runtime), sin LLM.
+
+1. **Confirmado automatizado** (`scripts/qa-citas-faseE.ts`, 22/22): CPC 258
+   vigente (fv 2021-11-30) dice "dieciocho dias" y no contiene "quince";
+   Ley 21.394 art. 3 N.12 dice verbatim "reemplazanse, en el inciso primero,
+   la palabra \"quince\" por \"dieciocho\"" (plural: el assert original con
+   "reemplazase" singular fallaba por eso); CPC 259 = tabla quinquenal CS
+   ("se aumentara de conformidad"); CPC 66 (fv 2014-09-04) = "se entenderan
+   suspendidos durante los feriados" SIN exclusion de sabados (Ley 2.977
+   art. 2 declara sabado feriado solo para dependencias publicas) -> el
+   calendario civil lun-sab del motor queda sentenciado, no supuesto.
+2. **Hallazgo grave - laboral_contestacion REMOVIDO**: el CT vigente NO
+   tiene plazo de 15 dias habiles para contestar demanda laboral. CT 446
+   (fv 2008-03-29) define solo el CONTENIDO de la demanda ("la demanda se
+   interpondra por escrito y debera contener: 1. la designacion del
+   tribunal..."); la contestacion es en la audiencia preparatoria: CT 451
+   ("citar a las partes a una audiencia preparatoria, fijando... dentro de
+   los treinta y cinco dias siguientes a la fecha de la resolucion") y CT
+   452 ("el demandado debera contestar la demanda por escrito con a lo
+   menos cinco dias de antelacion a la fecha de celebracion" de la
+   audiencia, o verbalmente en ella). La cita "CT art. 446 (15 dias
+   habiles)" del registro era REFUTADA: se removio del registro y de
+   PLAZO_POR_TIPO. Los drafts laborales de contestacion ahora reciben
+   [VERIFICACION DE PLAZOS] y el borrador produce "[VERIFICAR: plazo de
+   contestacion segun la normativa aplicable]" - sin fecha inventada.
+3. **Hallazgo de canal - laboral_apelacion REMOVIDO**: el XML del CT por
+   idNorma 207436 TRUNCA en el art. 519 (termina en la promulgacion
+   2003-01-16; los arts. 520+, incluidos 533 y 540, estan ausentes).
+   "CT art. 533 (5 dias habiles)" era INVERIFICABLE -> removido del
+   registro (honestidad estricta: no se despliegan citas que el canal no
+   permite sentenciar). Reintento posible via idLey o Fase H.
+4. **Hallazgo - familia_apelacion RE-MODELADO**: Ley 19.968 art. 51 NO
+   trata de apelacion (regula la declaracion de las partes); la cita
+   previa era ERRONEA. La apelacion en familia vive en el art. 67, que
+   REMITE AL CPC ("las resoluciones seran impugnables a traves de los
+   recursos y en las formas que establece el codigo de procedimiento
+   civil..."). CPC art. 189 (fv 1989): "la apelacion debera interponerse
+   en el termino fatal de cinco dias" y "se aumentara a diez dias
+   tratandose de sentencias definitivas". Nuevo modelado: 5 dias con
+   calendario CPC (lun-sab), fundamento "L19.968 art. 67 + CPC art. 189",
+   con la variante de 10 dias para definitivas ANOTADA en el fundamento
+   (visible en el campo fuente de cada calculo).
+5. **Hallazgo menor - cita del desglose corregida**: el desglose del motor
+   citaba "CPC art. 251: el plazo corre desde el dia siguiente de
+   transcurridas 24 horas"; el art. 251 actual trata de la ejecucion de
+   resoluciones extranjeras. El desglose ahora cita el art. 66 verificado
+   (fv 2014) y la regla de computo al dia siguiente queda como regla
+   general del motor, sin numero de articulo inventado.
+6. **Registro final**: 4 plazos (civil_contestacion 18 dias lun-sab con
+   emplazamiento 258/259 + nota de art. 260 por pluralidad de demandantes
+   agregada como [VERIFICAR]; civil_apelacion_auto 5; civil_oposicion_
+   medida 3; familia_apelacion 5 calendario CPC). Cruz dura fundamento-
+   vs-QA: todo plazo del registro debe tener sus articulos sentenciados
+   contra BCN en este QA o el build de evaluacion falla.
+7. **Gate recalibrado con nota honesta** (35 casos): E4 (laboral vencido)
+   mantiene clase warn via motor_plazo_sin_resultado (el motor se NIEGA a
+   computar con reglas refutadas); B1 y A11 (laboral pass) pasan la capa
+   plazos a "-" con su objeto declarado (validador estructural, no plazos).
+   eval:gate 100%.
+8. **Suite**: citas 22/22 (nuevo), plazos 39/39 (tests 2/4/8/9/23/24/25/
+   34/35 rewiresados con calendarios verificados; test 8 nuevo = plazos
+   removidos se niegan con plazo-invalido + VERIFICAR), corpus 13/13,
+   validador 7/7, bcn-resiliencia 7/7, retrieval 38/38, gate 5/5, recency
+   6/6, materias 19/19, tasa-error harness OK, tsc 0, build 0.
+9. **Verificacion en prod** (deploy CLI unico post a82f197, aliado
+   legalhelp.cl): draft LABORAL contestacion (notif 26-10-2026) ->
+   metadatos.plazosMotor = [] y borrador con "[VERIFICAR: plazo de
+   contestacion segun la normativa aplicable]" sin fecha limite inventada
+   (antes el sistema imprimia 15 dias habiles con cita refutada); draft
+   CIVIL (notif 26-10-2026, sáb 31-oct y dom 01-nov feriados) ->
+   fechaLimite 2026-11-17 exacta con fundamento CPC 258 segun Ley 21.394.
+10. **Limitacion declarada**: los feriados del canal del CC (DFL 1/2000)
+    llegan con fechaVersion="2222-02-02" a nivel norma (fecha fantasma de
+    leychile para normas refundidas) - se sanitiza en Fase F; y los arts.
+    del CT posteriores al 519 solo son verificables por otro canal (ver
+    punto 3).
