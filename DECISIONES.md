@@ -756,3 +756,65 @@ encabezando el retrieval ("Chequear diariamente el encendido y apagado" top-1;
    murieron en 3-4 s sin logs: problema de repo/cuenta GitHub que el dueno
    debe revisar en Settings -> Billing/Actions; no bloquea deploy ni QA local
    (eval:gate 100% local).
+
+## Fase D - Registro unico de materias (7 + transito) - 2026-10-29
+
+**Decision del dueno que materializa**: "opcion 1 y agregar transito" (7
+materias: civil, laboral, familia, penal, administrativo, constitucional +
+transito); transversal queda como CAPA de corpus, no como materia. Regla de
+oro: el area declarada MANDA, las senales solo sugieren, sin senal =
+indeterminada (null) y el conflicto es ANOTACION VISIBLE, nunca bloqueo.
+
+1. **materias.ts (nuevo)**: fuente unica de verdad. Clasificador determinista
+   por conteo de senales (regex con pesos, sin red ni LLM); la "confianza" es
+   el MARGEN crudo top1-top2, no un porcentaje inventado. \esolverMateria\
+   implementa la regla declarada-manda; \lineaMateriaPrompt\ imprime que
+   gobierna, de donde salio y los conteos crudos. Error propio corregido en
+   code review: "paco" como senal de transito (jerga de droga, falso
+   positivo) - eliminado antes de commitear.
+2. **Causa raiz eliminada**: \rea-detector.ts\ devolvia "laboral" por defecto
+   en empate o cero senal (lineas 112/136) - era la contaminacion civil->
+   laboral del informe real (Fase A). Ahora devuelve null. \getArticulosClave\
+   (legalhelp-templates.ts) cai a laboral con area desconocida: ahora null =>
+   []. validadorLegalHelp acepta area null/transito.
+3. **Recuperacion gobernada por area** (jurisprudenciaChile.ts): la base
+   laboral DEJA de concatenarse siempre al indice; el area pedida trae su
+   corpus (CORPUS_COMPLETO) + capa transversal, y la base queda como FALLBACK
+   ETIQUETADO (\uenteFallback\, \uenteTransversal\, \slugOrigen\) visible en
+   prompt y resumenJuris/resumenCasos. Casos anologos: \	agAreaCaso\ filtra
+   "(LABORAL)"/constitucional (el corpus de casos NO tiene area dogmatica:
+   3444 casos ~90% laboral, campo materia = materia procesal); filtro con
+   repuesto etiquetado si quedan <2. transito NO tiene corpus propio
+   (verificado: el dataset fuente no trae area Transito) - corre sobre normas
+   BCN (L18290/L18287) + capa transversal; corpus propio solo con fuente real
+   (Fase H).
+4. **Plazos honestos por materia**: \calcularPlazosMotor\ acepta area null;
+   materias sin plazos modelados (penal, administrativo, constitucional,
+   transito) reciben en el prompt "[VERIFICACION DE PLAZOS] ... NO inventes
+   fecha limite" en vez de silencio.
+5. **Frontend**: chip "Transito / Policia Local" en DraftForm (mapea el
+   "policia_local" del wizard); el % de auto-deteccion (inventado, maxArea/5)
+   reemplazado por el clasificador real con conteos crudos ("Civil=8 ·
+   Laboral=2", "sin senales" cuando no hay); DraftResult/DraftHistory muestran
+   "indeterminada" con area null. premium \materia\ ahora null cuando no hay
+   senales (el chip se oculta, no se inventa "civil encubierto").
+6. **QA**: nuevo scripts/qa-materias-faseD.ts 19/19 (clasificacion por
+   materia, declarada-manda + conflicto visible, indeterminada nunca laboral,
+   policia_local=>transito, prompt sin %, tags de casos, recuperacion civil/
+   transito sin fichas laborales sin etiqueta, articulos clave null-safe).
+   Suite completa: plazos 38/38, corpus 13/13, validador 7/7, bcn-resiliencia
+   7/7, retrieval 38/38, gate 5/5, eval:gate 100%. tsc 0, build 0.
+7. **Verificacion en prod** (deploy CLI unico posterior a 7119155, aliado a
+   legalhelp.cl): juris-test texto de transito SIN area declarada ->
+   area=transito (17 puntos crudos, origen senales, 8 fichas todas de capa
+   transversal etiquetada); juris-test civil declarado -> 8 fichas sin
+   ninguna laboral sin etiqueta; texto neutral -> "sin-area" (nunca laboral).
+   Draft civil con frase "nos notificaron ... 28 de octubre de 2026" (fix
+   B.2 ahora en prod) -> fechaLimite 2026-11-19 (18 dias lun-sab, CPC 258
+   segun Ley 21.394). Draft transito end-to-end -> metadatos.area=transito,
+   plazosMotor [], articulosClave [] y borrador con [VERIFICAR] (sin plazos
+   inventados).
+8. **CI GitHub Actions**: las runs siguen en startup_failure (path
+   "BuildFailed", 0 jobs, sin logs, tambien por workflow_dispatch; el YAML
+   parsea bien) - problema pre-existente de repo/cuenta que el dueno debe
+   revisar en Settings -> Billing/Actions; no bloquea deploy ni QA local.
