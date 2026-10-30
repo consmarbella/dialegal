@@ -1,10 +1,14 @@
-// QA Fase 7: motor determinista de plazos (plazosChile.ts). Sin red. Los
+// QA Fase 7/E: motor determinista de plazos (plazosChile.ts). Sin red. Los
 // valores esperados se derivan a mano de las reglas propias del motor:
-// art 251 (corre al dia siguiente); CIVIL: lunes-sabado, suspenden domingos y
-// feriados (CPC art. 258 "dieciocho dias" segun Ley 21.394 + art. 66 + Ley
-// 2.977: domingos feriados, sabados no); LABORAL/FAMILIA: lun-vie; feriados
-// fijos + traslados (19.668 lunes, 20.299 viernes, 21.357 solsticio);
-// emplazamiento +2 dias por cada 100 km (>50). Fase B (2026-10-29).
+// el plazo corre al dia siguiente de la notificacion; CIVIL: lunes-sabado,
+// suspenden domingos y feriados (CPC art. 258 "dieciocho dias" segun Ley
+// 21.394 + art. 66 fv 2014 + Ley 2.977: domingos feriados, sabados no);
+// feriados fijos + traslados (19.668 lunes, 20.299 viernes, 21.357
+// solsticio); emplazamiento +2 dias por cada 100 km (>50). Fase B
+// (2026-10-29). Fase E (2026-10-29): plazos LABORALES removidos del registro
+// (refutados/inverificables contra XML BCN — ver qa-citas-faseE.ts);
+// familia_apelacion re-modelada con calendario CPC (L19.968 art. 67 remite
+// los recursos al CPC; CPC art. 189: 5 dias).
 process.env.CORPUS_COMPLETO = "";
 let ok = 0, fail = 0;
 function chk(name: string, cond: boolean, data?: unknown) {
@@ -20,12 +24,12 @@ const P = await import("../plazosChile.js");
 const r1 = P.calcularPlazo({ plazoId: "civil_contestacion", fechaNotificacion: "2025-05-23", kmDemandado: 0 });
 chk("1 civil 18 dias (lun-sab) desde vie 23-05: 13-06-2025", r1.ok && r1.fechaLimite === "2025-06-13", r1);
 
-// 2. mismo plazo cruzando feriados de septiembre: notif vie 06-09-2024 (18/19
-//    feriados, mier-jue 2024): hábiles desde lun 09: 9,10,11,12,13 (5); 16,17 (7);
-//    20 (8); 23,24,25,26,27 (13); 30 (14) => 15.º hábil el 30-09 (sábado la
-//    fracción? no: 30 es lunes) => limite 2024-10-01 no: cunta 9(1)...30(14), 01Oct(15) => 2024-10-01
-const r2 = P.calcularPlazo({ plazoId: "laboral_contestacion", fechaNotificacion: "2024-09-06", kmDemandado: 0 });
-chk("2 laboral 15 habiles cruzando 18/19-09: 01-10-2024", r2.ok && r2.fechaLimite === "2024-10-01", r2);
+// 2. civil cruzando feriados de septiembre (18/19): notif vie 06-09-2024.
+//    18 dias lun-sab desde sab 07: sab 07 (1); dom skip; 09-13 (6); sab 14
+//    (7); 16-17 (9); 18-19 FERIADO; 20 (10); sab 21 (11); 23-27 (16); sab 28
+//    (17); 30 (18) => 2024-09-30
+const r2 = P.calcularPlazo({ plazoId: "civil_contestacion", fechaNotificacion: "2024-09-06", kmDemandado: 0 });
+chk("2 civil 18 dias cruzando 18/19-09: 30-09-2024", r2.ok && r2.fechaLimite === "2024-09-30", r2);
 
 // 3. Ley 20.774 (D.O. 04-09-2014): febrero ya NO suspende los plazos civiles
 //    (elimina inc. 2º del art. 66 CPC; art. 7º deroga referencias al feriado
@@ -37,23 +41,28 @@ const r3 = P.calcularPlazo({ plazoId: "civil_contestacion", fechaNotificacion: "
 chk("3 civil desde 27-01 sin feb suspendido (Ley 20.774): 17-02-2025", r3.ok && r3.fechaLimite === "2025-02-17", r3);
 
 // 4. emplazamiento km 400 => +8 dias (2*ceil((400-50)/100)=8): notif lun 03-03-2025
-//    laboral sin vacaciones: desde mar 04, 15+8=23 habiles => 2025-04-03
-const r4 = P.calcularPlazo({ plazoId: "laboral_contestacion", fechaNotificacion: "2025-03-03", kmDemandado: 400 });
-chk("4 laboral 15+8 emplazamiento km400: 03-04-2025", r4.ok && r4.fechaLimite === "2025-04-03" && r4.diasOtorgados === 23, r4);
+//    civil (sabados corren): 18+8=26 dias desde mar 04 => 2025-04-02
+const r4 = P.calcularPlazo({ plazoId: "civil_contestacion", fechaNotificacion: "2025-03-03", kmDemandado: 400 });
+chk("4 civil 18+8 emplazamiento km400: 02-04-2025", r4.ok && r4.fechaLimite === "2025-04-02" && r4.diasOtorgados === 26, r4);
 
 // 5-7. tabla de emplazamiento
 chk("5 diasEmplazamiento km50 = 0", P.diasEmplazamiento(50) === 0);
 chk("6 diasEmplazamiento km51 = 2 (fraccion >50)", P.diasEmplazamiento(51) === 2);
 chk("7 diasEmplazamiento km300 = 6", P.diasEmplazamiento(300) === 6);
 
-// 8-10. plazos apelacion: laboral 5 habiles: notif mié 06-08-2025 -> jue 07 (1), vie 08 (2), lun 11 (3), mar 12 (4), mié 13 (5) => 2025-08-13
-const r8 = P.calcularPlazo({ plazoId: "laboral_apelacion", fechaNotificacion: "2025-08-06" });
-chk("8 laboral apelacion 5 habiles: 13-08-2025", r8.ok && r8.fechaLimite === "2025-08-13", r8);
+// 8. Fase E: los plazos laborales fueron REMOVIDOS del registro (refutados/
+//    inverificables contra XML BCN): calcularPlazo debe NEGARSE con VERIFICAR,
+//    nunca computar silenciosamente con reglas refutadas.
+const r8 = P.calcularPlazo({ plazoId: "laboral_contestacion", fechaNotificacion: "2025-08-06" });
+chk("8 laboral_contestacion removido -> ok=false plazo-invalido + VERIFICAR", !r8.ok && r8.fuente === "plazo-invalido" && (r8.aviso || "").includes("VERIFICAR"), r8);
+const r8b = P.calcularPlazo({ plazoId: "laboral_apelacion", fechaNotificacion: "2025-08-06" });
+chk("8b laboral_apelacion removido -> ok=false plazo-invalido", !r8b.ok && r8b.fuente === "plazo-invalido", r8b);
 
-// 9. familia movimiento en feb (NO suspende): notif vie 31-01-2025 -> familia/laboral no suspenden:
-//    1 feb sab inhábil... primero hab de feb: lun 03 (1), 04 (2), 05 (3), 06 (4), 07 (5) => 2025-02-07
+// 9. familia apelacion con calendario CPC (L19.968 art. 67 + CPC art. 189):
+//    notif vie 31-01-2025 => sab 01-02 CORRE (1); dom skip; 03 (2), 04 (3),
+//    05 (4), 06 (5) => 2025-02-06
 const r9 = P.calcularPlazo({ plazoId: "familia_apelacion", fechaNotificacion: "2025-01-31" });
-chk("9 familia 5 habiles en feb (no suspende): 07-02-2025", r9.ok && r9.fechaLimite === "2025-02-07", r9);
+chk("9 familia apelacion 5 dias calendario CPC en feb: 06-02-2025", r9.ok && r9.fechaLimite === "2025-02-06", r9);
 
 // 10. civil notificado DENTRO de febrero (Ley 20.774: corre normal): notif mar
 //     03-02-2026: desde mie 04: 4 (1), 5 (2), 6 (3) => 2026-02-06
@@ -95,12 +104,17 @@ const amb = P.detectarFechasNotificacion("Fue notificada en calle Santiago el 5 
 chk("21 dos fechas distintas -> ambigua=true", amb.ambigua && amb.fechas.length === 2, amb);
 const unica = P.detectarFechasNotificacion("La demanda fue notificada con fecha 05-05-2024. La misma fecha se resexo: notificada el 5 de mayo de 2024.");
 chk("22 misma fecha duplicada NO es ambigua", !unica.ambigua && unica.fechas.length === 1 && unica.primera === "2024-05-05", unica);
-const rv = P.calcularPlazo({ plazoId: "laboral_contestacion", fechaNotificacion: "2023-10-02" });
-chk("23 plazo pasado -> vencido=true (12-oct-2023 traslado a lun 09)", rv.ok && rv.vencido === true && rv.fechaLimite === "2023-10-24" && (rv.fechaLimite || "") < P.hoyIso(), rv);
-const rvf = P.calcularPlazo({ plazoId: "laboral_contestacion", fechaNotificacion: "2027-03-03" });
-chk("24 plazo futuro -> vencido=false", rvf.ok && rvf.vencido === false, rvf);
-const not21 = P.anotacionesPlazos([rv], "El demandado debía contestar para el 24 de octubre de 2023.", { fechas: ["2023-10-02"], primera: "2023-10-02", ambigua: false });
-chk("25 nota plazo_vencido en anotaciones", not21.some((a) => a.includes("plazo_vencido") && a.includes("2023-10-24")), not21);
+// 23-24. vencido con familia_apelacion (calendario CPC desde Fase E):
+//     notif lun 02-10-2023: mar 03 (1), mie 04 (2), jue 05 (3), vie 06 (4),
+//     sab 07 (5) => 2023-10-07 (ya vencido).
+const rv = P.calcularPlazo({ plazoId: "familia_apelacion", fechaNotificacion: "2023-10-02" });
+chk("23 plazo pasado -> vencido=true (calendario CPC: 07-10-2023)", rv.ok && rv.vencido === true && rv.fechaLimite === "2023-10-07" && (rv.fechaLimite || "") < P.hoyIso(), rv);
+//     notif mie 03-03-2027: jue 04 (1), vie 05 (2), sab 06 (3); dom skip;
+//     lun 08 (4), mar 09 (5) => 2027-03-09 (futuro).
+const rvf = P.calcularPlazo({ plazoId: "familia_apelacion", fechaNotificacion: "2027-03-03" });
+chk("24 plazo futuro -> vencido=false (09-03-2027)", rvf.ok && rvf.vencido === false && rvf.fechaLimite === "2027-03-09", rvf);
+const not21 = P.anotacionesPlazos([rv], "El demandado debía apelar para el 7 de octubre de 2023.", { fechas: ["2023-10-02"], primera: "2023-10-02", ambigua: false });
+chk("25 nota plazo_vencido en anotaciones", not21.some((a) => a.includes("plazo_vencido") && a.includes("2023-10-07")), not21);
 const not22 = P.anotacionesPlazos([rv], "", { fechas: ["2024-05-05", "2024-05-19"], primera: "2024-05-05", ambigua: true });
 chk("26 nota fecha_notificacion_ambigua", not22.some((a) => a.includes("fecha_notificacion_ambigua")), not22);
 
@@ -132,17 +146,19 @@ chk("32 sin 24-dic ni 31-dic", !P.feriadosAnio(2026).has("2026-12-24") && !P.fer
 //     lun 28 (3); mar 29 (4); mie 30 (5)) => 2026-12-30.
 const r33 = P.calcularPlazo({ plazoId: "civil_apelacion_auto", fechaNotificacion: "2026-12-23" });
 chk("33 civil cruza 24-dic (ya corre): 30-12-2026", r33.ok && r33.fechaLimite === "2026-12-30", r33);
-// 34. laboral corre el 31-dic-2026 (antes lo saltaba): notif mie 30-12-2026,
-//     5 habiles: jue 31 (1); vie 1-ene FERIADO skip; lun 4 (2); mar 5 (3);
-//     mie 6 (4); jue 7 (5) => 2027-01-07.
-const r34 = P.calcularPlazo({ plazoId: "laboral_apelacion", fechaNotificacion: "2026-12-30" });
-chk("34 laboral cruza 31-dic (ya corre): 07-01-2027", r34.ok && r34.fechaLimite === "2027-01-07", r34);
-// 35. laboral NOT corre sabados y respeta el traslado de 29-jun-2026 (lun):
-//     notif mie 24-06-2026, 15 habiles: 25-26 (2); 29 FERIADO skip; 30 (3);
-//     jul 1-3 (6); 6-10 (11); 13-15 (14); 16 FERIADO (Virgen del Carmen) skip;
-//     17 (15) => 2026-07-17.
-const r35 = P.calcularPlazo({ plazoId: "laboral_contestacion", fechaNotificacion: "2026-06-24", kmDemandado: 0 });
-chk("35 laboral cruza 29-jun y 16-jul-2026: 17-07-2026", r35.ok && r35.fechaLimite === "2026-07-17", r35);
+// 34. apelacion (calendario CPC) cruza 31-dic-2026 y 01-ene-2027 (feriado):
+//     notif mie 30-12-2026, 5 dias lun-sab: jue 31 (1); vie 01-ene FERIADO
+//     skip; sab 02 (2); dom 03 skip; lun 04 (3), mar 05 (4), mie 06 (5)
+//     => 2027-01-06.
+const r34 = P.calcularPlazo({ plazoId: "familia_apelacion", fechaNotificacion: "2026-12-30" });
+chk("34 apelacion cruza 31-dic y 01-ene: 06-01-2027", r34.ok && r34.fechaLimite === "2027-01-06", r34);
+// 35. civil no suspende el 29-jun-2026 (feriado lunes, San Pedro) ni el
+//     16-jul-2026 (Virgen del Carmen, jueves): notif mie 24-06-2026, 18 dias
+//     lun-sab: 25-26 (2), sab 27 (3); 29 FERIADO skip; 30 (4); jul 1-3 (7),
+//     sab 4 (8); 6-10 (13), sab 11 (14); 13-15 (17); 16 FERIADO skip; 17 (18)
+//     => 2026-07-17.
+const r35 = P.calcularPlazo({ plazoId: "civil_contestacion", fechaNotificacion: "2026-06-24", kmDemandado: 0 });
+chk("35 civil cruza 29-jun y 16-jul-2026: 17-07-2026", r35.ok && r35.fechaLimite === "2026-07-17", r35);
 
 // ── Fase B.2 (2026-10-29): detector de notificaciones con formas verbales ──
 // 36. "nos notificaron" (verbo 3a persona, frase tipica de usuario) ahora se

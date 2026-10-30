@@ -1,0 +1,15 @@
+{
+  "fecha": "2026-10-30T02:34:10.038Z",
+  "ok": 22,
+  "fail": 0,
+  "confirma": {
+    "Ley 21.394 -> CPC art. 258 (quince->dieciocho)": true
+  },
+  "hallazgos": {
+    "laboral_contestacion": "removido: CT vigente no fija plazo de contestacion (audiencia preparatoria CT 451/452)",
+    "laboral_apelacion": "removido: canal leychile del CT trunca en art. 519 (CT 533 inverificable)",
+    "familia_apelacion": "re-modelado: L19.968 art. 67 (remite al CPC) + CPC art. 189 (5 dias; 10 definitivas)",
+    "cita_251_cpc": "desglose del motor corregido: el 251 actual = resoluciones extranjeras; ahora cita art. 66"
+  },
+  "detalle": "Ver scripts/qa-citas-faseE.ts; sentencia contra XML oficial leychile (obtxml opt=7)."
+}

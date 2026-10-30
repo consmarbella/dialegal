@@ -80,9 +80,9 @@ chk("2f rol fuera de corpus SIEMPRE anotado", anotacionC);
 
 // ── 4. consistencia del motor de plazos (escenarios canónicos) ──
 const p1 = P.calcularPlazo({ plazoId: "civil_contestacion", fechaNotificacion: "2025-05-23", kmDemandado: 0 });
-const p2 = P.calcularPlazo({ plazoId: "laboral_contestacion", fechaNotificacion: "2024-09-06", kmDemandado: 0 });
+const p2 = P.calcularPlazo({ plazoId: "familia_apelacion", fechaNotificacion: "2025-01-31" });
 chk("3a plazos: civil 23-05 = 2025-06-13", p1.ok && p1.fechaLimite === "2025-06-13", p1.fechaLimite);
-chk("3b plazos: laboral 06-09 = 2024-10-01", p2.ok && p2.fechaLimite === "2024-10-01", p2.fechaLimite);
+chk("3b plazos: familia apelacion (calendario CPC) 31-01 = 2025-02-06", p2.ok && p2.fechaLimite === "2025-02-06", p2.fechaLimite);
 
 // ── 5. dump de premio de metrics ──
 const accuracyBloqueo = (Number(bloqueoA) + Number(bloqueoB) + Number(sinBloqueoC) + Number(sinBloqueoD) + Number(sinBloqueoLimpio)) / 5;

@@ -95,7 +95,9 @@ function cacheKey(input: DraftInput): string {
 // ── Fase 7: mapeo tipo/area -> plazo registrado y calculo determinista ────
 const PLAZO_POR_TIPO: Record<string, { id: string; aplica: ("demanda" | "contestacion" | "minuta")[] }> = {
   civil: { id: "civil_contestacion", aplica: ["contestacion"] },
-  laboral: { id: "laboral_contestacion", aplica: ["contestacion"] },
+  // Fase E: sin entrada laboral — el CT vigente no fija plazo de contestación
+  // (audiencia preparatoria, CT 451/452): los drafts laborales reciben la nota
+  // [VERIFICACION DE PLAZOS] en vez de una fecha inventada.
 };
 function calcularPlazosMotor(area: string | null, tipo: string, combinedText: string, fechasRes?: { primera: string | null }): ResultadoPlazo[] {
   const def = area ? PLAZO_POR_TIPO[area] : undefined;

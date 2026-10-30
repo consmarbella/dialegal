@@ -67,7 +67,12 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
       s("otros laboral", "trabajador|empleador|remuneraci[o]?n|horas extra|feriado laboral|a[nf]os de servicio|fuero maternal|fuero paternal|sindicato|negociaci[o]?n colectiva|huelga|cesant[i]?a|afc\\b|seguro de cesant[i]?a", 1),
     ],
     normasSemilla: ["CT"],
-    plazos: ["laboral_contestacion", "laboral_apelacion"],
+    // Fase E: sin plazos laborales verificados — el CT vigente NO fija plazo de
+    // 15 días para contestar (la contestación es en la audiencia preparatoria,
+    // CT 451/452) y el canal leychile del CT trunca en art. 519 (no hay forma
+    // de sentenciar el 533). Honestidad estricta: [] antes que una cita
+    // refutada; los drafts laborales reciben [VERIFICACION DE PLAZOS].
+    plazos: [],
   },
   civil: {
     slug: "civil",

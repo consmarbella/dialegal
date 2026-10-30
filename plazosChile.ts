@@ -101,6 +101,13 @@ function claveIso(anio: number, mes: number, dia: number): string {
 // texto según Ley 20.774) es variable por tribunal y auto acordado: no es
 // modelable determinísticamente, queda cubierto por el marco [VERIFICAR].
 // Laboral y familia: lunes a viernes (CT); nunca suspendieron en este motor.
+// Fase E (2026-10-29): los plazos LABORALES se REMOVIERON del registro —
+// laboral_contestacion refutado (el CT vigente NO fija plazo de 15 días para
+// contestar: la contestación es en la audiencia preparatoria, CT 451/452) y
+// laboral_apelacion inverificable (el canal leychile del CT trunca en art.
+// 519). familia_apelacion quedó con calendario CPC (L19.968 art. 67 remite los
+// recursos al CPC; CPC art. 189 = 5 días), por eso su materia es "civil".
+// Las claves laboral/familia de HABILES quedan para Fase H (JPL Ley 18.287).
 export interface ReglaHabiles { feriados: boolean; vacacionesJudiciales: "si" | "no"; sabadosHabiles: boolean; }
 const HABILES: Record<"civil" | "laboral" | "familia", ReglaHabiles> = {
   civil: { feriados: true, vacacionesJudiciales: "no", sabadosHabiles: true }, // Ley 20.774: febrero ya no suspende; CPC art. 258/66: sábados corren
@@ -150,13 +157,7 @@ export const PLAZOS: PlazoEmpateDef[] = [
     id: "civil_contestacion",
     descripcion: "Plazo para contestar demanda civil ordinaria",
     materia: "civil", diasHabiles: 18, emplazamiento: true,
-    fundamento: "CPC art. 258 (texto según Ley 21.394 art. 3° N°12, D.O. 30-11-2021): dieciocho días, que corren de lunes a sábado — suspenden solo domingos y feriados (CPC art. 66; Ley 2.977 art. 1°). Emplazamiento por distancia: arts. 258/259. No se suspende en febrero (Ley 20.774, D.O. 04-09-2014).",
-  },
-  {
-    id: "laboral_contestacion",
-    descripcion: "Plazo para contestar demanda laboral",
-    materia: "laboral", diasHabiles: 15, emplazamiento: true,
-    fundamento: "CT art. 446 (15 días hábiles, con tabla de emplazamiento).",
+    fundamento: "CPC art. 258 (texto según Ley 21.394 art. 3° N°12, D.O. 30-11-2021): dieciocho días, que corren de lunes a sábado — suspenden solo domingos y feriados (CPC art. 66, fv 2014: 'se entenderán suspendidos durante los feriados', sin exclusión de sábados; Ley 2.977 art. 2 declara sábado feriado solo para dependencias públicas). Emplazamiento por distancia: arts. 258/259 (tabla quinquenal CS). No se suspende en febrero (Ley 20.774, D.O. 04-09-2014). No modela el aumento por pluralidad de demandantes (CPC art. 260: +1 día por cada 3 demandantes sobre 10, máx. 30) — [VERIFICAR] en causas con más de 10 demandantes.",
   },
   {
     id: "civil_apelacion_auto",
@@ -172,15 +173,9 @@ export const PLAZOS: PlazoEmpateDef[] = [
   },
   {
     id: "familia_apelacion",
-    descripcion: "Apelación de resoluciones en familias",
-    materia: "familia", diasHabiles: 5, emplazamiento: false,
-    fundamento: "Ley 19.968 art. 51 (5 días hábiles).",
-  },
-  {
-    id: "laboral_apelacion",
-    descripcion: "Apelación de resoluciones en laboral",
-    materia: "laboral", diasHabiles: 5, emplazamiento: false,
-    fundamento: "CT art. 533 (5 días hábiles).",
+    descripcion: "Apelación en causas de familia (término base; para sentencias definitivas es de 10 días, ver fundamento)",
+    materia: "civil", diasHabiles: 5, emplazamiento: false,
+    fundamento: "Ley 19.968 art. 67 (los recursos se rigen por el CPC, en lo no incompatible) + CPC art. 189 (fv 1989): la apelación se interpone en el término fatal de CINCO días desde la notificación — el motor modela el término base; para SENTENCIAS DEFINITIVAS el mismo art. 189 fija 10 días (consigne esa variante al apelar una definitiva). Calendario CPC: lunes a sábado — suspenden solo domingos y feriados (CPC art. 66; Ley 2.977). [VERIFICACIÓN Fase E contra XML oficial: la cita previa 'Ley 19.968 art. 51' era ERRÓNEA — el art. 51 regula la declaración de partes, no los recursos.]",
   },
 ];
 
@@ -213,7 +208,7 @@ export function calcularPlazo(entrada: EntradaPlazoP): ResultadoPlazo {
   let extra = 0;
   let kmUsado: number | null = null;
   const desglose: string[] = [
-    `Notificación: ${entrada.fechaNotificacion} (CPC art. 251: el plazo corre desde el día siguiente de transcurridas 24 horas).`,
+    `Notificación: ${entrada.fechaNotificacion} (el plazo corre desde el día siguiente a la notificación; CPC art. 66, fv 2014: los plazos de días se suspenden solo en feriados).`,
   ];
   if (def.emplazamiento) {
     kmUsado = entrada.kmDemandado == null ? 0 : entrada.kmDemandado;
