@@ -900,3 +900,24 @@ Canal: `Consulta/obtxml?opt=7` (mismo del runtime), sin LLM.
     leychile para normas refundidas) - se sanitiza en Fase F; y los arts.
     del CT posteriores al 519 solo son verificables por otro canal (ver
     punto 3).
+
+## Fase F - Etiquetas HECHO/NORMA, fin del "(100%)" y fecha fantasma 2222 - 2026-10-29
+
+1. **Etiquetas HECHO/NORMA** (AnalysisReport + DraftResult): la grilla de
+   trazabilidad ahora declara la TAXONOMIA de cada contraste: HECHO = afirmacion
+   factica contrastada contra el documento del usuario y el corpus procesal
+   (roles, montos); NORMA = cita legal contrastada contra el texto oficial de
+   Ley Chile - BCN (articulos). Leyenda visible bajo la grilla. Antes los tres
+   numeros convivian sin decir que se contrasta contra que.
+2. **"(100%)" eliminado**: el sello "DICTAMEN TECNICO COMPLETO (100%)"
+   hardcodeado (hallazgos.md 6) era una confianza INVENTADA - queda
+   "DICTAMEN TECNICO COMPLETO" a secas. Verificado en el bundle de prod: no
+   existe "(100%)".
+3. **Fecha fantasma 2222-02-02 sanitizada**: el canal BCN devuelve
+   fechaVersion="2222-02-02" para normas refundidas (Codigo Civil, DFL 1/2000)
+   - verificado upstream en la Fase A (hallazgos.md 6); no es bug de parseo
+   propio. Nuevo helper `fechaVersionSana` (src/types.ts): solo muestra
+   fechas plausibles (1900-2100); el panel deja de decir "version vigente
+   2222-02-02".
+4. tsc 0, build 0, plazos 39/39, eval:gate 100%. Verificado en prod: bundle
+   `index-TCnwaXqv.js` sin "(100%)", con chips Hecho/Norma y leyenda.
