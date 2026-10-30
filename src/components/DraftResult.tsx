@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DraftOutput, ValidacionLegalHelp, VacioCritico } from '../types';
+import { DraftOutput, ValidacionLegalHelp, VacioCritico, fechaVersionSana } from '../types';
 import { Copy, Download, AlertTriangle, CheckCircle2, Scale, FileText, ShieldCheck, AlertCircle, RotateCcw, Brain, MessageSquare, Search } from 'lucide-react';
 
 interface DraftResultProps {
@@ -349,7 +349,10 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
           {/* Detalle BCN */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-xs">
             <div className="p-2.5 rounded border border-slate-200 bg-white">
-              <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Roles</div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[9px] font-extrabold uppercase px-1 py-0 rounded bg-sky-100 text-sky-800 border border-sky-200">Hecho</span>
+                <span className="text-[10px] uppercase font-bold text-slate-500">Roles</span>
+              </div>
               <div className="font-bold text-slate-900">
                 {validacion.rolesEnCorpus.length} verificados
                 {validacion.rolesNoEnCorpus.length > 0 && (
@@ -358,7 +361,10 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
               </div>
             </div>
             <div className="p-2.5 rounded border border-slate-200 bg-white">
-              <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Artículos BCN</div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[9px] font-extrabold uppercase px-1 py-0 rounded bg-indigo-100 text-indigo-800 border border-indigo-200">Norma</span>
+                <span className="text-[10px] uppercase font-bold text-slate-500">Artículos BCN</span>
+              </div>
               <div className="font-bold text-slate-900">
                 {validacion.artsCubiertos.length} con texto
                 {validacion.artsSinCobertura.length > 0 && (
@@ -367,7 +373,10 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
               </div>
             </div>
             <div className="p-2.5 rounded border border-slate-200 bg-white">
-              <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Montos</div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[9px] font-extrabold uppercase px-1 py-0 rounded bg-sky-100 text-sky-800 border border-sky-200">Hecho</span>
+                <span className="text-[10px] uppercase font-bold text-slate-500">Montos</span>
+              </div>
               <div className="font-bold text-slate-900">
                 {validacion.montosInforme} citados
                 {validacion.montosNoCorroborados.length > 0 && (
@@ -376,6 +385,9 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
               </div>
             </div>
           </div>
+          <p className="mb-3 text-[10px] text-slate-500">
+            <span className="font-bold uppercase">Hecho</span> = contrastado contra tu documento y el corpus procesal. <span className="font-bold uppercase">Norma</span> = contrastado contra el texto oficial de Ley Chile — BCN.
+          </p>
 
           {/* Alertas específicas */}
           {validacion.rolesNoEnCorpus.length > 0 && (
@@ -427,7 +439,7 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
                 <span className="flex-1">
                   <span className="font-bold text-indigo-950">{a.nombreNorma}</span>{' '}
                   Art. <span className="font-bold text-indigo-950">{a.articulo}</span>
-                  {a.fechaVersion && <span className="text-slate-500"> · versión {a.fechaVersion}</span>}
+                  {fechaVersionSana(a.fechaVersion) && <span className="text-slate-500"> · versión {fechaVersionSana(a.fechaVersion)}</span>}
                   {a.url && (
                     <a href={a.url} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-700 hover:underline text-[10px]">
                       Ver en Ley Chile

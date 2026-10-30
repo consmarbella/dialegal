@@ -112,6 +112,16 @@ export interface DocumentoExtraidoUI {
   articulosInvocados: string[];
 }
 
+// Fase F: el canal BCN devuelve fechaVersion="2222-02-02" como placeholder
+// para normas refundidas (p.ej. Código Civil, DFL 1/2000). Esa fecha fantasma
+// es un artefacto upstream, no una versión real: no se muestra.
+function fechaVersionSana(fv?: string): string | null {
+  if (!fv) return null;
+  const anio = parseInt(fv.slice(0, 4), 10);
+  return anio >= 1900 && anio <= 2100 ? fv : null;
+}
+export { fechaVersionSana };
+
 export interface PremiumResult {
   report: string;
   sources: PremiumSource[];

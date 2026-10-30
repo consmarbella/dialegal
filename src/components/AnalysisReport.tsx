@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LegalArea, ChatMessage, PremiumResult, DraftInput, DraftOutput } from '../types';
+import { LegalArea, ChatMessage, PremiumResult, DraftInput, DraftOutput, fechaVersionSana } from '../types';
 import { Scale, Download, Copy, BookmarkPlus, Send, MessageSquare, AlertCircle, CheckCircle, ShieldAlert, FileText, Lock, ShieldCheck, CreditCard, Sparkles, CheckCircle2, Globe, ExternalLink, RotateCcw, X } from 'lucide-react';
 import { PaymentModal } from './PaymentModal';
 import { PreviewAlertCard } from './PreviewAlertCard';
@@ -444,7 +444,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
           </div>
           <span className="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 bg-slate-100 border border-slate-200 text-slate-700 rounded flex items-center gap-1">
             {isUnlocked ? (
-              <span>DICTAMEN TÉCNICO COMPLETO (100%)</span>
+              <span>DICTAMEN TÉCNICO COMPLETO</span>
             ) : (
               <span className="text-blue-700 font-extrabold">VISTA PREVIA GRATUITA (ALERTAS DE URGENCIA)</span>
             )}
@@ -608,7 +608,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                             <span className="font-bold text-indigo-950">{a.nombreNorma}</span>
                             {', Art. '}
                             <span className="font-bold text-indigo-950">{a.articulo}</span>
-                            {a.fechaVersion ? <span className="text-slate-500"> · versión vigente {a.fechaVersion}</span> : null}
+                            {fechaVersionSana(a.fechaVersion) ? <span className="text-slate-500"> · versión vigente {fechaVersionSana(a.fechaVersion)}</span> : null}
                             {a.url && (
                               <>
                                 {' · '}
@@ -739,7 +739,10 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                       <div className="p-2.5 rounded border border-slate-200 bg-white">
-                        <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Roles citados</div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-[9px] font-extrabold uppercase px-1 py-0 rounded bg-sky-100 text-sky-800 border border-sky-200">Hecho</span>
+                          <span className="text-[10px] uppercase font-bold text-slate-500">Roles citados</span>
+                        </div>
                         <div className="font-bold text-slate-900">
                           {premium.validacion.rolesEnCorpus.length} verificados
                           {premium.validacion.rolesNoEnCorpus.length > 0 && (
@@ -748,7 +751,10 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                         </div>
                       </div>
                       <div className="p-2.5 rounded border border-slate-200 bg-white">
-                        <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Artículos</div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-[9px] font-extrabold uppercase px-1 py-0 rounded bg-indigo-100 text-indigo-800 border border-indigo-200">Norma</span>
+                          <span className="text-[10px] uppercase font-bold text-slate-500">Artículos</span>
+                        </div>
                         <div className="font-bold text-slate-900">
                           {premium.validacion.artsCubiertos.length} con texto BCN
                           {premium.validacion.artsSinCobertura.length > 0 && (
@@ -757,7 +763,10 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                         </div>
                       </div>
                       <div className="p-2.5 rounded border border-slate-200 bg-white">
-                        <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Montos</div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-[9px] font-extrabold uppercase px-1 py-0 rounded bg-sky-100 text-sky-800 border border-sky-200">Hecho</span>
+                          <span className="text-[10px] uppercase font-bold text-slate-500">Montos</span>
+                        </div>
                         <div className="font-bold text-slate-900">
                           {premium.validacion.montosInforme} citados
                           {premium.validacion.montosNoCorroborados.length > 0 && (
@@ -766,6 +775,9 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                         </div>
                       </div>
                     </div>
+                    <p className="mt-2 text-[10px] text-slate-500">
+                      <span className="font-bold uppercase">Hecho</span> = afirmación fáctica contrastada contra tu documento y el corpus procesal (roles, montos). <span className="font-bold uppercase">Norma</span> = cita legal contrastada contra el texto oficial de Ley Chile — BCN (artículos).
+                    </p>
                     {premium.validacion.rolesNoEnCorpus.length > 0 && (
                       <div className="mt-3 text-[11px] text-red-800 bg-red-50 border border-red-200 rounded p-2">
                         <span className="font-bold">Roles marcados NO VERIFICADOS:</span>{' '}
