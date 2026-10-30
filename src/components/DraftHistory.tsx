@@ -68,7 +68,8 @@ export const DraftHistory: React.FC<{ onLoadDraft: (item: DraftHistoryItem) => v
       case 'penal': return 'bg-red-100 text-red-800';
       case 'administrativo': return 'bg-amber-100 text-amber-800';
       case 'constitucional': return 'bg-indigo-100 text-indigo-800';
-      default: return 'bg-slate-100 text-slate-800';
+      case 'transito': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-slate-100 text-slate-800'; // null/undefined = indeterminada
     }
   };
 
@@ -102,8 +103,8 @@ export const DraftHistory: React.FC<{ onLoadDraft: (item: DraftHistoryItem) => v
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-slate-900 truncate">{item.tipo.charAt(0).toUpperCase() + item.tipo.slice(1)}</span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${getAreaColor(item.area)}`}>
-                    {item.area}
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${getAreaColor(item.area || '')}`}>
+                    {item.area || 'indeterminada'}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5 truncate max-w-xs sm:max-w-md">

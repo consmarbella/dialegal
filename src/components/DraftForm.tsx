@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DraftInput, DraftTipo, DraftArea } from '../types';
+import { clasificarMateria, MATERIAS } from '../../materias.js';
 import { FileText, Scale, MessageSquare, PenTool, Mail, X, Loader2, Brain, AlertTriangle, FilePlus2 } from 'lucide-react';
 
 interface DraftFormProps {
@@ -24,6 +25,7 @@ const AREA_LABELS: Record<DraftArea, { label: string; color: string }> = {
   penal: { label: "Penal", color: "bg-red-100 text-red-800" },
   administrativo: { label: "Administrativo", color: "bg-amber-100 text-amber-800" },
   constitucional: { label: "Constitucional", color: "bg-indigo-100 text-indigo-800" },
+  transito: { label: "Tránsito / Policía Local", color: "bg-orange-100 text-orange-800" },
 };
 
 export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initialData }) => {
@@ -36,32 +38,23 @@ export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initi
   const [tribunal, setTribunal] = useState(initialData?.tribunal || "");
   const [antecedentes, setAntecedentes] = useState("");
   const [showAntecedentes, setShowAntecedentes] = useState(false);
-  const [areaConfidence, setAreaConfidence] = useState<number | null>(null);
+  // Fase D: señales crudas del clasificador (nombre + puntos) para el chip Auto.
+  const [senales, setSenales] = useState<Array<{ nombre: string; puntos: number }>>([]);
   const [showDocumentos, setShowDocumentos] = useState(false);
 
   const tienePrefillDiagnostico = !!initialData?.hechos || (initialData?.pretensiones?.length || 0) > 0;
 
-  // Auto-detect area cuando cambian hechos/pretensiones
+  // Auto-detect area cuando cambian hechos/pretensiones.
+  // Fase D: usa el MISMO clasificador determinista del backend (materias.ts,
+  // fuente única) — se acabó la lista de keywords duplicada y el porcentaje
+  // de confianza inventado (maxArea/5). Se muestran los conteos crudos de
+  // señales; sin señal = sin chip (materia indeterminada, NUNCA laboral).
   useEffect(() => {
     if (area === "auto" && (hechos.length > 50 || pretensiones.some(p => p.length > 20))) {
-      // Simulación simple de confianza (el backend hace la real)
-      const texto = [hechos, ...pretensiones].join(" ").toLowerCase();
-      let scores = { laboral: 0, civil: 0, familia: 0, penal: 0, administrativo: 0, constitucional: 0 };
-      const keywords = {
-        laboral: ["despido", "cotiz", "feriado", "horas extra", "acoso", "karin", "tutela", "indemniz", "años de servicio", "fuero", "carta de despido"],
-        civil: ["daños", "perjuicios", "contrato", "incumplim", "resolución", "cobro", "ejecutivo", "arrendam", "desahucio", "usucapión", "prescripción"],
-        familia: ["alimentos", "cuota aliment", "cuidado personal", "visitas", "divorcio", "cese de conviv", "compensación económica", "gananciales"],
-        penal: ["querella", "denuncia", "delito", "imputado", "víctima", "prisión preventiva", "sobreseimiento", "formalización", "fiscalía"],
-        administrativo: ["recurso de protección", "ilegalidad", "acto administrativo", "municipalidad", "servicio público", "contraloría", "decreto"],
-        constitucional: ["derechos fundamentales", "inconstitucional", "tribunal constitucional", "igualdad", "debido proceso", "habeas corpus"],
-      };
-      for (const [a, kws] of Object.entries(keywords)) {
-        for (const kw of kws) {
-          if (texto.includes(kw)) scores[a as keyof typeof scores]++;
-        }
-      }
-      const maxArea = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
-      setAreaConfidence(maxArea[1] > 0 ? Math.min(1, maxArea[1] / 5) : null);
+      const c = clasificarMateria([hechos, ...pretensiones].filter(Boolean).join("\n"));
+      setSenales(c.scores.map(x => ({ nombre: MATERIAS[x.slug].nombre, puntos: x.puntos })));
+    } else {
+      setSenales([]);
     }
   }, [hechos, pretensiones, area]);
 
@@ -143,10 +136,13 @@ export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initi
             }`}
           >
             <Brain className="w-4 h-4 inline mr-1" /> Auto-detectar
-            {areaConfidence !== null && (
+            {senales.length > 0 && (
               <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">
-                {Math.round(areaConfidence * 100)}%
+                {senales.map(x => `${x.nombre}=${x.puntos}`).join(" · ")}
               </span>
+            )}
+            {area === "auto" && senales.length === 0 && (hechos.length > 50 || pretensiones.some(p => p.length > 20)) && (
+              <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">sin señales</span>
             )}
           </button>
           {Object.entries(AREA_LABELS).map(([key, { label, color }]) => (

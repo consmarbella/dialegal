@@ -115,7 +115,9 @@ export interface DocumentoExtraidoUI {
 export interface PremiumResult {
   report: string;
   sources: PremiumSource[];
-  materia: string;
+  // Fase D: null = materia indeterminada (sin área declarada ni señales);
+  // la UI oculta el chip en ese caso (ya no se inventa "civil" encubierto).
+  materia: string | null;
   grounded: boolean;
   cached?: boolean;
   bcn?: {
@@ -140,7 +142,10 @@ export type DraftTipo =
   | "contrato" 
   | "correo";
 
-export type DraftArea = "laboral" | "civil" | "familia" | "penal" | "administrativo" | "constitucional";
+// Fase D: en sincronía con SlugMateria de materias.ts (backend). tránsito =
+// multas/JPL (mapea al "policia_local" del wizard). "indeterminada" NO es un
+// valor del union: la indeterminación se representa con area?: undefined.
+export type DraftArea = "laboral" | "civil" | "familia" | "penal" | "administrativo" | "constitucional" | "transito";
 
 export interface DraftInput {
   tipo: DraftTipo;
@@ -174,7 +179,9 @@ export interface ValidacionLegalHelp extends ValidacionInformeUI {
 
 export interface DraftMetadatos {
   tipo: DraftTipo;
-  area: DraftArea;
+  // Fase D: null = materia indeterminada (sin área declarada ni señales);
+  // antes caía a "laboral" por defecto y contaminaba el borrador.
+  area: DraftArea | null;
   articulosClave: string[];
   tokensEstimados: number;
   // Fase 7: plazos calculados por plazosChile.ts (motor determinista)

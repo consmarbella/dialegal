@@ -8,7 +8,7 @@ import { verificarCitasBCN, bloquePromptBCN } from "../../bcnLeyChile.js";
 import { buscarJurisprudenciaMulti, buscarCasosJurisMulti, type ConsultaEtiquetada } from "../../jurisprudenciaChile.js";
 import { validarLegalHelp, notaBlindajeLegalHelp, type InsumosValidacionLegalHelp, type ValidacionLegalHelp } from "../../validadorLegalHelp.js";
 import { auditarVacios } from "../../auditorVacios.js";
-import { detectarArea, getAreaConfidence } from "../../area-detector.js";
+import { resolverMateria, lineaMateriaPrompt, MATERIAS } from "../../materias.js";
 import { existePlazo, calcularPlazo, detectarFechaNotificacion, detectarFechasNotificacion, anotacionesPlazos, bloquePromptPlazos, chequearPlazosEnBorrador, type ResultadoPlazo, type FechasNotificacionResultado } from "../../plazosChile.js";
 import { getPlantilla, getArticulosClave } from "../../legalhelp-templates.js";
 import type { DraftInput, DraftOutput, VacioCritico } from "../types.js";
@@ -97,8 +97,8 @@ const PLAZO_POR_TIPO: Record<string, { id: string; aplica: ("demanda" | "contest
   civil: { id: "civil_contestacion", aplica: ["contestacion"] },
   laboral: { id: "laboral_contestacion", aplica: ["contestacion"] },
 };
-function calcularPlazosMotor(area: string, tipo: string, combinedText: string, fechasRes?: { primera: string | null }): ResultadoPlazo[] {
-  const def = PLAZO_POR_TIPO[area];
+function calcularPlazosMotor(area: string | null, tipo: string, combinedText: string, fechasRes?: { primera: string | null }): ResultadoPlazo[] {
+  const def = area ? PLAZO_POR_TIPO[area] : undefined;
   if (!def || !def.aplica.includes(tipo as any) || !existePlazo(def.id)) return [];
   // Calibración gate: fechasRes viene pre-detectado por el llamador
   // (detectarFechasNotificacion) para reutilizarlo también en anotaciones.
@@ -114,16 +114,17 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   const cached = draftCache.get(cKey);
   if (cached && cached.expires > Date.now()) return cached.data;
 
-  // 2. Detección de área (si no viene)
-  const area = input.area || detectarArea(input.hechos, input.pretensiones);
-  const { confidence } = getAreaConfidence(input.hechos, input.pretensiones);
-
-  // 3. Extractor determinista (plano de lectura + artefactos)
-  // El documento real del expediente entra primero: los montos/fechas que extrae
-  // el extractor y el validador QA corresponden al caso, no a resúmenes.
+  // 2. Materia que gobierna el caso (Fase D) — se resuelve DESPUÉS de armar
+  // combinedText para que el clasificador vea todo el relato. Regla del dueño:
+  // el área declarada MANDA; las señales solo sugieren; sin señal = null
+  // (indeterminada, NUNCA "laboral" por defecto — causa raíz de la
+  // contaminación civil→laboral del informe real). Conflicto = anotación
+  // visible, jamás bloqueo.
   const combinedText = [input.documentoCaso, input.hechos, ...input.pretensiones, ...(input.documentos || [])]
     .filter(Boolean)
     .join("\n");
+  const resolucionMateria = resolverMateria(input.area, combinedText);
+  const area = resolucionMateria.slug;
   let ext: ReturnType<typeof extraerChileno> | null = null;
   let planoExt = "";
   try {
@@ -158,8 +159,10 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   let juris: Awaited<ReturnType<typeof buscarJurisprudenciaMulti>> = [];
   let casos: Awaited<ReturnType<typeof buscarCasosJurisMulti>> = [];
   try {
-    juris = await buscarJurisprudenciaMulti(consultas, 6, input.area);
-    casos = await buscarCasosJurisMulti(consultas);
+    // Fase D: el slug resuelto gobierna la recuperación (corpus del área +
+    // capa transversal; base laboral solo como fallback etiquetado).
+    juris = await buscarJurisprudenciaMulti(consultas, 6, area ?? undefined);
+    casos = await buscarCasosJurisMulti(consultas, 4, area ?? undefined);
   } catch { /* silencioso */ }
 
   // 6. Construir prompt dinámico
@@ -169,7 +172,9 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   const bloqueJuris = juris.length ? `\n\nCRITERIO JURISPRUDENCIAL:\n${juris.slice(0, 4).map(j => `### ${j.institucion}\nFallo rector: CS Rol ${j.falloRector?.rol} (${j.falloRector?.fecha})\n${j.definicion?.slice(0, 300)}`).join("\n\n")}` : "";
   const bloqueCasos = casos.length ? `\n\nCASOS ANÁLOGOS:\n${casos.slice(0, 3).map(c => `${c.tribunal} ${c.sala ? `— ${c.sala}` : ""} | Rol ${c.rol} | ${c.doctrina?.slice(0, 200)}`).join("\n\n")}` : "";
 
-  let promptContent = `MATERIA DETECTADA: ${area} (confianza: ${Math.round(confidence * 100)}%)\n`;
+  // Fase D: línea de materia honesta — qué gobierna, de dónde salió y conteos
+  // crudos de señales (sin porcentaje de confianza inventado).
+  let promptContent = `${lineaMateriaPrompt(resolucionMateria)}\n`;
   promptContent += `TIPO DE ESCRITO: ${input.tipo.toUpperCase()}\n`;
   if (input.rol) promptContent += `ROL: ${input.rol}\n`;
   if (input.tribunal) promptContent += `TRIBUNAL: ${input.tribunal}\n`;
@@ -195,6 +200,13 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   const plazosMotor = calcularPlazosMotor(area, input.tipo, combinedText, fechasNotificacion);
   const bloquePlazos = bloquePromptPlazos(plazosMotor);
   if (bloquePlazos) promptContent += bloquePlazos;
+  // Fase D (honestidad): si el escrito depende de un plazo (demanda/contestación)
+  // y el motor NO lo tiene modelado para esta materia, se declara en el prompt —
+  // el LLM no puede inventar la fecha límite.
+  if (!plazosMotor.length && (input.tipo === "demanda" || input.tipo === "contestacion")) {
+    const nombreMateria = area ? MATERIAS[area].nombre : "indeterminada";
+    promptContent += `\n[VERIFICACION DE PLAZOS] La materia ${nombreMateria} NO tiene plazos modelados en el motor determinista — NO inventes fecha límite; escribe "[VERIFICAR: plazo de ${input.tipo} según la normativa aplicable]" donde corresponda.`;
+  }
   if (fechasNotificacion.ambigua) {
     promptContent += `\n[VERIFICACION DE FECHA] El caso menciona ${fechasNotificacion.fechas.length} fechas de notificacion distintas (${fechasNotificacion.fechas.join("; ")}). El motor usó la primera (${fechasNotificacion.primera}); NO inventes cuál corre: usa la nota de verificación al pie.`;
   }

@@ -120,6 +120,10 @@ export function getPlantilla(tipo: string): string {
   return PLANTILLAS_TIPO[tipo] || PLANTILLAS_TIPO.demanda;
 }
 
-export function getArticulosClave(area: string): string[] {
-  return ARTICULOS_CLAVE_POR_AREA[area] || ARTICULOS_CLAVE_POR_AREA.laboral;
+// Fase D: transito sin artículos clave modelados ([]) — la cobertura de normas
+// de tránsito (Ley 18.290/18.287) corre por el canal BCN, no por esta lista.
+// null (materia indeterminada) también devuelve []: NUNCA caer a laboral.
+export function getArticulosClave(area: string | null | undefined): string[] {
+  if (!area) return [];
+  return ARTICULOS_CLAVE_POR_AREA[area] || [];
 }

@@ -25,7 +25,10 @@ export interface InsumosValidacionLegalHelp {
   artsPendientes: string[];
   montosDoc: string[];
   textoDoc: string;
-  area: "laboral" | "civil" | "familia" | "penal" | "administrativo" | "constitucional";
+  // Fase D: "transito" (JPL/multas) entra a la unión; null = materia
+  // indeterminada (sin área declarada ni señales). El fallback de artículos
+  // clave abajo usa || [], nunca cae a laboral.
+  area: "laboral" | "civil" | "familia" | "penal" | "administrativo" | "constitucional" | "transito" | null;
   tipo: "demanda" | "contestacion" | "otrosi" | "minuta" | "contrato" | "correo";
 }
 
@@ -223,7 +226,7 @@ export function validarLegalHelp(report: string, insumos: InsumosValidacionLegal
       return !textoDocClean.includes(digitos) && !insumos.textoDoc.includes(mo);
     });
 
-    const clave = ARTICULOS_CLAVE_POR_AREA[insumos.area] || [];
+    const clave = ARTICULOS_CLAVE_POR_AREA[insumos.area || ""] || [];
     const articulosClaveFaltantes = clave.filter((a) => !artsCubiertos.includes(a) && !artsInforme.includes(a));
 
     const estructuraJudicial = validarEstructuraJudicial(texto, insumos.tipo);

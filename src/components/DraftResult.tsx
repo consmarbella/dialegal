@@ -94,9 +94,11 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
                 output.metadatos.area === 'familia' ? 'bg-purple-100 text-purple-800 border-purple-200' :
                 output.metadatos.area === 'penal' ? 'bg-red-100 text-red-800 border-red-200' :
                 output.metadatos.area === 'administrativo' ? 'bg-amber-100 text-amber-800 border-amber-200' :
-                'bg-indigo-100 text-indigo-800 border-indigo-200'
+                output.metadatos.area === 'transito' ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                output.metadatos.area === 'constitucional' ? 'bg-indigo-100 text-indigo-800 border-indigo-200' :
+                'bg-slate-100 text-slate-600 border-slate-200'
               }`}>
-                {output.metadatos.area}
+                {output.metadatos.area || 'indeterminada'}
               </span>
               <span className="px-2 py-0.5 rounded font-bold uppercase border bg-slate-100 text-slate-700 border-slate-200">
                 {output.metadatos.tipo}

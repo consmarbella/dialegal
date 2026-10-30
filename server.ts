@@ -17,11 +17,12 @@ import { ALL_SEO_PAGES as ALL_SEO_PAGES_SHARED, renderHomeContent } from "./src/
 import { CALCULATOR_PAGES, getCalculatorPage } from "./src/data/calculators.js";
 import { COMUNAS_RM } from "./src/data/tribunales.js";
 import { verificarCitasBCN, bloquePromptBCN } from "./bcnLeyChile.js";
-import { buscarJurisprudencia, bloquePromptJuris, resumenJuris, buscarCasosJuris, bloquePromptCasos, resumenCasos, buscarJurisprudenciaMulti, buscarCasosJurisMulti, esSlugCorpusArea, type ConsultaEtiquetada } from "./jurisprudenciaChile.js";
+import { buscarJurisprudencia, bloquePromptJuris, resumenJuris, buscarCasosJuris, bloquePromptCasos, resumenCasos, buscarJurisprudenciaMulti, buscarCasosJurisMulti, type ConsultaEtiquetada } from "./jurisprudenciaChile.js";
 import { extraerChileno, planoBlindajePrompt } from "./extractorChile.js";
 import { validarInforme, notaBlindajeReporte, hallazgosBloqueantes } from "./validadorInforme.js";
 import { handleLegalHelpDraft } from "./src/server/legalhelp-draft.js";
-import { detectarArea, detectAreaFromContext } from "./area-detector.js";
+import { detectAreaFromContext } from "./area-detector.js";
+import { resolverMateria, lineaMateriaPrompt, MATERIAS } from "./materias.js";
 import type { DraftInput } from "./src/types.js";
 
 // Combinación de TODAS las páginas SEO: 21 originales + 45 + 20 = 86 páginas (+home = 87 URLs)
@@ -478,22 +479,11 @@ async function consumeUseSeguro(orderId: string): Promise<{ ok: boolean; usos: n
   }
 }
 
-const MATERIA_RULES: Array<{ materia: string; keywords: RegExp }> = [
-  { materia: "Tránsito y multas (Ley 18.290)", keywords: /multa|tag|permiso de circulaci[oó]n|tr[aá]nsito|colisi[oó]n|18\.290|alcoholemia|licencia de conducir/i },
-  { materia: "Laboral — despido, finiquito o autodespido", keywords: /despido|finiquito|autodespido|despido indirecto|trabajador|empleador|remuneraci[oó]n|cotizaciones|art[ií]culo 161|art[ií]culo 171|inspecci[oó]n del trabajo/i },
-  { materia: "Familia — alimentos, custodia o medidas de protección", keywords: /aliment|pensi[oó]n alimenticia|custodia|visitas|familia|medida de protecci[oó]n|violencia intrafamiliar|divorcio/i },
-  { materia: "Arriendo y desalojo (Ley 18.101)", keywords: /arriend|canon de arriendo|renta|desalojo|terminaci[oó]n de contrato|reconvenci[oó]n|ley 18\.101|predio urbano/i },
-  { materia: "Juicio ejecutivo y títulos ejecutivos (CPC)", keywords: /pagar[eé]|cheque|factura|t[ií]tulo ejecutivo|mandamiento de ejecuci[oó]n|juicio ejecutivo|excepciones|art[ií]culo 464|c[oó]digo de procedimiento civil/i },
-  { materia: "Cobranza, deudas y registros de morosidad", keywords: /deud|cobranza|dicom|equifax|moros|prescripci[oó]n|acreedor/i },
-  { materia: "Civil — demanda ordinaria y notificaciones", keywords: /demanda|notificaci[oó]n|rebeld[ií]a|exhorto|juzgado civil|contestaci[oó]n de la demanda/i },
-];
-
-function detectMateria(texto: string): string {
-  for (const rule of MATERIA_RULES) {
-    if (rule.keywords.test(texto)) return rule.materia;
-  }
-  return "Derecho procesal civil chileno (materia no determinada con certeza)";
-}
+// ── Fase D: materia por registro único (materias.ts) ────────────────────────
+// Reemplaza MATERIA_RULES (7 regex ad-hoc, orden de prioridad arbitrario y
+// default "civil" encubierto). Reglas del dueño: el área declarada manda, las
+// señales solo sugieren, sin señal = indeterminada (null), conflicto =
+// anotación visible. La discrepancia la imprime lineaMateriaPrompt.
 
 const PREMIUM_SYSTEM_INSTRUCTION = `
 PROCEDIMIENTO OBLIGATORIO PREVIO (no negociable):
@@ -573,10 +563,14 @@ app.post("/api/premium-report", async (req, res) => {
     }
 
     const combinedText = [userStory, documentText].filter(Boolean).join("\n");
-    const materia = detectMateria(combinedText);
 
-    let promptContent = `MATERIA DETECTADA: ${materia}\n`;
-    if (area) promptContent += `ÁREA DECLARADA: ${area}\n`;
+    // Fase D: el área declarada por la UI manda; las señales del texto solo
+    // sugieren; sin señal = indeterminada. Conflicto = anotación en el prompt.
+    const resolucionMateria = resolverMateria(area, combinedText);
+    // Nombre legible para la UI (null = indeterminada: el chip se oculta).
+    const materia = resolucionMateria.slug ? MATERIAS[resolucionMateria.slug].nombre : null;
+
+    let promptContent = `${lineaMateriaPrompt(resolucionMateria)}\n`;
     if (notificationDate) promptContent += `FECHA DE NOTIFICACIÓN: ${notificationDate}\n`;
     promptContent += `\nRELATO O DOCUMENTO DEL CASO:\n${combinedText.slice(0, 8000)}\n\n`;
     if (dictamenMarkdown && typeof dictamenMarkdown === "string") {
@@ -627,16 +621,15 @@ app.post("/api/premium-report", async (req, res) => {
       if (!consultas.length) consultas.push({ texto: combinedText.slice(0, 4000), etiqueta: "documento" });
       else consultas.push({ texto: combinedText.slice(0, 3000), etiqueta: "documento" });
 
-      // Fase 5: corpus completo por area (CORPUS_COMPLETO=true) - el slug sale
-      // del area declarada por la UI; si falta, la sepia por keywords del texto.
-      const areaDeclarada = String(area || "").trim().toLowerCase();
-      const slugCorpus = esSlugCorpusArea(areaDeclarada)
-        ? areaDeclarada
-        : detectAreaFromContext(combinedText.slice(0, 4000));
+      // Fase D: el slug resuelto (declarada manda; señales si falta;
+      // null = indeterminada) gobierna la recuperación. buscarJurisprudencia
+      // trata null/invalid como "sin corpus de área" y usa la base con
+      // etiqueta; los casos análogos filtran tags de área distinta.
+      const slugCorpus = resolucionMateria.slug ?? undefined;
       juris = await buscarJurisprudenciaMulti(consultas, 6, slugCorpus);
       const bloqueJuris = bloquePromptJuris(juris);
       if (bloqueJuris) promptContent += bloqueJuris;
-      casos = await buscarCasosJurisMulti(consultas);
+      casos = await buscarCasosJurisMulti(consultas, 4, slugCorpus);
       const bloqueCasos = bloquePromptCasos(casos);
       if (bloqueCasos) promptContent += bloqueCasos;
     } catch (jurisErr: any) {
@@ -888,15 +881,13 @@ app.post("/api/juris-test", async (req, res) => {
   try {
     const { texto, area } = req.body || {};
     const q = typeof texto === "string" ? texto : "despedido por necesidades de la empresa con carta que solo invoca reestructuración, no acredita antecedentes objetivos";
-    // Fase 5.1: sin area declarada se detecta por keywords (como hace premium);
-    // si ni eso calza con un slug del corpus completo, corre solo la base.
-    let slug: string | undefined = typeof area === "string" && area.trim() ? area.trim() : undefined;
-    if (!slug) {
-      const det = detectAreaFromContext(q.slice(0, 4000));
-      slug = esSlugCorpusArea(det) ? det : undefined;
-    }
+    // Fase D: el área declarada manda; si falta, resolverMateria clasifica por
+    // señales del texto; sin señal = sin slug (corre solo la base, con
+    // etiquetas de origen visibles). Nunca asume "laboral".
+    const resolucion = resolverMateria(typeof area === "string" && area.trim() ? area : null, q.slice(0, 4000));
+    const slug = resolucion.slug ?? undefined;
     const resultados = await buscarJurisprudencia([q], 8, slug);
-    res.json({ total: resultados.length, area: slug || "sin-area", resultados: resumenJuris(resultados) });
+    res.json({ total: resultados.length, area: slug || "sin-area", clasificacion: resolucion.clasificacion, resultados: resumenJuris(resultados) });
   } catch (err: any) {
     res.status(500).json({ error: String(err?.message || err) });
   }
@@ -1063,7 +1054,9 @@ app.post("/api/chat", async (req, res) => {
         suggestedInput: {
           tipo: suggestedTipo,
           hechos: hechos || "Ver relato en diagnóstico adjunto",
-          area,
+          // Fase D: sin señal de materia = null; el draft lo resuelve como
+          // indeterminada (el área declarada del formulario manda después).
+          area: area ?? undefined,
           pretensiones,
           ...(rol ? { rol } : {}),
           ...(tribunal ? { tribunal } : {}),

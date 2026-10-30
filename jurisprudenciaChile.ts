@@ -28,6 +28,8 @@ export interface Corpus {
   fichas: FichaJuris[];
 }
 
+// Fase D: el slug del área pedida se marca como "fuera de corpus" cuando el
+// resultado salió de la base (fallback), para etiquetarlo en el prompt y la UI.
 export interface RecomendacionJuris {
   institucion: string;
   materia: string;
@@ -41,6 +43,12 @@ export interface RecomendacionJuris {
   operativaProcesal: string;
   relleno: boolean;
   puntuacion: number;
+  // Fase D: true cuando la ficha salió de la base (laboral) a pesar de que el
+  // caso pedía otra área — fallback anti-hambre, SIEMPRE etiquetado.
+  fuenteFallback?: boolean;
+  // Fase D: true cuando la ficha viene de la capa transversal (procesal/
+  // general), no del corpus propio del área.
+  fuenteTransversal?: boolean;
 }
 
 const STOP = new Set([
@@ -87,6 +95,9 @@ interface FichaIndexada {
   regiones: Array<{ p: number; mapa: RegionPredistribuida }>;
   blobFrase: string; // para bonus de frases (lowcase sin acentos)
   relleno: string | null; // motivo si la ficha es relleno administrativo (Fase 8)
+  // Fase D: de qué archivo salió (área pedida o capa transversal) para
+  // etiquetar el origen en el prompt y la UI. La base no trae etiqueta.
+  slugOrigen?: SlugCorpusArea;
 }
 
 // ── Fase 8: deteccion de fichas-relleno administrativo ─────────────────────
@@ -147,7 +158,7 @@ function getCorpus(): Corpus | null {
   return corpusCache;
 }
 
-function construirIndice(corpus: Corpus): FichaIndexada[] {
+function construirIndice(corpus: Corpus, slugOrigen?: SlugCorpusArea): FichaIndexada[] {
   if (!corpus) return [];
   const out: FichaIndexada[] = [];
   for (const ficha of corpus.fichas) {
@@ -180,7 +191,7 @@ function construirIndice(corpus: Corpus): FichaIndexada[] {
     const blobFrase = quitarAcentos(
       `${ficha.institucion || ""} ${ficha.materia || ""} ${ficha.definicion || ""} ${ficha.contenido || ""}`.toLowerCase()
     );
-    out.push({ ficha, regiones, blobFrase, relleno: esFichaRelleno(ficha) });
+    out.push({ ficha, regiones, blobFrase, relleno: esFichaRelleno(ficha), ...(slugOrigen ? { slugOrigen } : {}) });
   }
   return out;
 }
@@ -201,8 +212,14 @@ function getIndice(): FichaIndexada[] {
 // area pedida + transversal (Judicial/Procesal/General), y SOLO si el flag
 // CORPUS_COMPLETO=true esta definido. Con el flag apagado el motor usa la base
 // actual y el slug extra es inerte (misma respuesta que antes, costo 0).
-export type SlugCorpusArea = "laboral" | "civil" | "familia" | "penal" | "administrativo" | "constitucional" | "transversal";
-const SLUGS_CORPUS_AREA = new Set<SlugCorpusArea>(["laboral", "civil", "familia", "penal", "administrativo", "constitucional", "transversal"]);
+// Fase D: se agrega "transito" (decision del dueno: 7 corpus + transito). No
+// existe data/corpus-full/transito.json todavia (el dataset fuente no trae
+// area Transito): la busqueda de transito corre sobre la capa transversal y
+// el corpus propio se ingesta solo con fuente real (Fase H). La base laboral
+// DEJA de concatenarse permanentemente: es FALLBACK cuando el area pedida no
+// tiene corpus (con etiqueta fuenteFallback, nunca silenciosa).
+export type SlugCorpusArea = "laboral" | "civil" | "familia" | "penal" | "administrativo" | "constitucional" | "transito" | "transversal";
+const SLUGS_CORPUS_AREA = new Set<SlugCorpusArea>(["laboral", "civil", "familia", "penal", "administrativo", "constitucional", "transito", "transversal"]);
 
 export function esSlugCorpusArea(a: string): boolean {
   return SLUGS_CORPUS_AREA.has(a.trim().toLowerCase() as SlugCorpusArea);
@@ -235,12 +252,13 @@ function getCorpusArea(slug: SlugCorpusArea): Corpus | null {
 
 function getIndiceArea(slug: SlugCorpusArea): FichaIndexada[] {
   if (!corpusCompletoActivo()) return [];
-  const cache = indicePorArea.get(slug);
+  const cacheKey = slug as SlugCorpusArea;
+  const cache = indicePorArea.get(cacheKey);
   if (cache) return cache;
   const corpus = getCorpusArea(slug);
   if (!corpus) return [];
-  const idx = construirIndice(corpus);
-  indicePorArea.set(slug, idx);
+  const idx = construirIndice(corpus, slug);
+  indicePorArea.set(cacheKey, idx);
   return idx;
 }
 
@@ -326,7 +344,18 @@ export async function buscarJurisprudencia(
   opts?: { recencyW?: number }
 ): Promise<RecomendacionJuris[]> {
   try {
-    const indiceL = getIndice().concat(getIndiceExtendido(slugArea));
+    // Fase D: si el área pedida tiene corpus propio (CORPUS_COMPLETO), ese
+    // corpus GOBIERNA la recuperación. La base laboral ya no se concatena
+    // siempre (era la causa raiz de la contaminacion civil->laboral del
+    // informe real, Fase A hallazgos.md): queda como FALLBACK etiquetado
+    // (fuenteFallback) cuando el área no tiene corpus o el flag está apagado.
+    const cleanSlug = (slugArea || "").trim().toLowerCase();
+    const slugValido = cleanSlug && esSlugCorpusArea(cleanSlug) ? (cleanSlug as SlugCorpusArea) : undefined;
+    const ext = getIndiceExtendido(slugValido);
+    // Sin slug válido o sin corpus de área: comportamiento previo (base).
+    const indiceL = ext.length ? ext : getIndice();
+    // Fallback visible: se pidió un área concreta y se sirve la base (laboral).
+    const conFallback = !ext.length && !!slugValido && slugValido !== "laboral" && slugValido !== "transversal" && corpusCompletoActivo();
     if (indiceL.length === 0) return [];
     const queryTokens = tokenizar(textos.filter(Boolean).join(" "));
     if (queryTokens.length === 0) return [];
@@ -351,7 +380,7 @@ export async function buscarJurisprudencia(
     };
 
     const resultados: RecomendacionJuris[] = [];
-    for (const { ficha, regiones, blobFrase, relleno } of indiceL) {
+    for (const { ficha, regiones, blobFrase, relleno, slugOrigen } of indiceL) {
       let score = 0;
       const vistosQ = new Set<string>();
       for (const t of queryTokens) {
@@ -399,6 +428,8 @@ export async function buscarJurisprudencia(
         operativaProcesal: ficha.operativaProcesal || "",
         relleno: !!relleno,
         puntuacion: Math.round(score * 100) / 100,
+        ...(conFallback ? { fuenteFallback: true } : {}),
+        ...(slugOrigen === "transversal" ? { fuenteTransversal: true } : {}),
       });
     }
     // Fase 8: sustantivas primero; el relleno SOLO rellena cupos restantes
@@ -430,7 +461,13 @@ export function bloquePromptJuris(r: RecomendacionJuris[]): string {
   let s = `\n\nCRITERIO JURISPRUDENCIAL (fichas dogmáticas de Open Legal Chile, cada una con el FALLO RECTOR de la Corte Suprema): ` +
     `Este material es guía de argumentación institucional. Contrástalo con tus búsquedas web antes de citar: si la web confirma el criterio del fallo rector, cite el rol entre paréntesis; si no, marca "no verificado en línea".\n`;
   for (const i of r.slice(0, 6)) {
-    s += `\n### ${i.institucion}\n`;
+    // Fase D: origen de la ficha siempre visible (área propia > transversal > fallback base).
+    const origen = i.fuenteFallback
+      ? " [FALLBACK: ficha de la base laboral, FUERA del área del caso — úsala solo si es realmente aplicable]"
+      : i.fuenteTransversal
+        ? " [capa transversal: doctrina procesal general, aplica a varias materias]"
+        : "";
+    s += `\n### ${i.institucion}${origen}\n`;
     if (i.materia) s += `Materia: ${i.materia}\n`;
     if (i.falloRector && i.falloRector.rol) {
       s += `Fallo rector CS: Rol ${i.falloRector.rol} de ${i.falloRector.fecha || "fecha no disp."}`;
@@ -460,6 +497,9 @@ export function resumenJuris(r: RecomendacionJuris[]) {
     fechaFalloRector: i.falloRector?.fecha || "",
     normas: (i.normas || []).slice(0, 5),
     relleno: !!i.relleno, // Fase 8: observable en juris-test para verificacion en prod
+    // Fase D: trazabilidad de origen visible en prod (juris-test / UI)
+    fuenteFallback: !!i.fuenteFallback,
+    fuenteTransversal: !!i.fuenteTransversal,
   }));
 }
 
@@ -482,6 +522,10 @@ export interface CasoJuris {
 
 export interface RecomendacionCaso extends CasoJuris {
   puntuacion: number;
+  // Fase D: true cuando el caso salió del pool completo pese a pedir un área
+  // concreta (el corpus de casos no tiene área fiable para filtrar) — SIEMPRE
+  // etiquetado en prompt/UI, nunca silencioso.
+  fuenteFallback?: boolean;
 }
 
 interface CorpusCasos { fuente: string; total: number; casos: CasoJuris[] }
@@ -522,6 +566,20 @@ function getCasos(): CasoJuris[] {
     console.warn(`[juris-casos] ilegible: ${casosError}`);
   }
   return casosCache || [];
+}
+
+// ── Fase D: tag de área de un caso análogo ──────────────────────────────────
+// El corpus de casos (data/jurisprudencia-casos.json) NO trae área dogmática:
+// el campo `materia` guarda la MATERIA PROCESAL ("(LABORAL) UNIFICACIÓN...",
+// "INA-STC"). Lo que sí permite filtrar son los marcadores explícitos:
+// "(LABORAL)" -> laboral; "INA-*/STC/Constitucional/CPR" -> constitucional;
+// el resto queda null (área desconocida, sin inventar).
+export type TagAreaCaso = "laboral" | "constitucional" | null;
+export function tagAreaCaso(c: CasoJuris): TagAreaCaso {
+  const m = `${c.materia || ""} ${c.tribunal || ""}`.toUpperCase();
+  if (m.includes("LABORAL") || m.includes("JUZGADO DEL TRABAJO") || m.includes("JUZGADO DE LETRAS DEL TRABAJO")) return "laboral";
+  if (/\bINA[-\s]|STC\b|CONSTITUCIONAL|\bCPR\b|INAPLICABILIDAD|PROTECCION DE GARANTIAS/.test(m)) return "constitucional";
+  return null;
 }
 
 // Pesos por region para casos: la doctrina (crit textual del fallo) domina.
@@ -596,7 +654,7 @@ export const ROLES_SEMILLA_NO_CITABLES = new Set([
   "Rol N° 9876-2020-INA",
 ]);
 
-export async function buscarCasosJuris(textos: string[], maxResultados = 4): Promise<RecomendacionCaso[]> {
+export async function buscarCasosJuris(textos: string[], maxResultados = 4, slugArea?: string): Promise<RecomendacionCaso[]> {
   try {
     const idx = getIndiceCasos();
     if (idx.docs.length === 0) return [];
@@ -608,8 +666,9 @@ export async function buscarCasosJuris(textos: string[], maxResultados = 4): Pro
       return Math.log(1 + idx.total / df);
     };
     const resultados: RecomendacionCaso[] = [];
+    const noCitables = new Set<string>();
     for (const { caso, mapa, blobFrase } of idx.docs) {
-      if (ROLES_SEMILLA_NO_CITABLES.has(caso.rol)) continue; // Fase 8: semilla demo
+      if (ROLES_SEMILLA_NO_CITABLES.has(caso.rol)) { noCitables.add(caso.rol); continue; } // Fase 8: semilla demo
       let score = 0;
       const vistosQ = new Set<string>();
       for (const t of queryTokens) {
@@ -626,7 +685,25 @@ export async function buscarCasosJuris(textos: string[], maxResultados = 4): Pro
       resultados.push({ ...caso, puntuacion: Math.round(score * 100) / 100 });
     }
     resultados.sort((a, b) => b.puntuacion - a.puntuacion);
-    return resultados
+    // Fase D: si se pidió un área concreta, los casos con tag DISTINTO se
+    // excluyen (p.ej. "(LABORAL) UNIFICACIÓN" en un caso civil). Los null
+    // (área desconocida: la materia procesal no permite afirmarla) se
+    // mantienen SIN etiqueta de área; excluirlos vaciaría la recuperación.
+    const slug = (slugArea || "").trim().toLowerCase();
+    const filtroArea = slug === "laboral" || slug === "constitucional"
+      ? (t: TagAreaCaso) => t === null || t === slug
+      : (t: TagAreaCaso) => t === null;
+    const filtrados = slug ? resultados.filter((c) => filtroArea(tagAreaCaso(c))) : resultados;
+    // Fallback anti-hambre: si el filtro dejó <2 casos, se repone del pool
+    // completo con etiqueta fuenteFallback (visible, nunca silenciosa).
+    const finales = filtrados.length >= 2 ? filtrados : (() => {
+      const enFiltrados = new Set(filtrados.map((c) => c.rol));
+      const repuestos = resultados
+        .filter((c) => !enFiltrados.has(c.rol))
+        .map((c) => ({ ...c, fuenteFallback: true }));
+      return [...filtrados, ...repuestos];
+    })();
+    return finales
       .slice(0, maxResultados)
       .sort((a, b) => (b.tipo === "fallo_rector" ? 1 : 0) - (a.tipo === "fallo_rector" ? 1 : 0) || b.puntuacion - a.puntuacion);
   } catch (e: any) {
@@ -641,7 +718,9 @@ export function bloquePromptCasos(r: RecomendacionCaso[]): string {
     `Si algún caso es directamente aplicable, menciónalo en la sección "Criterio Jurisprudencial" (rol + doctrina sintetizada). ` +
     `Verifica con búsqueda web antes de citar el rol; si no lo confirman, marca "no verificado en línea".\n`;
   for (const c of r.slice(0, 4)) {
-    s += `\n### ${c.tribunal}${c.sala ? ` — ${c.sala}` : ""}\n`;
+    // Fase D: fallback del pool completo SIEMPRE visible en el prompt.
+    const origen = c.fuenteFallback ? " [FALLBACK: fuera del área pedida — úsalo solo si es realmente aplicable]" : "";
+    s += `\n### ${c.tribunal}${c.sala ? ` — ${c.sala}` : ""}${origen}\n`;
     if (c.rol) s += `Rol: ${c.rol}${c.fecha ? ` (${c.fecha})` : ""}\n`;
     if (c.materia) s += `Materia: ${c.materia}\n`;
     if (c.doctrina) s += `Doctrina del fallo: ${c.doctrina.slice(0, 320)}\n`;
@@ -661,6 +740,9 @@ export function resumenCasos(r: RecomendacionCaso[]) {
     doctrina: (c.doctrina || "").slice(0, 400),
     normas: c.normas || "",
     link: c.link,
+    // Fase D: trazabilidad visible en prod (el caso salió del pool completo
+    // pese a pedir un área concreta).
+    fuenteFallback: !!c.fuenteFallback,
   }));
 }
 
@@ -712,11 +794,11 @@ async function fusionarCasos(runs: { consulta: string; resultados: Recomendacion
     .slice(0, max);
 }
 
-export async function buscarCasosJurisMulti(consultas: ConsultaEtiquetada[], maxResultados = 4): Promise<RecomendacionCaso[]> {
+export async function buscarCasosJurisMulti(consultas: ConsultaEtiquetada[], maxResultados = 4, slugArea?: string): Promise<RecomendacionCaso[]> {
   const validas = consultas.filter((c) => typeof c.texto === "string" && c.texto.trim().length >= 15);
   if (validas.length === 0) return [];
   const runs = await Promise.all(
-    validas.map(async (c) => ({ consulta: c.etiqueta || "general", resultados: await buscarCasosJuris([c.texto], 6) }))
+    validas.map(async (c) => ({ consulta: c.etiqueta || "general", resultados: await buscarCasosJuris([c.texto], 6, slugArea) }))
   );
   return fusionarCasos(runs, maxResultados);
 }
