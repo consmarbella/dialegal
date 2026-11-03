@@ -921,3 +921,81 @@ Canal: `Consulta/obtxml?opt=7` (mismo del runtime), sin LLM.
    2222-02-02".
 4. tsc 0, build 0, plazos 39/39, eval:gate 100%. Verificado en prod: bundle
    `index-TCnwaXqv.js` sin "(100%)", con chips Hecho/Norma y leyenda.
+
+## Fases D.2 + D.3 - La plataforma decide la materia (senales + corpus), negacion v2 y set dorado - 2026-11-02
+
+1. **Precedencia invertida (D.2)**: `resolverMateria` impone la materia cuando
+   las senales del texto son concluyentes (una senal fuerte, >= 3 puntos,
+   margen > 0); el area declarada queda como respaldo y desempate. Toda
+   discrepancia es anotacion visible ("materia_decidida_por_plataforma" /
+   "conflicto_materia"), nunca bloqueo. Sin senales concluyentes =
+   indeterminada — NUNCA "laboral" por defecto.
+2. **Negacion v2 (D.3): existencia vs accion.** "No hubo despido", "no
+   corresponde pension", "sin X" niegan el HECHO => senal NEGADA (no suma).
+   "No me pagaron el finiquito", "no me quiere devolver la garantia" son
+   INCUMPLIMIENTOS AFIRMADOS => el hecho existe, la senal se mantiene y se
+   publica al prompt como [HECHO AFIRMADO]. Ese caso del dueño (laboral +
+   arriendo en una oracion) era el que la negacion v1 mataba.
+3. **Alcance por clausula (hallazgo L7 del set dorado)**: la puntuacion fuerte
+   ahora incluye coma y dos puntos. Antes, la negacion de "sin aviso" llegaba
+   80 caracteres y anulaba "autodespido" en la misma oracion. Tope 80 chars.
+4. **Pasiva de recibo (hallazgo N1/N4)**: agregar "fui" a los verbos de
+   existencia ("no fui despedido") exigio una guarda: "no fui pagado /
+   notificado / indemnizado" es pasiva de RECIBO = incumplimiento, no
+   negacion de existencia — si no, "no fui pagado el finiquito" volveria a
+   matar la senal laboral (el mismo error que D.3 corrige).
+5. **"No se..."**: la ignorancia del usuario ("no se a que area corresponde")
+   no es ni hecho negado ni incumplimiento: no anota nada.
+6. **Anclas estructurales** por materia (escritura publica, notario,
+   conservador de bienes raices, rol C-, DINACO, RUC, audiencia de
+   formalizacion, decreto alcaldicio, corte de apelaciones, amparo
+   economico, TAG, pase diario, mediacion familiar): marcadores del
+   DOCUMENTO, no hechos narrados — no anulables por negacion, tope 3 puntos
+   por materia para que dos anclas no inventen una materia sin relato.
+7. **Tope por familia de contexto**: score_familia = max(pesos) + 0,15x(n-1),
+   bonus <= 1 punto — "garantia+casa" y "garantia+devolver" ya no suman doble;
+   "garantia" sola dejo de ser senal penal (falso positivo; penal exige
+   "tribunal de garantia").
+8. **BM25 por materia (materiaCorpus.ts) con cobertura NORMALIZADA**
+   top1 / sum_idf x (k1+1) en [0,1]: los scores crudos NUNCA se comparan entre
+   materias (N y avgdl distintos). Umbral 0.35, margen 0.10. El corpus SOLO
+   desempata cuando el regex se abstiene o empata; sin calibracion, BM25 no
+   sube la confianza de una decision ya tomada. Gate CORPUS_COMPLETO=true;
+   transito se abstiene (sin corpus propio — Fase H, fuente real).
+9. **Casos mixtos**: segunda materia con senales reales (>= 2 pts) =>
+   `materiaSecundaria` anotada + lote menor de su corpus en premium (apoyo;
+   no gobierna el caso ni los plazos). Chip "caso mixto: + X" en la UI.
+10. **Morfologia verificada contra el corpus real** (data/corpus-full): el
+    participio "despedid+o" (6 ocurrencias reales) convive con el sustantivo
+    "despido" (125) — senal despido = despid\w*|desped\w* (12/12 formas del
+    corpus cubiertas); familia usa el atomo "hij" (hijo/hija).
+11. **Set dorado** `evaluation/dorado-materias.jsonl` (44 casos: 7 materias,
+    ambiguo x3, negacion x7 —incluida negacion generica en penal/transito/
+    constitucional/administrativo: la capa es gramatical, aplica a cualquier
+    ley—, mixto x1, encabezado erroneo x1) + `scripts/qa-dorado-materias.ts`
+    (`npm run eval:dorado`): matriz de confusion, precision/recall por
+    materia, tasa de abstencion, error civil<->laboral y origen de la
+    decision. Metricas REALES calculadas, no declaradas: 35/35 casos de
+    matriz correctos (100%), precision y recall 100% en las 7 materias,
+    error civil<->laboral = 0, orígenes senales=34 / corpus=4 / declarada=1 /
+    indeterminada=5. Exit 1 si un caso no cumple.
+12. **Encabezado erroneo (E1)**: rotulo "TUTELA LABORAL" sobre sustancia de
+    arrendamiento => decide CIVIL por sustancia (senales 11 vs 7), no por el
+    rotulo del documento.
+13. **QA**: qa-materias-faseD 37/37 (con CORPUS_COMPLETO=true),
+    qa-dorado-materias 44/44, tsc --noEmit 0, build 0. Commit `10d497e`.
+14. **BLOQUEO DE DEPLOY (infra, no codigo)**: los deployments de Vercel fallan
+    con "Resource provisioning failed" ANTES de compilar — el recurso
+    Supabase de la cuenta (store_h5MGXevHXKxnW9sD, proyecto Supabase
+    `akrycutgdbeghosdbowt`, plan Free) esta SUSPENDIDO ("Project has been
+    paused. Go to Supabase Dashboard in order to unpause it") y vinculado al
+    proyecto dialegal con deployments.required=true. Los envs
+    (POSTGRES_URL/SUPABASE_*) estan inline, pero la base de datos real ES ese
+    proyecto Supabase: mientras este pausado, tambien fallaria el paywall/
+    consumo de orderId en runtime. Accion del dueño: Supabase Dashboard ->
+    proyecto akrycutgdbeghosdbowt -> Restore project; luego reintentar
+    `npx vercel --prod --yes`. legalhelp.cl sigue sirviendo el ULTIMO deploy
+    bueno (HTTP 200 verificado 2026-11-02). No se elimino ni desvinculo el
+    recurso: destruiria la base. Se mantiene ademas el bloqueo de CI GitHub
+    Actions a nivel cuenta (startup_failure desde 29-oct) — pendiente del
+    dueño.
