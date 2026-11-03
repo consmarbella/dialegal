@@ -132,8 +132,11 @@ const PLAZO_POR_TIPO: Record<string, { id: string; aplica: ("demanda" | "contest
   // (audiencia preparatoria, CT 451/452): los drafts laborales reciben la nota
   // [VERIFICACION DE PLAZOS] en vez de una fecha inventada.
 };
-function resolverPlazoIdCivilContestacion(texto: string): string | null {
-  if (/\bmonitorio\b/i.test(texto) && /(?:arrendamiento|arriendo|18\.?\s?101|21\.?\s?461|renta)/i.test(texto)) {
+export function resolverPlazoIdCivilContestacion(texto: string): string | null {
+  // "monitoria" (forma usual en el escrito) y "monitorio" (adjetivo del procedimiento).
+  // Antes solo "monitorio": en prod un escrito de demanda monitoria calculaba 18 días
+  // hábiles en vez de 10 corridos y no detectaba el plazo vencido.
+  if (/\bmonitori[oa]s?\b/i.test(texto) && /(?:arrendamiento|arriendo|18\.?\s?101|21\.?\s?461|renta)/i.test(texto)) {
     return "civil_monitorio_arrendamiento";
   }
   if (/\b(?:juicio\s+ejecutivo|demanda\s+ejecutiva|mandamiento\s+de\s+ejecuci[oó]n|art(?:[íi]culos?|s?\.?)\s*46[24])\b/i.test(texto)) {
