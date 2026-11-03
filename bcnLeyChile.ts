@@ -36,25 +36,79 @@ export interface BcnNormaSinArticulo {
   motivo: "articulo_no_encontrado" | "norma_no_disponible" | "limite_diario" | "norma_no_resoluble";
 }
 
-const NORMA_IDS: Record<string, { id: number; nombre: string; detect: RegExp }> = {
-  CC: { id: 172986, nombre: "Codigo Civil (DFL 1, 2000)", detect: /C[oó]digo\s+Civil|DFL\s*n?[°º.\s]?1[^0-9]/i },
-  CP: { id: 1984, nombre: "Codigo Penal", detect: /C[oó]digo\s+Penal/i },
-  CT: { id: 207436, nombre: "Codigo del Trabajo (DFL 1, 2003)", detect: /C[oó]digo\s+del\s+Trabajo|\bDFL\s*n?[°º.\s]?2[^0-9]/i },
-  CPC: { id: 22740, nombre: "Codigo de Procedimiento Civil (Ley 1.552)", detect: /C[oó]digo\s+de\s+Procedimiento\s+Civil|\bLey\s*n?[°º.\s]*1\.?\s?552\b/i },
-  CPP: { id: 176595, nombre: "Codigo Procesal Penal (Ley 19.696)", detect: /C[oó]digo\s+Procesal\s+Penal|\bLey\s*n?[°º.\s]*19\.?696\b/i },
-  L14908: { id: 27977, nombre: "Ley 14.908 (pensiones alimenticias)", detect: /Ley\s*n?[°º.\s]*14\.?\s?908/i },
-  L18101: { id: 29526, nombre: "Ley 18.101 (arrendamiento urbano)", detect: /Ley\s*n?[°º.\s]*18\.?\s?101/i },
-  L18287: { id: 29705, nombre: "Ley 18.287 (justicia de policia local)", detect: /Ley\s*n?[°º.\s]*18\.?\s?287/i },
-  L18290: { id: 29708, nombre: "Ley 18.290 (transito)", detect: /Ley\s*n?[°º.\s]*18\.?\s?290/i },
-  L19968: { id: 229557, nombre: "Ley 19.968 (familia)", detect: /Ley\s*n?[°º.\s]*19\.?\s?968/i },
-  L20720: { id: 1058072, nombre: "Ley 20.720 (reorganizacion y liquidacion)", detect: /Ley\s*n?[°º.\s]*20\.?\s?720/i },
+// Exportadas para scripts/qa-semilla-bcn.ts (guardián de la semilla). El resto
+// del código debe seguir usando verificarCitasBCN, no estas tablas a pelo.
+export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: RegExp }> = {
+  // ── Códigos ────────────────────────────────────────────────────────────────
+  // detect exige el DENOMINADOR del DFL (1/2000, 2/2003): el patrón anterior
+  // ("DFL N" pelado) hacía que cualquier "DFL N° 1"/"DFL N° 2" del mundo cayera
+  // en CC/CT. Verificación de TODAS las entradas: scripts/qa-semilla-bcn.ts.
+  CC: { id: 172986, nombre: "Codigo Civil (DFL 1, 2000)", detect: /\bC[oó]digo\s+Civil\b|\bDFL\s*(?:N[°º.]?\s*)?1\s*(?:\/|de)?\s*2000\b/i },
+  CP: { id: 1984, nombre: "Codigo Penal", detect: /\bC[oó]digo\s+Penal\b/i },
+  CT: { id: 207436, nombre: "Codigo del Trabajo (DFL 2, 2003)", detect: /\bC[oó]digo\s+del\s+Trabajo\b|\bDFL\s*(?:N[°º.]?\s*)?2\s*(?:\/|de)?\s*2003\b/i },
+  CPC: { id: 22740, nombre: "Codigo de Procedimiento Civil (Ley 1.552)", detect: /\bC[oó]digo\s+de\s+Procedimiento\s+Civil\b|\bLey\s*n?[°º.\s]*1\.?\s?552\b/i },
+  CPP: { id: 176595, nombre: "Codigo Procesal Penal (Ley 19.696)", detect: /\bC[oó]digo\s+Procesal\s+Penal\b|\bLey\s*n?[°º.\s]*19\.?\s?696\b/i },
+  CCom: { id: 1974, nombre: "Codigo de Comercio", detect: /\bC[oó]digo\s+de\s+Comercio\b/i },
+  CTrib: { id: 6374, nombre: "Codigo Tributario (DL 830)", detect: /\bC[oó]digo\s+Tributario\b/i },
+  CAguas: { id: 5605, nombre: "Codigo de Aguas (DFL 1122)", detect: /\bC[oó]digo\s+de\s+Aguas\b/i },
+  CSan: { id: 5595, nombre: "Codigo Sanitario (DFL 725)", detect: /\bC[oó]digo\s+Sanitario\b/i },
+  CMiner: { id: 29668, nombre: "Codigo de Mineria (Ley 18.248)", detect: /\bC[oó]digo\s+de\s+Miner[ií]a\b/i },
+  CJM: { id: 18914, nombre: "Codigo de Justicia Militar (D. 2226)", detect: /\bC[oó]digo\s+de\s+Justicia\s+Militar\b/i },
+  CAero: { id: 30287, nombre: "Codigo Aeronautico (Ley 18.916)", detect: /\bC[oó]digo\s+Aeron[aá]utico\b/i },
+  LGUC: { id: 13560, nombre: "Ley General de Urbanismo y Construcciones (DFL 458)", detect: /\bLey\s+General\s+de\s+Urbanismo\b|\bLGUC\b/i },
+  // ── Leyes especiales / sectoriales ─────────────────────────────────────────
+  // Lote 2026-11-02: frecuencia medida sobre data/corpus-full (16,1 MB) + gap
+  // de citas SIN número ("Ley del Consumidor", "Estatuto Administrativo") que
+  // el canal genérico idLey no puede resolver. Cada idNorma verificado contra
+  // el XML oficial (obtxml: <Tipo>, <Numero>, normaId y <TituloNorma>).
+  L14908: { id: 27977, nombre: "Ley 14.908 (pensiones alimenticias)", detect: /\bLey\s*n?[°º.\s]*14\.?\s?908\b/i },
+  L16744: { id: 28650, nombre: "Ley 16.744 (accidentes del trabajo)", detect: /\bLey\s*n?[°º.\s]*16\.?\s?744\b|\bLey\s+de\s+Accidentes\s+del\s+Trabajo\b/i },
+  L17336: { id: 28933, nombre: "Ley 17.336 (propiedad intelectual)", detect: /\bLey\s*n?[°º.\s]*17\.?\s?336\b|\bLey\s+de\s+Propiedad\s+Intelectual\b/i },
+  L18046: { id: 29473, nombre: "Ley 18.046 (sociedades anonimas)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?046\b|\bLey\s+de\s+Sociedades\s+An[oó]nimas\b/i },
+  L18101: { id: 29526, nombre: "Ley 18.101 (arrendamiento urbano)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?101\b/i },
+  L18216: { id: 29636, nombre: "Ley 18.216 (penas sustitutivas)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?216\b/i },
+  L18287: { id: 29705, nombre: "Ley 18.287 (justicia de policia local)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?287\b/i },
+  L18290: { id: 29708, nombre: "Ley 18.290 (transito)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?290\b/i },
+  L18314: { id: 29731, nombre: "Ley 18.314 (conductas terroristas)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?314\b/i },
+  L18575: { id: 29967, nombre: "Ley 18.575 (bases generales de la administracion)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?575\b/i },
+  L18695: { id: 30077, nombre: "Ley 18.695 (LOC de municipalidades)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?695\b|\bLey\s+Org[aá]nica\s+Constitucional\s+de\s+Municipalidades\b/i },
+  L18834: { id: 30210, nombre: "Ley 18.834 (estatuto administrativo)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?834\b|\bEstatuto\s+Administrativo(?!\s+(?:Municipal|para\s+Funcionarios\s+Municipales))\b/i },
+  L18883: { id: 30256, nombre: "Ley 18.883 (estatuto administrativo municipal)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?883\b|\bEstatuto\s+Administrativo\s+(?:Municipal|para\s+Funcionarios\s+Municipales)\b/i },
+  L19039: { id: 30406, nombre: "Ley 19.039 (propiedad industrial)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?039\b|\bLey\s+de\s+Propiedad\s+Industrial\b/i },
+  L19300: { id: 30667, nombre: "Ley 19.300 (bases del medio ambiente)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?300\b|\bLey\s+de\s+Bases\s+(?:Generales\s+)?del\s+Medio\s+Ambiente\b/i },
+  L19496: { id: 61438, nombre: "Ley 19.496 (proteccion del consumidor)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?496\b|\bLey\s+del\s+Consumidor\b/i },
+  L19628: { id: 141599, nombre: "Ley 19.628 (proteccion de la vida privada)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?628\b/i },
+  L19880: { id: 210676, nombre: "Ley 19.880 (procedimiento administrativo)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?880\b/i },
+  L19886: { id: 213004, nombre: "Ley 19.886 (compras publicas)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?886\b|\bLey\s+de\s+Compras\s+P[uú]blicas\b/i },
+  L19947: { id: 225128, nombre: "Ley 19.947 (matrimonio civil)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?947\b|\bLey\s+de\s+Matrimonio\s+Civil\b/i },
+  L19968: { id: 229557, nombre: "Ley 19.968 (familia)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?968\b/i },
+  L20000: { id: 235507, nombre: "Ley 20.000 (trafico ilicito de estupefacientes)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?000\b|\bLey\s+de\s+Drogas\b/i },
+  L20009: { id: 236736, nombre: "Ley 20.009 (fraudes tarjetas de pago)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?009\b/i },
+  L20066: { id: 242648, nombre: "Ley 20.066 (violencia intrafamiliar)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?066\b|\bLey\s+de\s+Violencia\s+Intrafamiliar\b/i },
+  L20084: { id: 244803, nombre: "Ley 20.084 (responsabilidad penal adolescente)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?084\b/i },
+  L20720: { id: 1058072, nombre: "Ley 20.720 (reorganizacion y liquidacion)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?720\b/i },
+  L21325: { id: 1158549, nombre: "Ley 21.325 (migracion y extranjeria)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?325\b|\bLey\s+de\s+Migraci[oó]n\b/i },
+  L21430: { id: 1173643, nombre: "Ley 21.430 (garantias y proteccion de la ninez)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?430\b/i },
+  L21561: { id: 1191554, nombre: "Ley 21.561 (reduccion de jornada, 40 horas)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?561\b|\bLey\s+de\s+40\s+Horas\b/i },
+  L21643: { id: 1200096, nombre: "Ley 21.643 (Ley Karin, acoso laboral)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?643\b|\bLey\s+Karin\b/i },
+  L21719: { id: 1209272, nombre: "Ley 21.719 (proteccion de datos personales)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?719\b/i },
 };
 
-// Codigos famosos fuera de la semilla (notorias, verificados con idLey):
-const LEY_EXTRA: Record<string, number> = {
-  "Ley 18.916 (Codigo Aeronautico)": 18916,
-  "Ley 8.274 (Codigo de Justicia Militar)": 8274,
+// Leyes notorias citadas por NUMERO que conviene tener resueltas sin pasar por
+// el canal genérico idLey (ahorra 1 consulta y evita el tope MAX_GENERICOS).
+// VALOR = idNorma VERIFICADO contra el XML oficial (2026-11-02,
+// scripts/qa-semilla-bcn.ts). ANTES este mapa guardaba el NUMERO DE LEY en el
+// campo idNorma: "Ley 18.916" descargaba idNorma=18916 = "Decreto 2226:
+// pension por gracia a Santiago Florio Cvitanic" — texto de OTRO cuerpo
+// inyectado como verdad normativa (hallazgo de la auditoria de semilla).
+// "Ley 8.274" no existe en el indice de Ley Chile (idLey=8274 responde vacio):
+// esa etiqueta falsa se elimino; el Codigo de Justicia Militar (Decreto 2226,
+// idNorma 18914) vive ahora en NORMA_IDS detectado por su nombre.
+const LEY_EXTRA: Record<string, { nombre: string; idNorma: number }> = {
+  "18916": { nombre: "Codigo Aeronautico (Ley 18.916)", idNorma: 30287 },
+  "18248": { nombre: "Codigo de Mineria (Ley 18.248)", idNorma: 29668 },
 };
+export { LEY_EXTRA };
 
 const LIMITA_DIARIO = 300;
 const TTL_NORMA = 24 * 60 * 60 * 1000;
@@ -349,14 +403,14 @@ function detectarNormas(textoPost: string): NormaDetectada[] {
     // skip si este span ya lo cubre al semilla (evita duplicar "Ley 18.290").
     const spanA = lm.index, spanB = lm.index + lm[0].length;
     if (out.some((n) => n.resuelta && spanA >= n.idx - 8 && spanB <= n.end + 8)) continue;
-    const extraId = Object.entries(LEY_EXTRA).find(([, id]) => id === parseInt(numNorma, 10));
+    const extra = LEY_EXTRA[numNorma];
     out.push({
       key: `LEY${numNorma}`,
-      nombre: extraId ? extraId[0] : undefined,
-      idNorma: extraId ? extraId[1] : null,
+      nombre: extra ? extra.nombre : undefined,
+      idNorma: extra ? extra.idNorma : null,
       leyNum: numNorma,
       idx: spanA, end: spanB,
-      resuelta: Boolean(extraId),
+      resuelta: Boolean(extra),
     });
   }
   return out.sort((a, b) => a.idx - b.idx);
