@@ -103,6 +103,24 @@ export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: Reg
   L19913: { id: 219119, nombre: "Ley 19.913 (UAF / lavado de activos)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?913\b|\bUnidad\s+de\s+An[aá]lisis\s+Financiero\b|\bUAF\b/i },
   L20585: { id: 1039952, nombre: "Ley 20.585 (licencias medicas)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?585\b|\blicencias?\s+m[eé]dicas?\b/i },
   L21400: { id: 1169572, nombre: "Ley 21.400 (matrimonio en igualdad de condiciones)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?400\b|\bmatrimonio\s+igualitario\b/i },
+  // Lote P1+P2 2026-11-03 — frecuencia corpus-full + foro (normaId = obtxml)
+  L20886: { id: 1085545, nombre: "Ley 20.886 (tramitacion electronica de juicios)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?886\b|\btramitaci[oó]n\s+electr[oó]nica\b|\btramitaci[oó]n\s+digital\s+de\s+los\s+procedimientos\b/i },
+  L19537: { id: 81505, nombre: "Ley 19.537 (copropiedad inmobiliaria)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?537\b|\bcopropiedad\s+inmobiliaria\b|\bgastos\s+comunes\b/i },
+  L20830: { id: 1075210, nombre: "Ley 20.830 (acuerdo de union civil)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?830\b|\bacuerdo\s+de\s+uni[oó]n\s+civil\b|\bAUC\b/i },
+  L20609: { id: 1042092, nombre: "Ley 20.609 (medidas contra la discriminacion / Zamudio)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?609\b|\bLey\s+Zamudio\b|\bmedidas\s+contra\s+la\s+discriminaci[oó]n\b/i },
+  L20393: { id: 1008668, nombre: "Ley 20.393 (responsabilidad penal de personas juridicas)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?393\b|\bresponsabilidad\s+penal\s+de\s+(?:las\s+)?personas\s+jur[ií]dicas\b/i },
+  L20285: { id: 276363, nombre: "Ley 20.285 (acceso a la informacion publica / transparencia)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?285\b|\bacceso\s+a\s+la\s+informaci[oó]n\s+p[uú]blica\b|\bLey\s+de\s+Transparencia\b/i },
+  L21220: { id: 1143741, nombre: "Ley 21.220 (trabajo a distancia / teletrabajo)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?220\b|\btrabajo\s+a\s+distancia\b|\bteletrabajo\b/i },
+  L19585: { id: 126366, nombre: "Ley 19.585 (filiacion)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?585\b|\bfiliaci[oó]n\b/i },
+  L20422: { id: 1010903, nombre: "Ley 20.422 (inclusion de personas con discapacidad)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?422\b|\binclusi[oó]n\s+social\s+de\s+personas\s+con\s+discapacidad\b/i },
+  L20584: { id: 1039348, nombre: "Ley 20.584 (derechos y deberes de los pacientes)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?584\b|\bderechos\s+(?:y\s+deberes\s+)?(?:de\s+las\s+)?personas\s+en\s+relaci[oó]n\s+con\s+acciones\s+de\s+salud\b|\bderechos\s+del\s+paciente\b/i },
+  L16618: { id: 28581, nombre: "Ley 16.618 (ley de menores)", detect: /\bLey\s*n?[°º.\s]*16\.?\s?618\b|\bLey\s+de\s+Menores\b/i },
+  L19799: { id: 196640, nombre: "Ley 19.799 (documentos y firma electronica)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?799\b|\bfirma\s+electr[oó]nica\b|\bdocumentos\s+electr[oó]nicos\b/i },
+  L19966: { id: 229834, nombre: "Ley 19.966 (regimen de garantias en salud / GES)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?966\b|\bgarant[ií]as\s+expl[ií]citas\s+en\s+salud\b|\bGES\b|\bAUGE\b/i },
+  L21120: { id: 1126480, nombre: "Ley 21.120 (identidad de genero)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?120\b|\bidentidad\s+de\s+g[eé]nero\b/i },
+  L21302: { id: 1154203, nombre: "Ley 21.302 (proteccion especializada a la ninez y adolescencia)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?302\b|\bServicio\s+Nacional\s+de\s+Protecci[oó]n\s+Especializada\b/i },
+  L19253: { id: 30620, nombre: "Ley 19.253 (proteccion de pueblos indigenas)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?253\b|\bpueblos?\s+ind[ií]genas?\b|\bLey\s+Ind[ií]gena\b/i },
+
 };
 
 
@@ -119,6 +137,22 @@ export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: Reg
 const LEY_EXTRA: Record<string, { nombre: string; idNorma: number }> = {
   "18916": { nombre: "Codigo Aeronautico (Ley 18.916)", idNorma: 30287 },
   "18248": { nombre: "Codigo de Mineria (Ley 18.248)", idNorma: 29668 },
+  "20886": { nombre: "Ley 20.886 (tramitacion electronica)", idNorma: 1085545 },
+  "19537": { nombre: "Ley 19.537 (copropiedad inmobiliaria)", idNorma: 81505 },
+  "20830": { nombre: "Ley 20.830 (AUC)", idNorma: 1075210 },
+  "20609": { nombre: "Ley 20.609 (no discriminacion)", idNorma: 1042092 },
+  "20393": { nombre: "Ley 20.393 (RP personas juridicas)", idNorma: 1008668 },
+  "20285": { nombre: "Ley 20.285 (transparencia)", idNorma: 276363 },
+  "21220": { nombre: "Ley 21.220 (teletrabajo)", idNorma: 1143741 },
+  "19585": { nombre: "Ley 19.585 (filiacion)", idNorma: 126366 },
+  "20422": { nombre: "Ley 20.422 (discapacidad)", idNorma: 1010903 },
+  "20584": { nombre: "Ley 20.584 (derechos pacientes)", idNorma: 1039348 },
+  "16618": { nombre: "Ley 16.618 (menores)", idNorma: 28581 },
+  "19799": { nombre: "Ley 19.799 (firma electronica)", idNorma: 196640 },
+  "19966": { nombre: "Ley 19.966 (GES)", idNorma: 229834 },
+  "21120": { nombre: "Ley 21.120 (identidad de genero)", idNorma: 1126480 },
+  "21302": { nombre: "Ley 21.302 (proteccion ninez)", idNorma: 1154203 },
+  "19253": { nombre: "Ley 19.253 (pueblos indigenas)", idNorma: 30620 },
 };
 export { LEY_EXTRA };
 
