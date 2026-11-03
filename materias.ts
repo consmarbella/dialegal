@@ -129,7 +129,7 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
       a("audiencia preparatoria", "audiencia preparatoria"),
       a("dinaco", "\\bdinaco\\b", 1),
     ],
-    normasSemilla: ["CT"],
+    normasSemilla: ["CT" , "L17322", "L19728", "L20585", "L19631"],
     // Fase E: sin plazos laborales verificados — el CT vigente NO fija plazo de
     // 15 días para contestar (la contestación es en la audiencia preparatoria,
     // CT 451/452) y el canal leychile del CT trunca en art. 519 (no hay forma
@@ -173,7 +173,7 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
       a("conservador de bienes raices", "conservador de bienes ra|\\bcbr\\b"),
       a("rol C", "\\brol\\s+C\\s*-"),
     ],
-    normasSemilla: ["CC", "CPC", "L18101", "L20720"],
+    normasSemilla: ["CC", "CPC", "L18101", "L20720" , "L18010", "L18092", "L16271"],
     plazos: ["civil_contestacion", "civil_apelacion_auto", "civil_oposicion_medida"],
   },
   familia: {
@@ -201,7 +201,7 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
     anclas: [
       a("mediacion familiar", "mediaci[o]?n familiar"),
     ],
-    normasSemilla: ["L19968", "L14908"],
+    normasSemilla: ["L19968", "L14908" , "L21400"],
     plazos: ["familia_apelacion"],
   },
   penal: {

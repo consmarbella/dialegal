@@ -13,6 +13,7 @@
 
 import { clasificarMateria, resolverMateria, type SlugMateria, type ResolucionMateria } from "../../materias.js";
 import { soporteCorpusMaterias } from "./materiaCorpus.js";
+import { expandirJergaChile } from "./jergaChile.js";
 
 const TODAS: SlugMateria[] = [
   "civil", "laboral", "familia", "penal", "administrativo", "constitucional", "transito",
@@ -22,12 +23,13 @@ export function decidirMateria(
   areaDeclarada: string | null | undefined,
   texto: string,
 ): ResolucionMateria {
-  const clas = clasificarMateria(texto);
+  const textoClas = expandirJergaChile(texto || "");
+  const clas = clasificarMateria(textoClas);
   // Top 2-3 candidatos del regex; si se abstuvo (sin señales), todas las
   // materias con corpus (el corpus es la última opción antes de indeterminada).
   const candidatos = clas.scores.length
     ? clas.scores.slice(0, 3).map((x) => x.slug)
     : TODAS;
-  const soporte = candidatos.length ? soporteCorpusMaterias(texto, candidatos) : [];
-  return resolverMateria(areaDeclarada, texto, soporte);
+  const soporte = candidatos.length ? soporteCorpusMaterias(textoClas, candidatos) : [];
+  return resolverMateria(areaDeclarada, textoClas, soporte);
 }

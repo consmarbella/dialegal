@@ -24,6 +24,7 @@ import { handleLegalHelpDraft } from "./src/server/legalhelp-draft.js";
 import { detectAreaFromContext } from "./area-detector.js";
 import { lineaMateriaPrompt, MATERIAS } from "./materias.js";
 import { decidirMateria } from "./src/server/materiaDecision.js";
+import { ejecutarPipelinePrevio } from "./src/server/pipelineLegalHelp.js";
 import { runWithCorpusForzado, runWithCorpusForzadoAsync } from "./src/server/corpusContext.js";
 import type { DraftInput } from "./src/types.js";
 
@@ -640,11 +641,14 @@ app.post("/api/premium-report", async (req, res) => {
     // sigue respetando el flag; el dictamen premium siempre usa el corpus.
     // Fase D/D.2: la plataforma decide la materia (señales + corpus cuando el
     // regex se abstiene); el área declarada es respaldo. Conflicto = anotación.
-    const resolucionMateria = runWithCorpusForzado(() => decidirMateria(area, combinedText));
+    const previoPrem = runWithCorpusForzado(() => ejecutarPipelinePrevio(combinedText, area));
+    const resolucionMateria = previoPrem.resolucionMateria;
+    const bloqueSubsuncionPrem = previoPrem.bloqueSubsuncion;
     // Nombre legible para la UI (null = indeterminada: el chip se oculta).
     const materia = resolucionMateria.slug ? MATERIAS[resolucionMateria.slug].nombre : null;
 
     let promptContent = `${lineaMateriaPrompt(resolucionMateria)}\n`;
+    if (bloqueSubsuncionPrem) promptContent += bloqueSubsuncionPrem;
     if (notificationDate) promptContent += `FECHA DE NOTIFICACIÓN: ${notificationDate}\n`;
     promptContent += `\nRELATO O DOCUMENTO DEL CASO:\n${combinedText.slice(0, 8000)}\n\n`;
     if (dictamenMarkdown && typeof dictamenMarkdown === "string") {

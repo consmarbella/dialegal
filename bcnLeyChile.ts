@@ -94,7 +94,17 @@ export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: Reg
   L21561: { id: 1191554, nombre: "Ley 21.561 (reduccion de jornada, 40 horas)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?561\b|\bLey\s+de\s+40\s+Horas\b/i },
   L21643: { id: 1200096, nombre: "Ley 21.643 (Ley Karin, acoso laboral)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?643\b|\bLey\s+Karin\b/i },
   L21719: { id: 1209272, nombre: "Ley 21.719 (proteccion de datos personales)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?719\b/i },
+  // Lote frecuencia foro 2026-11-03 — normaId verificado obtxml
+  L18010: { id: 29438, nombre: "Ley 18.010 (operaciones de credito de dinero)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?010\b|\boperaciones?\s+de\s+cr[eé]dito\s+de\s+dinero\b/i },
+  L18092: { id: 29517, nombre: "Ley 18.092 (letra de cambio y pagare)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?092\b|\bletras?\s+de\s+cambio\b|\bpagar[eé]s?\b/i },
+  L16271: { id: 28367, nombre: "Ley 16.271 (impuesto a las herencias y donaciones)", detect: /\bLey\s*n?[°º.\s]*16\.?\s?271\b|\bimpuesto\s+a\s+las\s+herencias\b/i },
+  L17322: { id: 28919, nombre: "Ley 17.322 (cobranza judicial de cotizaciones)", detect: /\bLey\s*n?[°º.\s]*17\.?\s?322\b|\bcobranza\s+judicial\s+de\s+cotizaciones\b/i },
+  L19728: { id: 184979, nombre: "Ley 19.728 (seguro de desempleo / cesantia)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?728\b|\bseguro\s+de\s+(?:desempleo|cesant[ií]a)\b/i },
+  L19913: { id: 219119, nombre: "Ley 19.913 (UAF / lavado de activos)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?913\b|\bUnidad\s+de\s+An[aá]lisis\s+Financiero\b|\bUAF\b/i },
+  L20585: { id: 1039952, nombre: "Ley 20.585 (licencias medicas)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?585\b|\blicencias?\s+m[eé]dicas?\b/i },
+  L21400: { id: 1169572, nombre: "Ley 21.400 (matrimonio en igualdad de condiciones)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?400\b|\bmatrimonio\s+igualitario\b/i },
 };
+
 
 // Leyes notorias citadas por NUMERO que conviene tener resueltas sin pasar por
 // el canal genérico idLey (ahorra 1 consulta y evita el tope MAX_GENERICOS).

@@ -10,6 +10,7 @@ import { validarLegalHelp, notaBlindajeLegalHelp, type InsumosValidacionLegalHel
 import { auditarVacios } from "../../auditorVacios.js";
 import { lineaMateriaPrompt, MATERIAS } from "../../materias.js";
 import { decidirMateria } from "./materiaDecision.js";
+import { ejecutarPipelinePrevio } from "./pipelineLegalHelp.js";
 import { existePlazo, calcularPlazo, detectarFechaNotificacion, detectarFechasNotificacion, anotacionesPlazos, bloquePromptPlazos, chequearPlazosEnBorrador, type ResultadoPlazo, type FechasNotificacionResultado } from "../../plazosChile.js";
 import { getPlantilla, getArticulosClave } from "../../legalhelp-templates.js";
 import { lintTacticoProcesal, sanitizarTactico } from "../../lintTacticoLegalHelp.js";
@@ -145,9 +146,11 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   const combinedText = [input.documentoCaso, input.hechos, ...input.pretensiones, ...(input.documentos || [])]
     .filter(Boolean)
     .join("\n");
-  // Fase D.3: decisión con señales + corpus (BM25 normalizado) como desempate.
-  const resolucionMateria = decidirMateria(input.area, combinedText);
+  // Pipeline ①②③⑤⑥: jerga → materia (regex+corpus) → slots → subsunción top normas.
+  const previo = ejecutarPipelinePrevio(combinedText, input.area);
+  const resolucionMateria = previo.resolucionMateria;
   const area = resolucionMateria.slug;
+  const bloqueSubsuncion = previo.bloqueSubsuncion;
   let ext: ReturnType<typeof extraerChileno> | null = null;
   let planoExt = "";
   try {
@@ -202,6 +205,7 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   promptContent += `\nHECHOS:\n${input.hechos}\n\n`;
   promptContent += `PRETENSIONES:\n${input.pretensiones.map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\n`;
   if (planoExt) promptContent += planoExt;
+  if (bloqueSubsuncion) promptContent += bloqueSubsuncion;
   // Bloques de contexto heredado (Motor v2): documento real + dictamen del caso.
   // Van antes de la plantilla para que fijen hechos/estrategia y la plantilla solo dé forma.
   if (input.documentoCaso) {
