@@ -43,7 +43,7 @@ MARCADOR ÚNICO DE DATOS OPERATIVOS FALTANTES: si un dato indispensable (RIT/RUC
 
 JERARQUÍA DE CONTEXTO DEL CASO (cuando el prompt incluya estos bloques, prevalecen sobre ejemplos genéricos):
 1. [DOCUMENTO DEL CASO] — texto real del expediente: fuente principal de HECHOS, FECHAS y MONTOS. Cítalos literalmente; no los sustituyas por supuestos.
-2. [DICTAMEN TÉCNICO PREVIO] — análisis del mismo caso: fuente principal de la ESTRATEGIA. No contradigas sus conclusiones; nuestros criterios legales (BCN/jurisprudencia) los respaldan.
+2. [DICTAMEN TÉCNICO PREVIO] — SOLO si viene en el prompt y el escrito NO es contestación: orienta estrategia. En CONTESTACIÓN está PROHIBIDO usar diagnóstico orientativo como estrategia (contamina con tesis del actor). En contestación: documento + pretensiones del usuario + BCN/jurisprudencia.
 3. BCN/Ley Chile y jurisprudencia — verificación normativa.
 4. Plantilla — da la FORMA, nunca inventa contenido.
 
@@ -139,6 +139,9 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   // (indeterminada, NUNCA "laboral" por defecto — causa raíz de la
   // contaminación civil→laboral del informe real). Conflicto = anotación
   // visible, jamás bloqueo.
+  // Contestación/otrosí: el dictamen orientativo NO se usa (contaminaba la defensa).
+  const esDefensaEscrita = input.tipo === "contestacion" || input.tipo === "otrosi";
+  const dictamenUtil = esDefensaEscrita ? undefined : input.dictamen;
   const combinedText = [input.documentoCaso, input.hechos, ...input.pretensiones, ...(input.documentos || [])]
     .filter(Boolean)
     .join("\n");
@@ -152,13 +155,11 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     planoExt = planoBlindajePrompt(ext);
   } catch { /* silencioso */ }
 
-  // 4. BCN PRE: verificar artículos citados en input
+  // 4. BCN PRE: verificar artículos citados en input (siempre en borradores)
   let citasBCN: Awaited<ReturnType<typeof verificarCitasBCN>> = { verificados: [], pendientes: [] };
   try {
     citasBCN = await verificarCitasBCN([combinedText]);
   } catch (e: any) {
-    // Resiliencia BCN: visible en logs (antes silencioso, indistinguible de un
-    // caso sin citas si BCN caia).
     console.warn(`[draft][bcn-pre] verificacion fallo (sigue sin BCN): ${String(e?.message || e).slice(0, 150)}`);
   }
 
@@ -166,7 +167,7 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   const consultas: ConsultaEtiquetada[] = [];
   if (input.hechos) consultas.push({ texto: input.hechos.slice(0, 2500), etiqueta: "hechos" });
   if (input.documentoCaso) consultas.push({ texto: input.documentoCaso.slice(0, 2500), etiqueta: "documento" });
-  if (input.dictamen) consultas.push({ texto: input.dictamen.slice(0, 2500), etiqueta: "dictamen" });
+  if (dictamenUtil) consultas.push({ texto: dictamenUtil.slice(0, 2500), etiqueta: "dictamen" });
   if (ext) {
     if (ext.secciones.hechos) consultas.push({ texto: ext.secciones.hechos.slice(0, 2200), etiqueta: "hechos" });
     if (ext.secciones.derecho) consultas.push({ texto: ext.secciones.derecho.slice(0, 2500), etiqueta: "derecho" });
@@ -206,8 +207,10 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   if (input.documentoCaso) {
     promptContent += `\n[DOCUMENTO DEL CASO] — texto real del expediente; HECHOS, FECHAS y MONTOS autoritativos:\n${input.documentoCaso.slice(0, 9000)}\n`;
   }
-  if (input.dictamen) {
-    promptContent += `\n[DICTAMEN TÉCNICO PREVIO] — análisis del mismo caso; ESTRATEGIA y defensas conforme al diagnóstico:\n${input.dictamen.slice(0, 9000)}\n`;
+  if (dictamenUtil) {
+    promptContent += `\n[DICTAMEN TÉCNICO PREVIO] — orienta estrategia solo si el usuario lo adjunta; NO es la demanda:\n${dictamenUtil.slice(0, 9000)}\n`;
+  } else if (esDefensaEscrita) {
+    promptContent += `\n[REGLA CONTESTACIÓN] Sin dictamen de estrategia. Redacta la defensa SOLO con el [DOCUMENTO DEL CASO] y HECHOS/PRETENSIONES del usuario. No inventes concesiones ni copies la tesis del actor.\n`;
   }
   if (input.respuestasAuditoria?.trim()) {
     promptContent += `\n[DATOS COMPLETADOS POR EL USUARIO] — respuestas a la auditoría de vacíos de una versión anterior del borrador. Insértalas en su lugar exacto (RIT, techo de notificación, patrocinante, testigos, etc.), con la ortografía y detalle que el usuario entregó, y ELIMINA los marcadores que reemplazan:\n${input.respuestasAuditoria.slice(0, 4000)}\n`;

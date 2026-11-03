@@ -82,13 +82,18 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [draftPrefill, setDraftPrefill] = useState<DraftInput | null>(null);
 
-  // Contexto heredado para el Motor de Redacción (LegalHelp IA):
-  // dictamen (premium si está desbloqueado; análisis como fallback) + documento real del expediente.
-  // El borrador se genera con los hechos/fechas/montos reales del caso, no con texto genérico.
-  const draftContextExtra = (): Pick<DraftInput, 'dictamen' | 'documentoCaso'> => ({
-    dictamen: ((premium?.report || analysisMarkdown) || '').trim().slice(0, 9000) || undefined,
-    documentoCaso: (documentText || '').trim().slice(0, 9000) || undefined,
-  });
+  // Contestación/otrosí: NUNCA inyectar el diagnóstico (gratis o premium).
+  // La defensa sale del DOCUMENTO DEL CASO + hechos del usuario.
+  // Otros tipos: solo dictamen PREMIUM orienta estrategia (el análisis gratis no).
+  const draftContextExtra = (
+    tipo?: string,
+  ): Pick<DraftInput, 'dictamen' | 'documentoCaso'> => {
+    const doc = (documentText || '').trim().slice(0, 9000) || undefined;
+    const esDefensa = tipo === 'contestacion' || tipo === 'otrosi';
+    if (esDefensa) return { documentoCaso: doc, dictamen: undefined };
+    const dictamenPremium = (premium?.report || '').trim().slice(0, 9000) || undefined;
+    return { documentoCaso: doc, dictamen: dictamenPremium };
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(analysisMarkdown);
@@ -173,22 +178,26 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
         data.suggestedTipo = tipoLocal;
         data.suggestedInput = {
           tipo: tipoLocal,
-          hechos: userStory || analysisMarkdown.slice(0, 4000),
+          hechos:
+            tipoLocal === 'contestacion' || tipoLocal === 'otrosi'
+              ? (userStory || documentText || '').slice(0, 6000)
+              : (userStory || analysisMarkdown.slice(0, 4000)),
           area,
           pretensiones:
             tipoLocal === 'contestacion'
               ? ['Rechazar la demanda en todas sus partes', 'Costas']
               : ['Declarar...', 'Condenar...', 'Costas'],
-          ...draftContextExtra(),
+          ...draftContextExtra(tipoLocal),
         };
         console.log('[draft] Tier 3: negativa ética interceptada en cliente → abriendo modal con prefill local');
       }
 
       // Detectar acción de generar borrador (LegalHelp IA)
       if (data.draftAction) {
+        const tipoPrefill = (data.suggestedInput as DraftInput)?.tipo || data.suggestedTipo;
         setDraftPrefill({
           ...(data.suggestedInput as DraftInput),
-          ...draftContextExtra(),
+          ...draftContextExtra(tipoPrefill),
         });
         setShowDraftModal(true);
         

@@ -341,6 +341,8 @@ app.post("/api/download-document", async (req, res) => {
 });
 
 // Route to analyze legal case / documents
+// Análisis GRATIS: deliberadamente SIN llamadas BCN en vivo (estabilidad/límites).
+// El anclaje a Ley Chile (obtxml) es OBLIGATORIO solo en /api/premium-report (pagado).
 app.post("/api/analyze", async (req, res) => {
   try {
     const { userStory, documentText, area, files, notificationDate, audience: audienceRaw } = req.body;
@@ -662,15 +664,28 @@ app.post("/api/premium-report", async (req, res) => {
       console.warn(`[premium][extractor] fallo (sigue sin plano): ${String(extErr?.message || extErr).slice(0, 150)}`);
     }
 
-    // Verificacion determinista contra Ley Chile (BCN): textos oficiales de los
-    // articulos citados en el dictamen/relato. Nunca arroja: fallo = bloque vacio.
+    // BCN OBLIGATORIO en caso PAGADO: anclar artículos al XML oficial de Ley Chile.
+    // El análisis gratis (/api/analyze) NO llama BCN. Aquí sí, con 1 reintento.
     let citasBCN: Awaited<ReturnType<typeof verificarCitasBCN>> = { verificados: [], pendientes: [] };
-    try {
-      citasBCN = await verificarCitasBCN([combinedText, typeof dictamenMarkdown === "string" ? dictamenMarkdown : ""]);
+    let bcnDegradado = false;
+    {
+      const textosBcn = [combinedText, typeof dictamenMarkdown === "string" ? dictamenMarkdown : ""];
+      try {
+        citasBCN = await verificarCitasBCN(textosBcn);
+      } catch (bcnErr: any) {
+        console.warn(`[premium][bcn] 1er intento fallo: ${String(bcnErr?.message || bcnErr).slice(0, 150)}`);
+        try {
+          citasBCN = await verificarCitasBCN(textosBcn);
+        } catch (bcnErr2: any) {
+          bcnDegradado = true;
+          console.error(`[premium][bcn] OBLIGATORIO falló tras reintento: ${String(bcnErr2?.message || bcnErr2).slice(0, 150)}`);
+        }
+      }
       const bloqueBCN = bloquePromptBCN(citasBCN);
       if (bloqueBCN) promptContent += bloqueBCN;
-    } catch (bcnErr: any) {
-      console.warn(`[premium][bcn] verificacion BCN fallo (sigue solo con web): ${String(bcnErr?.message || bcnErr).slice(0, 150)}`);
+      else if (bcnDegradado) {
+        promptContent += `\n[BCN DEGRADADO] No se pudo obtener texto oficial de Ley Chile en este request. NO inventes artículos ni plazos normativos; marca "[SIN COBERTURA BCN]" donde corresponda.\n`;
+      }
     }
 
     // Recuperacion jurisprudencial (Open Legal Chile, vertical laboral): fallo rector
@@ -865,6 +880,8 @@ app.post("/api/premium-report", async (req, res) => {
         url: a.url,
       })),
       pendientes: citasBCN.pendientes.map((p) => ({ nombreNorma: p.nombreNorma, motivo: p.motivo })),
+      /** true si Ley Chile no respondió tras reintento — UI debe avisar */
+      degradado: bcnDegradado,
     };
     const jurisResumen = resumenJuris(juris);
     const casosResumen = resumenCasos(casos);
