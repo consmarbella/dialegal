@@ -12,6 +12,7 @@ import { lineaMateriaPrompt, MATERIAS } from "../../materias.js";
 import { decidirMateria } from "./materiaDecision.js";
 import { existePlazo, calcularPlazo, detectarFechaNotificacion, detectarFechasNotificacion, anotacionesPlazos, bloquePromptPlazos, chequearPlazosEnBorrador, type ResultadoPlazo, type FechasNotificacionResultado } from "../../plazosChile.js";
 import { getPlantilla, getArticulosClave } from "../../legalhelp-templates.js";
+import { lintTacticoProcesal, sanitizarTactico } from "../../lintTacticoLegalHelp.js";
 import type { DraftInput, DraftOutput, VacioCritico } from "../types.js";
 // Fase 1: generateWithFallback consolidado en llmEngine.ts (versión completa:
 // cadena dinámica, pausa por cuota diaria, reintentos y fallback degradado).
@@ -54,7 +55,22 @@ CALIDAD FORENSE OBLIGATORIA (aplica a todo borrador con documento/dictamen adjun
 - VOCABULARIO DE QA: los marcadores de trazabilidad ("NO VERIFICADO", "no corroborado", "pendiente de confirmar") NO pertenecen al texto del escrito. Todo dato que SÍ figure en el documento/dictamen se afirma directamente como hecho del expediente; los marcadores se reservan solo para datos ausentes en todas las fuentes.
 - TRIBUNAL Y ROL: el TRIBUNAL y el ROL/RIT proporcionados en el encabezado (si existen) se reproducen LITERALMENTE, sin renombrarlos, sin numerarlos ni añadir servidores/puertas (1°, N° 2); si no fueron proporcionados, usa el marcador de dato faltante ("S.J.L. de [DATO FALTANTE: comuna del tribunal]", "RIT: [DATO FALTANTE: rol de la causa]").
 - REGENERACIÓN CON DATOS DEL USUARIO: si el prompt incluye el bloque [DATOS COMPLETADOS POR EL USUARIO], INTEGRÁELOS en el borrador tal como los dio el usuario (exactos, con formato procesal) y ELIMINA los marcadores "[DATO FALTANTE]" y "[NOMBRE ...]" correspondientes; no los dejes ambos (dato + marcador).
-- ROLES DE FALLOS JURISPRUDENCIALES: PROHIBIDO citar un rol de fallo (ej. "Rol N° 41.500-2017") que NO aparezca en los bloques verificados (CRITERIO JURISPRUDENCIAL / CASOS ANÁLOGOS / [DICTAMEN]). Cita la doctrina sin rol (" según la jurisprudencia de la Excma. Corte Suprema"); si la fuente trae un rol, cópialo textual. Los roles citados por la contraparte solo se mencionan como citas de ella, nunca como propios.`;
+- ROLES DE FALLOS JURISPRUDENCIALES: PROHIBIDO citar un rol de fallo (ej. "Rol N° 41.500-2017") que NO aparezca en los bloques verificados (CRITERIO JURISPRUDENCIAL / CASOS ANÁLOGOS / [DICTAMEN]). Cita la doctrina sin rol (" según la jurisprudencia de la Excma. Corte Suprema"); si la fuente trae un rol, cópialo textual. Los roles citados por la contraparte solo se mencionan como citas de ella, nunca como propios.
+
+REGLAS DE ORO PROCESALES CHILENAS (OBLIGATORIAS EN CONTESTACIÓN / DEFENSA LABORAL):
+
+A) LEY BUSTOS / ART. 162 CT — MORA PREVISIONAL:
+- PROHIBIDO redactar promesas o futuros: "procederá a pagar", "se regularizarán las cotizaciones", "una vez pagadas se convalida", "el empleador se compromete a enterar".
+- El tratamiento es BINARIO y solo con base en el [DOCUMENTO DEL CASO] / [DICTAMEN]:
+  (1) Si consta pago Y notificación al trabajador ANTES del término: alegar convalidación efectiva con FECHA exacta y prueba; o
+  (2) Si NO consta: NEGAR que la eventual mora prive de efectos al despido, negar perjuicio, y exigir al actor la carga de acreditar mora, monto, periodo y nexo causal. NUNCA ofrecer regularización futura en el escrito.
+
+B) FERIADO LEGAL Y HORAS EXTRAORDINARIAS:
+- PROHIBIDO allanarse "por si acaso" o en condicional: "si existiere saldo", "si resultare diferencia", "se pagará lo que corresponda", "sin perjuicio de liquidar feriado".
+- Debe NEGARSE CATEGÓRICAMENTE la existencia de saldo pendiente por feriado y/o horas extraordinarias, salvo que el [DOCUMENTO DEL CASO] reconozca un monto líquido y exigible.
+- Trasladar expresamente la CARGA PROBATORIA al demandante (existencia, liquidación, no pago).
+
+C) Si el caso no es laboral, ignora A y B. Si es laboral y el rubro no fue demandado, no lo introduzcas.`;
 
 // Fase 1: las dos banderas de grounding son DISTINTAS por diseño y no deben
 // unificarse ni renombrarse sin tocar Vercel:
@@ -309,6 +325,23 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     vacios = auditarVacios(draft, input);
   } catch { /* silencioso */ }
 
+  // 10.55 Linting táctico procesal (Ley Bustos + feriado/HE): intercepta alucinaciones
+  // del LLM antes de entregar el escrito. Solo aplica en laboral.
+  let lintTactico: ReturnType<typeof lintTacticoProcesal> = [];
+  try {
+    lintTactico = lintTacticoProcesal(draft, area);
+    if (lintTactico.length) {
+      const { texto: draftLimpio, corregidos } = sanitizarTactico(draft, lintTactico);
+      draft = draftLimpio;
+      if (corregidos || lintTactico.some((h) => h.severidad === "bloqueante")) {
+        draft +=
+          `\n\n## ⚠️ Control táctico procesal (automático)\n` +
+          lintTactico.map((h) => `- [${h.regla}] «${h.snippet}» → ${h.sugerencia}`).join("\n") +
+          "\n";
+      }
+    }
+  } catch { /* silencioso: el lint jamás rompe el borrador */ }
+
   // 10.6 Cross-check plazos (Fase 7, enforcement de ANOTACIÓN): verifica que la
   // fecha límite calculada por el motor aparezca consignada en el borrador (en
   // cualquier formato razonable). Si no aparece, se appenda una nota visible.
@@ -350,6 +383,8 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
       plazosMotor: plazosMotor.length ? plazosMotor : undefined,
       // Fase 7: cross-check (¿el borrador consigna la fecha límite del motor?)
       chequeoPlazos: chequeoPlazos.length ? chequeoPlazos : undefined,
+      audience: input.audience || "abogado",
+      lintTactico: lintTactico.length ? lintTactico : undefined,
     },
   };
 

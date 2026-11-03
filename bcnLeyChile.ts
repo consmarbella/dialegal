@@ -78,6 +78,8 @@ export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: Reg
   L19300: { id: 30667, nombre: "Ley 19.300 (bases del medio ambiente)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?300\b|\bLey\s+de\s+Bases\s+(?:Generales\s+)?del\s+Medio\s+Ambiente\b/i },
   L19496: { id: 61438, nombre: "Ley 19.496 (proteccion del consumidor)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?496\b|\bLey\s+del\s+Consumidor\b/i },
   L19628: { id: 141599, nombre: "Ley 19.628 (proteccion de la vida privada)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?628\b/i },
+  // Ley Bustos: modifica art. 162 CT (cotizaciones al despido). idNorma verificado obtxml 2026-11-03.
+  L19631: { id: 144318, nombre: "Ley 19.631 (Ley Bustos — cotizaciones al despido)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?631\b|\bLey\s+Bustos\b/i },
   L19880: { id: 210676, nombre: "Ley 19.880 (procedimiento administrativo)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?880\b/i },
   L19886: { id: 213004, nombre: "Ley 19.886 (compras publicas)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?886\b|\bLey\s+de\s+Compras\s+P[uú]blicas\b/i },
   L19947: { id: 225128, nombre: "Ley 19.947 (matrimonio civil)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?947\b|\bLey\s+de\s+Matrimonio\s+Civil\b/i },

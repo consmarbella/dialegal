@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { LegalArea } from '../types';
-import { Upload, X, FileText, AlertTriangle, Calendar, HelpCircle, CheckCircle2, FileSearch, Shield, Scale } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { LegalArea, Audience } from '../types';
+import { Upload, X, FileText, AlertTriangle, Calendar, HelpCircle, CheckCircle2, FileSearch, Shield, Scale, User, Briefcase } from 'lucide-react';
 
 interface CaseAnalyzerProps {
   onAnalyze: (payload: {
@@ -11,11 +11,20 @@ interface CaseAnalyzerProps {
     area?: LegalArea;
     files: { mimeType: string; data: string; name: string }[];
     notificationDate: string;
+    /** Producto dual: persona (B2C) vs abogado (B2B). */
+    audience: Audience;
   }) => void;
   isLoading: boolean;
 }
 
 export const CaseAnalyzer: React.FC<CaseAnalyzerProps> = ({ onAnalyze, isLoading }) => {
+  const [audience, setAudience] = useState<Audience | null>(() => {
+    try {
+      const saved = localStorage.getItem('legalhelp_audience');
+      if (saved === 'persona' || saved === 'abogado') return saved;
+    } catch { /* incógnito */ }
+    return null;
+  });
   const [userStory, setUserStory] = useState('');
   const [documentText, setDocumentText] = useState('');
   const [notificationDate, setNotificationDate] = useState(new Date().toISOString().split('T')[0]);
@@ -23,6 +32,11 @@ export const CaseAnalyzer: React.FC<CaseAnalyzerProps> = ({ onAnalyze, isLoading
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (!audience) return;
+    try { localStorage.setItem('legalhelp_audience', audience); } catch { /* incógnito */ }
+  }, [audience]);
 
   const processFiles = (files: FileList | File[]) => {
     Array.from(files).forEach((file) => {
@@ -86,6 +100,10 @@ export const CaseAnalyzer: React.FC<CaseAnalyzerProps> = ({ onAnalyze, isLoading
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!audience) {
+      alert('Elige primero si eres persona/pyme o abogado. Son productos distintos.');
+      return;
+    }
     if (!userStory.trim() && !documentText.trim() && attachedFiles.length === 0) {
       alert('Por favor ingresa tu relato, pega el texto de la demanda/resolución o adjunta una fotografía/documento legal.');
       return;
@@ -96,11 +114,88 @@ export const CaseAnalyzer: React.FC<CaseAnalyzerProps> = ({ onAnalyze, isLoading
       // Fase D.2: no se declara área; la plataforma la decide con el texto.
       files: attachedFiles.map(({ mimeType, data, name }) => ({ mimeType, data, name })),
       notificationDate,
+      audience,
     });
   };
 
+  // Gate de producto: persona vs abogado (obligatorio antes del formulario)
+  if (!audience) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 text-center">
+            ¿Quién va a usar LegalHelp?
+          </h2>
+          <p className="mt-2 text-center text-slate-600 text-sm sm:text-base max-w-xl mx-auto">
+            Son dos productos distintos. Elige tu perfil: cambia el lenguaje, la profundidad y lo que te entregamos.
+          </p>
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => setAudience('persona')}
+              className="group text-left rounded-xl border-2 border-slate-200 hover:border-blue-600 hover:bg-blue-50/50 p-5 transition focus:outline-none focus:ring-2 focus:ring-blue-600"
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-100 text-blue-700 group-hover:bg-blue-600 group-hover:text-white transition">
+                  <User className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="font-semibold text-slate-900">Persona / Pyme</div>
+                  <div className="text-xs text-slate-500">Ciudadano, dueño de negocio</div>
+                </div>
+              </div>
+              <ul className="mt-3 text-sm text-slate-600 space-y-1 list-disc list-inside">
+                <li>Lenguaje claro, sin jerga</li>
+                <li>Semáforo de urgencia y plata en juego</li>
+                <li>Qué hacer en las próximas 24 horas</li>
+              </ul>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAudience('abogado')}
+              className="group text-left rounded-xl border-2 border-slate-200 hover:border-slate-800 hover:bg-slate-50 p-5 transition focus:outline-none focus:ring-2 focus:ring-slate-800"
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-200 text-slate-800 group-hover:bg-slate-900 group-hover:text-white transition">
+                  <Briefcase className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="font-semibold text-slate-900">Abogado / Estudio</div>
+                  <div className="text-xs text-slate-500">Litigante, profesional del derecho</div>
+                </div>
+              </div>
+              <ul className="mt-3 text-sm text-slate-600 space-y-1 list-disc list-inside">
+                <li>Excepciones, checklist procesal</li>
+                <li>Citas y línea estratégica</li>
+                <li>Borradores de escritos listos para revisar</li>
+              </ul>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Perfil activo + cambio */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
+        <div className="flex items-center gap-2 text-slate-700">
+          {audience === 'persona' ? <User className="h-4 w-4 text-blue-600" /> : <Briefcase className="h-4 w-4 text-slate-800" />}
+          <span>
+            Perfil: <strong>{audience === 'persona' ? 'Persona / Pyme' : 'Abogado / Estudio'}</strong>
+            <span className="text-slate-500"> — {audience === 'persona' ? 'diagnóstico en chileno claro' : 'análisis táctico de litigio'}</span>
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setAudience(null)}
+          className="text-blue-700 hover:underline text-xs font-medium"
+        >
+          Cambiar perfil
+        </button>
+      </div>
+
       {/* High-Converting 2-Card Hero Header */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
         

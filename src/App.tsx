@@ -150,6 +150,7 @@ export default function App() {
     area?: LegalArea;
     files: { mimeType: string; data: string; name: string }[];
     notificationDate: string;
+    audience: 'persona' | 'abogado';
   }) => {
     setIsLoading(true);
     setAnalysisResult(null);

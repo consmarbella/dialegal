@@ -101,7 +101,7 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
       // data/corpus-full: 12/12 formas observadas cubiertas).
       s("despido", "despid\\w*|desped\\w*|finiquito|autodespido", 3),
       s("tutela laboral", "tutela laboral|ley karin|acoso laboral|hostigamiento", 3),
-      s("cotizaciones/CT", "cotizaciones|codigo del trabajo|art. 161|articulo 161|art. 162|articulo 162|inspeccion del trabajo|direcci[o]?n del trabajo", 2),
+      s("cotizaciones/CT", "cotizaciones|imposiciones previsionales|mora previsional|ley\\s*bustos|codigo del trabajo|art. 161|articulo 161|art. 162|articulo 162|inspeccion del trabajo|direcci[o]?n del trabajo", 2),
       s("juzgado laboral", "juzgado de letras del trabajo|juzgado del trabajo|s\\.?j\\.?l\\b", 2),
       s("otros laboral", "trabajador|empleador|remuneraci[o]?n|horas extra|feriado laboral|a[nf]os de servicio|fuero maternal|fuero paternal|sindicato|negociaci[o]?n colectiva|huelga|cesant[i]?a|afc\\b|seguro de cesant[i]?a", 1),
     ],
@@ -116,6 +116,7 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
       c("acoso+laboral", ["acoso", "laboral"], 3, 4),
       c("acoso+sexual+trabajo", ["acoso", "sexual", "trabaj"], 8, 4),
       c("finiquito+cotizacion", ["finiquit", "cotizacion"], 8, 3),
+      c("despido+cotizaciones", ["despid|desped|finiquito", "cotiz|previsional|imposicion"], 8, 3),
       c("juzgado+trabajo", ["juzgado", "trabajo"], 4, 3),
       c("direccion+trabajo", ["direccion", "trabajo"], 4, 3),
       c("contrato+trabajo", ["contrato", "trabajo"], 4, 3),
