@@ -560,6 +560,11 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                       <Globe className="w-3 h-3" /> Búsqueda web oficial activa (Web RAG)
                     </span>
                   )}
+                  {premium.bcn?.degradado && (
+                    <span className="text-[10px] font-bold uppercase px-2 py-1 bg-amber-100 text-amber-900 rounded border border-amber-300 flex items-center gap-1">
+                      ⚠ BCN no disponible — citas sin cobertura oficial en este request
+                    </span>
+                  )}
                   {premium.bcn && premium.bcn.citados.length > 0 && (
                     <span className="text-[10px] font-bold uppercase px-2 py-1 bg-indigo-100 text-indigo-800 rounded border border-indigo-300 flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" /> Ley Chile · BCN ({premium.bcn.citados.length} arts. verificados)

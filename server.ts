@@ -982,7 +982,8 @@ app.post("/api/legalhelp/draft", async (req, res) => {
         retryAfter: Math.ceil(draftRl.resetMs / 1000),
       });
     }
-    const output = await handleLegalHelpDraft(input);
+    // Corpus completo forzado (misma política de calidad que premium).
+    const output = await runWithCorpusForzadoAsync(() => handleLegalHelpDraft(input));
     res.json(output);
   } catch (err: any) {
     console.error("Error en /api/legalhelp/draft:", err);

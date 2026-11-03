@@ -138,6 +138,8 @@ export interface PremiumResult {
   bcn?: {
     citados: BcnArticuloCitado[];
     pendientes: Array<{ nombreNorma: string; motivo: string }>;
+    /** Ley Chile no respondió tras reintento — UI debe avisar */
+    degradado?: boolean;
   };
   jurisprudencia?: JurisRecomendacion[];
   casos?: CasoJurisRecomendacion[];

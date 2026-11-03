@@ -2,7 +2,7 @@
 // Intercepta fórmulas de futuro (Ley Bustos / art. 162 CT) y allanamientos a feriado/HE.
 
 export interface HallazgoTactico {
-  regla: "BUSTOS_FUTURO" | "ALLAN_FERIADO_HE" | "CARGA_INVERTIDA";
+  regla: "BUSTOS_FUTURO" | "ALLAN_FERIADO_HE" | "CARGA_INVERTIDA" | "PRESCRIPCION_VAGA" | "ROL_INVENTADO";
   snippet: string;
   severidad: "bloqueante" | "warn";
   sugerencia: string;
@@ -62,6 +62,23 @@ export function lintTacticoProcesal(texto: string, area: string | null | undefin
     RE_CARGA_INVERTIDA,
     "CARGA_INVERTIDA",
     "La carga de acreditar el saldo de feriado/HE y la mora previsional corresponde al actor, no al empleador.",
+    "warn",
+  );
+  // Prescripción alegada sin anclar plazo legal ni dies a quo → riesgo de excepción mal fundada.
+  scan(
+    [
+      /\b(?:opone|alega|invoca)\s+(?:la\s+)?prescripci[oó]n\b(?![\s\S]{0,80}(?:art\.|art[ií]culo|plazo\s+de\s+\d))/gi,
+      /\bprescripci[oó]n\s+(?:de\s+la\s+acci[oó]n|extintiva)\b(?![\s\S]{0,60}(?:d[ií]as|meses|a[nñ]os|art\.))/gi,
+    ],
+    "PRESCRIPCION_VAGA",
+    "Fundar la prescripción con plazo legal concreto, dies a quo y norma (p. ej. art. 510 CT / 2515 CC). No alegar en abstracto.",
+    "warn",
+  );
+  // Roles de fallo con formato típico inventados suelen aparecer sin fuente; marcar para revisión.
+  scan(
+    [/\b(?:Rol|ROL)\s*N[°º]?\s*\d{1,3}\.?\d{3}-\d{4}\b/g],
+    "ROL_INVENTADO",
+    "Verificar que el rol cite un fallo del bloque CRITERIO JURISPRUDENCIAL / fuentes del caso. Si no está en fuentes, eliminar el número y citar doctrina genérica de la CS.",
     "warn",
   );
   return out;
