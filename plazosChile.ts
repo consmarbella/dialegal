@@ -376,6 +376,26 @@ function sinTildes(s: string): string {
 
 export interface ChequeoPlazoMotor { ok: boolean; plazoId: string; fechaLimite: string; consignado: boolean; vencido?: boolean; }
 
+/**
+ * Sanitiza afirmaciones incompatibles con un plazo que el motor determinó
+ * vencido. El modelo puede ignorar la instrucción del prompt; esta capa corre
+ * sobre el texto final y evita entregar "dentro de plazo" como hecho cierto.
+ * No inventa una teoría procesal: deja un marcador explícito para revisión OJV.
+ */
+export function sanitizarAfirmacionPlazoVencido(
+  texto: string,
+  calculos: ResultadoPlazo[],
+): { texto: string; corregidos: number; fechas: string[] } {
+  const vencidos = calculos.filter((c) => c.ok && c.vencido === true && c.fechaLimite).map((c) => c.fechaLimite as string);
+  if (!vencidos.length || !texto) return { texto, corregidos: 0, fechas: [] };
+  const fecha = vencidos[0];
+  const marcador = `[VERIFICAR PLAZO VENCIDO: el motor calculó vencimiento el ${fecha}; confirmar fecha real de notificación y estado en OJV antes de presentar]`;
+  const re = /\b(?:encontr[aá]ndome|encontr[aá]ndose|hall[aá]ndome)\s+dentro\s+de\s+plazo(?:\s+legal)?\b|\bdentro\s+de\s+plazo\s+legal\b|\ben\s+tiempo\s+y\s+forma\b/gi;
+  let corregidos = 0;
+  const salida = texto.replace(re, () => { corregidos++; return marcador; });
+  return { texto: salida, corregidos, fechas: vencidos };
+}
+
 export function chequearPlazosEnBorrador(calculos: ResultadoPlazo[], draft: string): ChequeoPlazoMotor[] {
   const dNorm = sinTildes(typeof draft === "string" ? draft : "");
   return calculos.filter((c) => c.ok && c.fechaLimite).map((c) => {

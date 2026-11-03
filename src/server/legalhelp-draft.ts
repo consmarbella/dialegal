@@ -11,7 +11,7 @@ import { auditarVacios } from "../../auditorVacios.js";
 import { lineaMateriaPrompt, MATERIAS } from "../../materias.js";
 import { decidirMateria } from "./materiaDecision.js";
 import { ejecutarPipelinePrevio } from "./pipelineLegalHelp.js";
-import { existePlazo, calcularPlazo, detectarFechaNotificacion, detectarFechasNotificacion, anotacionesPlazos, bloquePromptPlazos, chequearPlazosEnBorrador, type ResultadoPlazo, type FechasNotificacionResultado } from "../../plazosChile.js";
+import { existePlazo, calcularPlazo, detectarFechaNotificacion, detectarFechasNotificacion, anotacionesPlazos, bloquePromptPlazos, chequearPlazosEnBorrador, sanitizarAfirmacionPlazoVencido, type ResultadoPlazo, type FechasNotificacionResultado } from "../../plazosChile.js";
 import { getPlantilla, getArticulosClave } from "../../legalhelp-templates.js";
 import { lintTactico as lintTacticoBorrador, notaTactica } from "../../lintTactico.js";
 import { lintTacticoProcesal, sanitizarTactico } from "../../lintTacticoLegalHelp.js";
@@ -321,6 +321,14 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     if (!draft.trim()) throw new Error("Modelo no devolvió contenido");
     draft = limpiarEscapesCorchetes(draft);
     draftCache.set(llmKey, { data: { draft, validacion: null as any, bcn: null as any, metadatos: null as any }, expires: Date.now() + CACHE_TTL });
+  }
+
+  // 8.5 Control determinista posterior a la generación: si el plazo calculado
+  // ya venció, elimina afirmaciones incompatibles aunque el modelo haya
+  // ignorado el prompt. Deja un marcador visible para revisión en OJV.
+  const saneamientoPlazo = sanitizarAfirmacionPlazoVencido(draft, plazosMotor);
+  if (saneamientoPlazo.corregidos > 0) {
+    draft = saneamientoPlazo.texto + `\n\n## ⚠️ Corrección automática de plazo\n\nSe reemplazó una afirmación de oportunidad procesal porque el motor calculó vencimiento el ${saneamientoPlazo.fechas[0]}. Confirma la fecha del receptor y el estado de la causa en OJV antes de presentar.\n`;
   }
 
   // 9. BCN POST: verificar artículos en el borrador generado

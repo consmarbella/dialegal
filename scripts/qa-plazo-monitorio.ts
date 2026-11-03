@@ -2,7 +2,7 @@
 // de arrendamiento (Ley 18.101) debe resolver a 10 días CORRIDOS, no a los 18
 // días hábiles del juicio ordinario. Caso real: el escrito dice "demanda monitoria".
 import { resolverPlazoIdCivilContestacion } from "../src/server/legalhelp-draft.js";
-import { calcularPlazo } from "../plazosChile.js";
+import { calcularPlazo, sanitizarAfirmacionPlazoVencido } from "../plazosChile.js";
 
 let ok = 0, fail = 0;
 function chk(name: string, cond: boolean, data?: unknown) {
@@ -23,6 +23,9 @@ chk("juicio ejecutivo -> civil_ejecutivo_oposicion",
 const r = calcularPlazo({ plazoId: "civil_monitorio_arrendamiento", fechaNotificacion: "2026-10-20" });
 chk("10 corridos desde 20-oct-2026 -> limite 2026-10-30", r.ok && r.fechaLimite === "2026-10-30", r);
 chk("10 corridos desde 20-oct-2026 -> diasOtorgados 10", r.diasOtorgados === 10, r);
+const frase = "Que encontrándome dentro de plazo legal y en tiempo y forma vengo en formular oposición.";
+const san = sanitizarAfirmacionPlazoVencido(frase, [r]);
+chk("plazo vencido elimina 'dentro de plazo' y 'en tiempo y forma'", san.corregidos === 2 && !/dentro de plazo|en tiempo y forma/i.test(san.texto), san);
 
 console.log(fail === 0 ? `\nQA plazo monitorio: ${ok}/${ok + fail} PASS` : `\nQA plazo monitorio: FAILURES=${fail}`);
 process.exit(fail === 0 ? 0 : 1);

@@ -233,13 +233,21 @@ export function lintTactico(texto: string, contexto: ContextoTactico): HallazgoT
     elegidos.push(h);
   }
 
-  const resultado: HallazgoTactico[] = elegidos.map((h) => ({
+  const detectados: HallazgoTactico[] = elegidos.map((h) => ({
     id: h.regla.id,
     severidad: h.regla.severidad,
     frase: fraseOriginal(texto, h.ini, h.fin),
     regla: h.regla.regla,
     reemplazo: h.regla.reemplazo,
   }));
+  // Una alerta por regla: repetir "dentro de plazo" tres veces no requiere
+  // tres tarjetas idénticas. La frase completa queda en el primer hallazgo.
+  const idsVistos = new Set<string>();
+  const resultado = detectados.filter((h) => {
+    if (idsVistos.has(h.id)) return false;
+    idsVistos.add(h.id);
+    return true;
+  });
 
   // Chequeo estructural para Oposición Monitoria de Arrendamiento (Ley 18.101 art. 18-F):
   // exige indicar en el mismo escrito todos los demás medios de prueba (testimonial,
