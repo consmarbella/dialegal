@@ -24,6 +24,7 @@ import { handleLegalHelpDraft } from "./src/server/legalhelp-draft.js";
 import { detectAreaFromContext } from "./area-detector.js";
 import { lineaMateriaPrompt, MATERIAS } from "./materias.js";
 import { decidirMateria } from "./src/server/materiaDecision.js";
+import { runWithCorpusForzado, runWithCorpusForzadoAsync } from "./src/server/corpusContext.js";
 import type { DraftInput } from "./src/types.js";
 
 // Combinación de TODAS las páginas SEO: 21 originales + 45 + 20 = 86 páginas (+home = 87 URLs)
@@ -632,9 +633,12 @@ app.post("/api/premium-report", async (req, res) => {
 
     const combinedText = [userStory, documentText].filter(Boolean).join("\n");
 
+    // Caso PAGADO: forzar corpus completo (data/corpus-full) aunque
+    // CORPUS_COMPLETO no esté en true a nivel de env. El análisis gratuito
+    // sigue respetando el flag; el dictamen premium siempre usa el corpus.
     // Fase D/D.2: la plataforma decide la materia (señales + corpus cuando el
     // regex se abstiene); el área declarada es respaldo. Conflicto = anotación.
-    const resolucionMateria = decidirMateria(area, combinedText);
+    const resolucionMateria = runWithCorpusForzado(() => decidirMateria(area, combinedText));
     // Nombre legible para la UI (null = indeterminada: el chip se oculta).
     const materia = resolucionMateria.slug ? MATERIAS[resolucionMateria.slug].nombre : null;
 
@@ -689,26 +693,24 @@ app.post("/api/premium-report", async (req, res) => {
       if (!consultas.length) consultas.push({ texto: combinedText.slice(0, 4000), etiqueta: "documento" });
       else consultas.push({ texto: combinedText.slice(0, 3000), etiqueta: "documento" });
 
-      // Fase D: el slug resuelto (declarada manda; señales si falta;
-      // null = indeterminada) gobierna la recuperación. buscarJurisprudencia
-      // trata null/invalid como "sin corpus de área" y usa la base con
-      // etiqueta; los casos análogos filtran tags de área distinta.
+      // Fase D: el slug resuelto gobierna la recuperación.
+      // Caso PAGADO: corpus-full forzado (área + transversal), no solo la base laboral.
       const slugCorpus = resolucionMateria.slug ?? undefined;
-      juris = await buscarJurisprudenciaMulti(consultas, 6, slugCorpus);
-      // Fase D.3: caso mixto (materia secundaria con señales reales) => se
-      // agrega un lote menor del corpus secundario, etiquetado por origen.
       const slugSecundaria = resolucionMateria.materiaSecundaria ?? undefined;
-      if (slugSecundaria && slugSecundaria !== slugCorpus) {
-        try {
-          const jurisSec = await buscarJurisprudenciaMulti(consultas, 3, slugSecundaria);
-          juris = [...juris, ...jurisSec];
-        } catch (secErr: any) {
-          console.warn(`[premium][juris] corpus secundario fallo (sigue): ${String(secErr?.message || secErr).slice(0, 120)}`);
+      await runWithCorpusForzadoAsync(async () => {
+        juris = await buscarJurisprudenciaMulti(consultas, 6, slugCorpus);
+        if (slugSecundaria && slugSecundaria !== slugCorpus) {
+          try {
+            const jurisSec = await buscarJurisprudenciaMulti(consultas, 3, slugSecundaria);
+            juris = [...juris, ...jurisSec];
+          } catch (secErr: any) {
+            console.warn(`[premium][juris] corpus secundario fallo (sigue): ${String(secErr?.message || secErr).slice(0, 120)}`);
+          }
         }
-      }
+        casos = await buscarCasosJurisMulti(consultas, 4, slugCorpus);
+      });
       const bloqueJuris = bloquePromptJuris(juris);
       if (bloqueJuris) promptContent += bloqueJuris;
-      casos = await buscarCasosJurisMulti(consultas, 4, slugCorpus);
       const bloqueCasos = bloquePromptCasos(casos);
       if (bloqueCasos) promptContent += bloqueCasos;
     } catch (jurisErr: any) {

@@ -25,6 +25,7 @@ import fs from "fs";
 import path from "path";
 import { tokenizar } from "../../jurisprudenciaChile.js";
 import type { SlugMateria, SoporteCorpusMateria } from "../../materias.js";
+import { corpusForzadoActivo } from "./corpusContext.js";
 
 const K1 = 1.2;
 const B = 0.75;
@@ -50,6 +51,8 @@ interface IndiceMateria {
 const cache = new Map<SlugMateria, IndiceMateria | null>();
 
 function corpusActivo(): boolean {
+  // Caso pagado: runWithCorpusForzadoAsync fuerza true aunque el env esté apagado.
+  if (corpusForzadoActivo()) return true;
   return String(process.env.CORPUS_COMPLETO || "").trim().toLowerCase() === "true";
 }
 
@@ -98,7 +101,12 @@ function construirIndice(slug: SlugMateria): IndiceMateria | null {
 }
 
 function getIndice(slug: SlugMateria): IndiceMateria | null {
-  if (cache.has(slug)) return cache.get(slug) ?? null;
+  // Si el índice quedó null porque el flag estaba apagado y ahora el request
+  // fuerza corpus (caso pagado), reconstruir.
+  if (cache.has(slug)) {
+    const cached = cache.get(slug) ?? null;
+    if (cached !== null || !corpusActivo()) return cached;
+  }
   const idx = construirIndice(slug);
   cache.set(slug, idx);
   return idx;

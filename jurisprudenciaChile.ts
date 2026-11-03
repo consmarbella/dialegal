@@ -5,6 +5,7 @@
 // frases. Determinista, sin red, sin dependencias. Fallo = sin resultados (nunca arroja).
 import fs from "fs";
 import path from "path";
+import { corpusForzadoActivo } from "./src/server/corpusContext.js";
 
 export interface FalloRector { rol: string; fecha: string; extra: string; raw: string }
 export interface FichaJuris {
@@ -228,6 +229,8 @@ export function esSlugCorpusArea(a: string): boolean {
 }
 
 function corpusCompletoActivo(): boolean {
+  // Casos pagados: runWithCorpusForzadoAsync fuerza true aunque el env esté apagado.
+  if (corpusForzadoActivo()) return true;
   return String(process.env.CORPUS_COMPLETO || "").trim().toLowerCase() === "true";
 }
 
@@ -255,10 +258,15 @@ function getCorpusArea(slug: SlugCorpusArea): Corpus | null {
 function getIndiceArea(slug: SlugCorpusArea): FichaIndexada[] {
   if (!corpusCompletoActivo()) return [];
   const cacheKey = slug as SlugCorpusArea;
-  const cache = indicePorArea.get(cacheKey);
-  if (cache) return cache;
+  const cached = indicePorArea.get(cacheKey);
+  // Reconstruir si el cache quedó vacío con el flag apagado y ahora hay force de pago.
+  if (cached && cached.length) return cached;
+  if (cached && !corpusCompletoActivo()) return cached;
   const corpus = getCorpusArea(slug);
-  if (!corpus) return [];
+  if (!corpus) {
+    indicePorArea.set(cacheKey, []);
+    return [];
+  }
   const idx = construirIndice(corpus, slug);
   indicePorArea.set(cacheKey, idx);
   return idx;
