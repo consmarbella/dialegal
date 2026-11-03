@@ -1087,3 +1087,11 @@ Canal: `Consulta/obtxml?opt=7` (mismo del runtime), sin LLM.
 12. **QA**: táctico 21/21, citas 26/26, dorado 44/44, plazos 39/39, plazo monitorio 6/6, materias-D 37/37, leyes 25/25, semilla 101/101, validador 7/7, resiliencia 7/7, tsc 0, build 0.
 13. **Verificación en prod** (deploy 2): /api/analyze tránsito -> 	ransito; draft monitorio -> plazo civil_monitorio_arrendamiento 2026-10-30, vencido=true, citas Ley 18.101 arts. 18-C/18-F/18-H verificadas. El modelo **ignoró** la regla y escribió "dentro de plazo" 3 veces; el lint lo anotó (3 avisos, uno por ocurrencia; duplicados cosméticos pendientes de deduplicar).
 14. **Pendiente, no bloquea**: (a) deduplicar hallazgos repetidos de plazo_vencido_afirmado; (b) CI GitHub Actions sigue en startup_failure a nivel cuenta (acción del dueño); (c) el corpus de tránsito no tiene roles de fallo propios: la jurisprudencia de JPL sigue siendo escasa (solo TC de inaplicabilidad, que no es jurisprudencia de fondo de JPL).
+
+## Sanitizado determinista de plazo vencido - 2026-11-03
+
+1. **Problema verificado en producción**: aunque el motor calculaba correctamente el monitorio como vencido (10 días corridos, límite 2026-10-30), el modelo podía ignorar el prompt y escribir "encontrándome dentro de plazo legal". El lint solo lo anotaba.
+2. **Corrección**: sanitizarAfirmacionPlazoVencido() corre inmediatamente después de generar el borrador y antes de BCN/validadores. Reemplaza "dentro de plazo legal", "en tiempo y forma" y equivalentes por [VERIFICAR PLAZO VENCIDO: ...]; no inventa una defensa ni bloquea.
+3. **Deduplicación**: lintTactico conserva un hallazgo por regla, evitando tres tarjetas idénticas si la frase se repite.
+4. **QA**: scripts/qa-plazo-monitorio.ts 7/7; qa-draft-tactico 21/21; tsc 0; build 0. Prod verificado: plazo civil_monitorio_arrendamiento, límite 2026-10-30, encido=true, sin afirmación falsa en el cuerpo y con marcador visible.
+5. **Commit/deploy**: 3673bb4, deploy dialegal-ofkmgl7aa-dolarexpress-projects.vercel.app, READY y aliado a legalhelp.cl.
