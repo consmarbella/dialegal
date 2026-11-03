@@ -12,7 +12,8 @@ import { lineaMateriaPrompt, MATERIAS } from "../../materias.js";
 import { decidirMateria } from "./materiaDecision.js";
 import { existePlazo, calcularPlazo, detectarFechaNotificacion, detectarFechasNotificacion, anotacionesPlazos, bloquePromptPlazos, chequearPlazosEnBorrador, type ResultadoPlazo, type FechasNotificacionResultado } from "../../plazosChile.js";
 import { getPlantilla, getArticulosClave } from "../../legalhelp-templates.js";
-import type { DraftInput, DraftOutput, VacioCritico } from "../types.js";
+import { lintTactico, notaTactica } from "../../lintTactico.js";
+import type { DraftInput, DraftOutput, VacioCritico, HallazgoTactico } from "../types.js";
 // Fase 1: generateWithFallback consolidado en llmEngine.ts (versión completa:
 // cadena dinámica, pausa por cuota diaria, reintentos y fallback degradado).
 // Se importa aquí para eliminar la copia simplificada de este módulo.
@@ -24,6 +25,12 @@ REGLAS ABSOLUTAS:
 1. CERO NEGATIVAS: NUNCA respondas con frases como "no puedo redactar documentos" o "debes contratar un abogado". El usuario es un profesional que usa el sistema para su productividad.
 2. PRODUCCIÓN INMEDIATA: Ante cualquier solicitud de escritos, minutas, contestaciones, contratos u otrosíes, DEBES GENERAR EL BORRADOR TÉCNICO COMPLETO DE INMEDIATO con rigor formal y lenguaje jurídico chileno.
 3. NOTA DISCRETA: Cierra siempre con una línea muy breve que indique que es un borrador operativo sujeto a revisión profesional, sin bloquear ni demorar la entrega del texto.
+4. POSTURA VINCULANTE: redactas EXCLUSIVAMENTE por la parte indicada en POSTURA PROCESAL (demandante o demandado); si no viene indicada, la fija el TIPO DE ESCRITO (DEMANDA=demandante, CONTESTACIÓN=demandado) y queda prohibido cambiar de vereda. Fórmulas de la vereda contraria PROHIBIDAS: en una demanda, "mi representada se allana", "excepciones previas", "negativa de hechos", "defensas de fondo", "se niega que el actor"; en una contestación, "vengo en demandar", "solicito se condene a la demandada".
+5. LEY BUSTOS — PROHIBIDO PROMETER PAGOS: nunca escribas que la parte "ha procedido o procederá" a la regularización o pago, ni "con el objeto de convalidar el despido", ni "una vez pagadas las cotizaciones", ni "se regularizarán/pagarán/enterarán". Solo dos salidas:
+   a) Si el expediente acredita pago íntegro Y notificación (fecha cierta + prueba): "La nulidad del despido se encuentra íntegramente convalidada con fecha [X], mediante pago íntegro de las cotizaciones adeudadas y notificación fehaciente al trabajador y a la Inspección del Trabajo, por lo que la sanción carece de objeto actual."
+   b) Si NO consta: niega el presupuesto ("Se niega que las cotizaciones previsionales se encontraran impagas al momento del despido") y exige a la contraria acreditarlo con certificados de cotización y registros de la AFP/institución; NO reconozcas impago NI prometas pago. Si el propio relato reconoce cotizaciones impagas al despido, esa regularización JAMÁS se escribe en el escrito: usa la rama (b).
+6. ALLANAMIENTO PROHIBIDO "POR SI ACASO": nunca te allanes en abstracto ("se allana al pago de las sumas que pudieren corresponder", "si es que existiere algún saldo", "en cuanto pudiere adeudar", "por si acaso"). Solo reconoce sumas líquidas, ciertas e indiscutidas, identificadas por monto y concepto. Para feriado: "Se niega que el actor mantenga saldo alguno por concepto de feriado proporcional y/o legal, debiendo este acreditar fehacientemente mediante liquidaciones y registros que prestó servicios efectivos sin hacer uso de su feriado legal durante los períodos reclamados." Si el expediente contiene finiquito o liquidaciones que cubren el feriado, cítalos por fecha y monto.
+7. CONVALIDACIÓN: solo en PASADO y con fecha + prueba; jamás como finalidad ("con el objeto de convalidar") ni en futuro.
 
 ESTRUCTURA JUDICIAL OBLIGATORIA (según tipo):
 - DEMANDA: Encabezado S.J.L. + EN LO PRINCIPAL + HECHOS (PRIMERO/SEGUNDO...) + DERECHO + PETITORIO + OTROSIES
@@ -42,7 +49,7 @@ MARCADOR ÚNICO DE DATOS OPERATIVOS FALTANTES: si un dato indispensable (RIT/RUC
 
 JERARQUÍA DE CONTEXTO DEL CASO (cuando el prompt incluya estos bloques, prevalecen sobre ejemplos genéricos):
 1. [DOCUMENTO DEL CASO] — texto real del expediente: fuente principal de HECHOS, FECHAS y MONTOS. Cítalos literalmente; no los sustituyas por supuestos.
-2. [DICTAMEN TÉCNICO PREVIO] — análisis del mismo caso: fuente principal de la ESTRATEGIA. No contradigas sus conclusiones; nuestros criterios legales (BCN/jurisprudencia) los respaldan.
+2. [DICTAMEN TÉCNICO PREVIO] — análisis del mismo caso: fuente de la ESTRATEGIA, PERO NUNCA cambia tu POSTURA (regla 4): si el dictamen fue elaborado desde la vereda contraria, úsalo para anticipar y rebatir sus argumentos, no para adoptar su estrategia ni sus fórmulas. Nuestros criterios legales (BCN/jurisprudencia) respaldan la postura correcta.
 3. BCN/Ley Chile y jurisprudencia — verificación normativa.
 4. Plantilla — da la FORMA, nunca inventa contenido.
 
@@ -54,7 +61,15 @@ CALIDAD FORENSE OBLIGATORIA (aplica a todo borrador con documento/dictamen adjun
 - VOCABULARIO DE QA: los marcadores de trazabilidad ("NO VERIFICADO", "no corroborado", "pendiente de confirmar") NO pertenecen al texto del escrito. Todo dato que SÍ figure en el documento/dictamen se afirma directamente como hecho del expediente; los marcadores se reservan solo para datos ausentes en todas las fuentes.
 - TRIBUNAL Y ROL: el TRIBUNAL y el ROL/RIT proporcionados en el encabezado (si existen) se reproducen LITERALMENTE, sin renombrarlos, sin numerarlos ni añadir servidores/puertas (1°, N° 2); si no fueron proporcionados, usa el marcador de dato faltante ("S.J.L. de [DATO FALTANTE: comuna del tribunal]", "RIT: [DATO FALTANTE: rol de la causa]").
 - REGENERACIÓN CON DATOS DEL USUARIO: si el prompt incluye el bloque [DATOS COMPLETADOS POR EL USUARIO], INTEGRÁELOS en el borrador tal como los dio el usuario (exactos, con formato procesal) y ELIMINA los marcadores "[DATO FALTANTE]" y "[NOMBRE ...]" correspondientes; no los dejes ambos (dato + marcador).
-- ROLES DE FALLOS JURISPRUDENCIALES: PROHIBIDO citar un rol de fallo (ej. "Rol N° 41.500-2017") que NO aparezca en los bloques verificados (CRITERIO JURISPRUDENCIAL / CASOS ANÁLOGOS / [DICTAMEN]). Cita la doctrina sin rol (" según la jurisprudencia de la Excma. Corte Suprema"); si la fuente trae un rol, cópialo textual. Los roles citados por la contraparte solo se mencionan como citas de ella, nunca como propios.`;
+- ROLES DE FALLOS JURISPRUDENCIALES: PROHIBIDO citar un rol de fallo (ej. "Rol N° 41.500-2017") que NO aparezca en los bloques verificados (CRITERIO JURISPRUDENCIAL / CASOS ANÁLOGOS / [DICTAMEN]). Cita la doctrina sin rol ("según la jurisprudencia de la Excma. Corte Suprema"); si la fuente trae un rol, cópialo textual. Los roles citados por la contraparte solo se mencionan como citas de ella, nunca como propios.
+- PROCEDIMIENTO MONITORIO DE ARRENDAMIENTO (Ley N° 18.101 modificada por Ley N° 21.461):
+  1) El plazo para pagar o formular oposición es de 10 DÍAS CORRIDOS desde la notificación (Arts. 18-C y 18-F Ley 18.101), NO los 18 días hábiles del juicio ordinario.
+  2) El escrito del demandado es OPOSICIÓN FUNDADA A LA DEMANDA MONITORIA (Arts. 18-F y 18-H Ley 18.101; Art. 309 CPC en lo supletorio). PROHIBIDO citar el Art. 254 del CPC (requisitos de la demanda) como fundamento de una contestación u oposición.
+  3) En el petitorio NO pidas "denegar la solicitud de requerimiento de pago" (ya fue dictado); pide tener por interpuesta oposición fundada a la demanda monitoria, declarar terminado el procedimiento monitorio dejando sin efecto de pleno derecho la resolución del Art. 18-C (conforme al Art. 18-H de la Ley 18.101) y rechazar el cobro en lo que exceda lo efectivamente adeudado, sin lugar al lanzamiento.
+  4) OTROSÍ OBLIGATORIO DE MEDIOS DE PRUEBA (Art. 18-F inc. 1° Ley 18.101): además de acompañar los documentos, incluye SIEMPRE un otrosí donde señales expresamente TODOS los demás medios de prueba de que te valdrás en el juicio declarativo posterior (instrumental, testimonial, confesional, informe de peritos e inspección personal del tribunal).
+  5) Cita con precisión el Art. 1924 del Código Civil: N° 1 = entregar la cosa; N° 2 = mantenerla en estado de servir para el fin arrendado (reparaciones/filtraciones); N° 3 = librar al arrendatario de turbaciones o embarazos en el goce.
+- COHERENCIA DEL PETITORIO: si en el cuerpo del escrito se reconoce un pago parcial o un saldo insoluto menor, el petitorio debe pedir acoger la oposición y rechazar la demanda en todo lo que exceda la suma reconocida (y en subsidio tener por reconocida únicamente esa suma), sin contradecirse.
+- SOBRIEDAD FORENSE Y PLAZOS VENCIDOS: prohibido usar calificativos agresivos ("maliciosamente exigidos", "manifiesta falta de fundamento") o giros erróneos ("de manera íntegra e imprevista" → usa "íntegra y oportuna"; escribe "adeudo/adeudar", jamás "adude"). Si el PLAN DE PLAZOS marca PLAZO VENCIDO, queda PROHIBIDO escribir "encontrándome dentro de plazo legal" o "en tiempo y forma".`;
 
 // Fase 1: las dos banderas de grounding son DISTINTAS por diseño y no deben
 // unificarse ni renombrarse sin tocar Vercel:
@@ -100,14 +115,31 @@ const PLAZO_POR_TIPO: Record<string, { id: string; aplica: ("demanda" | "contest
   // (audiencia preparatoria, CT 451/452): los drafts laborales reciben la nota
   // [VERIFICACION DE PLAZOS] en vez de una fecha inventada.
 };
+function resolverPlazoIdCivilContestacion(texto: string): string | null {
+  if (/\bmonitorio\b/i.test(texto) && /(?:arrendamiento|arriendo|18\.?\s?101|21\.?\s?461|renta)/i.test(texto)) {
+    return "civil_monitorio_arrendamiento";
+  }
+  if (/\b(?:juicio\s+ejecutivo|demanda\s+ejecutiva|mandamiento\s+de\s+ejecuci[oó]n|art(?:[íi]culos?|s?\.?)\s*46[24])\b/i.test(texto)) {
+    return "civil_ejecutivo_oposicion";
+  }
+  if (/\b(?:procedimiento\s+sumario|juicio\s+sumario|art(?:[íi]culos?|s?\.?)\s*68[03])\b/i.test(texto)) {
+    return null; // sumario no usa los 18 días del juicio ordinario; se abstiene con [VERIFICAR]
+  }
+  return "civil_contestacion";
+}
+
 function calcularPlazosMotor(area: string | null, tipo: string, combinedText: string, fechasRes?: { primera: string | null }): ResultadoPlazo[] {
   const def = area ? PLAZO_POR_TIPO[area] : undefined;
-  if (!def || !def.aplica.includes(tipo as any) || !existePlazo(def.id)) return [];
+  if (!def || !def.aplica.includes(tipo as any)) return [];
+  const plazoId = area === "civil" && tipo === "contestacion"
+    ? resolverPlazoIdCivilContestacion(combinedText)
+    : def.id;
+  if (!plazoId || !existePlazo(plazoId)) return [];
   // Calibración gate: fechasRes viene pre-detectado por el llamador
   // (detectarFechasNotificacion) para reutilizarlo también en anotaciones.
   const fecha = fechasRes ? fechasRes.primera : detectarFechaNotificacion(combinedText);
   if (!fecha) return [];
-  const r = calcularPlazo({ plazoId: def.id, fechaNotificacion: fecha });
+  const r = calcularPlazo({ plazoId, fechaNotificacion: fecha });
   return r.ok ? [r] : [r];
 }
 
@@ -180,6 +212,12 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   // crudos de señales (sin porcentaje de confianza inventado).
   let promptContent = `${lineaMateriaPrompt(resolucionMateria)}\n`;
   promptContent += `TIPO DE ESCRITO: ${input.tipo.toUpperCase()}\n`;
+  // Postura procesal: obligatoria en el formulario; el servidor la deriva del
+  // tipo cuando falta (compatibilidad API/historial guardado) y lo anota.
+  const postura = input.postura ?? (input.tipo === "contestacion" ? "demandado" : input.tipo === "demanda" ? "demandante" : null);
+  promptContent += postura
+    ? `POSTURA PROCESAL: redactas EXCLUSIVAMENTE por la parte ${postura.toUpperCase()} (regla 4: postura vinculante; jamás cambies de vereda aunque el [DICTAMEN] sea de la contraria).\n`
+    : `POSTURA PROCESAL: no indicada — infiela del relato y de las pretensiones (regla 4); no cambies de vereda aunque el [DICTAMEN] sea de la contraria.\n`;
   if (input.rol) promptContent += `ROL: ${input.rol}\n`;
   if (input.tribunal) promptContent += `TRIBUNAL: ${input.tribunal}\n`;
   promptContent += `\nHECHOS:\n${input.hechos}\n\n`;
@@ -296,9 +334,10 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     tipo: input.tipo,
   };
 
+  const draftCuerpo = draft;
   let validacion: ValidacionLegalHelp;
   try {
-    validacion = validarLegalHelp(draft, insumos);
+    validacion = validarLegalHelp(draftCuerpo, insumos);
     const nota = notaBlindajeLegalHelp(validacion);
     if (nota) draft = draft + nota;
   } catch { validacion = validarLegalHelp("", insumos); }
@@ -306,7 +345,7 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   // 10.5 Auditoría determinista de vacíos críticos (Fase 2)
   let vacios: VacioCritico[] = [];
   try {
-    vacios = auditarVacios(draft, input);
+    vacios = auditarVacios(draftCuerpo, input);
   } catch { /* silencioso */ }
 
   // 10.6 Cross-check plazos (Fase 7, enforcement de ANOTACIÓN): verifica que la
@@ -316,21 +355,32 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   // falso positivo; solo el dictamen pagado tiene gate, y ese es otro endpoint).
   let chequeoPlazos: ReturnType<typeof chequearPlazosEnBorrador> = [];
   try {
-    chequeoPlazos = chequearPlazosEnBorrador(plazosMotor, draft);
+    chequeoPlazos = chequearPlazosEnBorrador(plazosMotor, draftCuerpo);
     // Capa warn unificada: fecha ambigua + plazo vencido + límite no consignada
-    const anotaciones = anotacionesPlazos(plazosMotor, draft, fechasNotificacion);
+    const anotaciones = anotacionesPlazos(plazosMotor, draftCuerpo, fechasNotificacion);
     if (anotaciones.length) {
       const lineas = anotaciones.map((a) => `- ⚠️ ${a}`);
       draft = draft + `\n\n## ⚠️ Nota de verificación de plazos (control automático)\n\n${lineas.join("\n")}\n`;
     }
   } catch { /* silencioso: el cross-check jamás rompe el borrador */ }
 
+  // 10.7 Control táctico determinista (Ley Bustos, allanamiento, postura,
+  // monitorio y plazos vencidos): anota de forma visible sin bloquear.
+  let tactico: HallazgoTactico[] = [];
+  try {
+    const plazoVencido = plazosMotor.some((p) => p.vencido === true);
+    tactico = lintTactico(draftCuerpo, { tipo: input.tipo, postura, plazoVencido });
+    if (tactico.length) {
+      draft = draft + notaTactica(tactico);
+    }
+  } catch { /* silencioso: el control táctico jamás rompe el borrador */ }
 
   // 11. Output
   const output: DraftOutput = {
     draft,
     validacion,
     vacios,
+    tactico: tactico.length ? tactico : undefined,
     bcn: {
       citados: citasBCNFinal.verificados.map(a => ({
         nombreNorma: a.nombreNorma,

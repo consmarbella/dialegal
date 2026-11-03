@@ -18,7 +18,7 @@ interface CaseAnalyzerProps {
 export const CaseAnalyzer: React.FC<CaseAnalyzerProps> = ({ onAnalyze, isLoading }) => {
   const [userStory, setUserStory] = useState('');
   const [documentText, setDocumentText] = useState('');
-  const [notificationDate, setNotificationDate] = useState(new Date().toISOString().split('T')[0]);
+  const [notificationDate, setNotificationDate] = useState('');
   const [attachedFiles, setAttachedFiles] = useState<{ mimeType: string; data: string; name: string; previewUrl?: string }[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -282,6 +282,7 @@ export const CaseAnalyzer: React.FC<CaseAnalyzerProps> = ({ onAnalyze, isLoading
           <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-blue-600" />
             Fecha de Notificación / Recepción del Documento
+            <span className="text-slate-500 normal-case font-normal">(opcional)</span>
           </label>
           <input
             type="date"
@@ -290,7 +291,7 @@ export const CaseAnalyzer: React.FC<CaseAnalyzerProps> = ({ onAnalyze, isLoading
             className="w-full max-w-sm bg-slate-50 border border-slate-200 rounded px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white"
           />
           <p className="text-[11px] text-slate-500 mt-1">
-            Día exacto en que te entregaron el documento o fuiste notificado.
+            Día exacto en que te entregaron el documento o fuiste notificado. Si no lo llenamos aquí, el sistema lo detecta del relato o del texto del documento (o marca <code>[VERIFICAR]</code> si no consta). No usamos la fecha de hoy como sustitución.
           </p>
         </div>
 

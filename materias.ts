@@ -305,8 +305,9 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
       a("TAG", "\\btag\\b"),
       a("pase diario", "pase diari[oa]"),
     ],
-    normasSemilla: ["L18290", "L18287", "CP"],
-    plazos: [], // sin plazos modelados: JPL requiere verificación BCN de Ley 18.287 (Fase H)
+    normasSemilla: ["L18290", "L18287", "L15231", "L18490", "CP"],
+    // Fase H: corpus propio ingerido desde XML oficial BCN + doctrina arbitrada (scripts/corpus_ingest_transito.py -> data/corpus-full/transito.json)
+    plazos: ["transito_apelacion_jpl"],
   },
 };
 

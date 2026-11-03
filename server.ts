@@ -395,7 +395,19 @@ app.post("/api/analyze", async (req, res) => {
     const cachedAnalysis = getCached(aKey);
     if (cachedAnalysis) {
       console.log("[cache] /api/analyze hit de caché");
-      return res.json({ analysis: cachedAnalysis, cached: true });
+      // Reconstruir la materia con el texto del análisis para que el cliente reciba
+      // siempre materiaSlug/materia/... y la UI no quede en "indeterminada".
+      const resolucionMateriaCache = decidirMateria(area, `${combinedText}\n${cachedAnalysis}`);
+      const materiaCache = resolucionMateriaCache.slug ? MATERIAS[resolucionMateriaCache.slug].nombre : null;
+      return res.json({
+        analysis: cachedAnalysis,
+        cached: true,
+        materiaSlug: resolucionMateriaCache.slug ?? null,
+        materia: materiaCache,
+        materiaOrigen: resolucionMateriaCache.origen,
+        materiaAdvertencia: resolucionMateriaCache.advertencia,
+        materiaSecundaria: resolucionMateriaCache.materiaSecundaria ? MATERIAS[resolucionMateriaCache.materiaSecundaria].nombre : null,
+      });
     }
 
     const response = await generateWithFallback(clients, {
@@ -408,8 +420,20 @@ app.post("/api/analyze", async (req, res) => {
 
     const analysis = response.text || "No se pudo generar el análisis legal. Por favor intenta nuevamente.";
 
+    // Recomputar materia con el texto generado (clave cuando el caso vino SOLO
+    // con PDFs/imágenes: combinedText estaba vacío y la materia salió null).
+    const resolucionFinal = decidirMateria(area, `${combinedText}\n${analysis}`);
+    const materiaFinal = resolucionFinal.slug ? MATERIAS[resolucionFinal.slug].nombre : null;
+
     setCached(aKey, analysis);
-    res.json({ analysis });
+    res.json({
+      analysis,
+      materiaSlug: resolucionFinal.slug ?? null,
+      materia: materiaFinal,
+      materiaOrigen: resolucionFinal.origen,
+      materiaAdvertencia: resolucionFinal.advertencia,
+      materiaSecundaria: resolucionFinal.materiaSecundaria ? MATERIAS[resolucionFinal.materiaSecundaria].nombre : null,
+    });
   } catch (err: any) {
     console.error("Error en /api/analyze:", err);
     if (sendQuotaExhausted(res, err)) return;

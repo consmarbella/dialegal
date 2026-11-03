@@ -45,6 +45,7 @@ const ESPERADO: Record<string, Esperado> = {
   // "REFUNDIDO DE LA LEY NUMERO 5.750", no "alimenticia". La identidad la
   // fijan tipo=Ley + numero=14908.
   L14908: { titulo: "LEY NUMERO 5.750", tipo: "Ley", numero: "14908", cita: "Ley 14.908" },
+  L15231: { titulo: "POLICIA LOCAL", tipo: "Ley", numero: "15231", cita: "Ley 15.231" },
   L16744: { titulo: "ACCIDENTES DEL TRABAJO", tipo: "Ley", numero: "16744", cita: "Ley 16.744" },
   L17336: { titulo: "PROPIEDAD INTELECTUAL", tipo: "Ley", numero: "17336", cita: "Ley 17.336" },
   L18046: { titulo: "SOCIEDADES ANONIMAS", tipo: "Ley", numero: "18046", cita: "Ley 18.046" },
@@ -53,6 +54,7 @@ const ESPERADO: Record<string, Esperado> = {
   L18287: { titulo: "POLICIA LOCAL", tipo: "Ley", numero: "18287", cita: "Ley 18.287" },
   L18290: { titulo: "TRANSITO", tipo: "Ley", numero: "18290", cita: "Ley 18.290" },
   L18314: { titulo: "TERRORIS", tipo: "Ley", numero: "18314", cita: "Ley 18.314" },
+  L18490: { titulo: "SEGURO OBLIGATORIO", tipo: "Ley", numero: "18490", cita: "Ley 18.490" },
   L18575: { titulo: "BASES GENERALES DE LA ADMINISTRACION", tipo: "Ley", numero: "18575", cita: "Ley 18.575" },
   L18695: { titulo: "MUNICIPALIDADES", tipo: "Ley", numero: "18695", cita: "Ley 18.695" },
   L18834: { titulo: "ESTATUTO ADMINISTRATIVO", tipo: "Ley", numero: "18834", cita: "Estatuto Administrativo" },

@@ -186,9 +186,15 @@ export default function App() {
         return;
       }
 
-      // Fase D.2: la materia la decide el servidor (señales + corpus); el área
+      // Fase D.2/D.3: la materia la decide el servidor (señales + corpus); el área
       // declarada solo es respaldo. 'otro' = indeterminada (la UI lo rotula).
-      const areaDetectada = (data.materiaSlug as LegalArea | undefined) ?? payload.area ?? 'otro';
+      // 'transito' del registro de materias se muestra como 'policia_local' en la
+      // UI (esa es la LegalArea del wizard); el chip de la cabecera usa área+origen.
+      const rawSlug = typeof (data as any).materiaSlug === 'string' ? String((data as any).materiaSlug).toLowerCase() : '';
+      const areaDetectada: LegalArea =
+        rawSlug === 'transito' ? 'policia_local'
+          : ['civil', 'laboral', 'familia', 'penal', 'administrativo'].includes(rawSlug) ? (rawSlug as LegalArea)
+            : (payload.area ?? 'otro');
       setAnalysisResult({
         markdown: data.analysis,
         userStory: payload.userStory || 'Análisis de documento legal adjunto',

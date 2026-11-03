@@ -3,6 +3,7 @@ import { handleLegalHelpDraft } from "../src/server/legalhelp-draft.js";
 
 const input = {
   tipo: "otrosi" as any,
+  postura: "demandante",
   hechos: "Trabajador con contrato vigente desde 1 de marzo de 2023. La empresa le adeuda feriado legal pendiente correspondiente a los anios 2024 y 2025, approximately 15 dias habiles, con remuneracion mensual de $1.200.000. Solicito audiencia conciliatoria.",
   pretensiones: ["Pago de feriado legal pendiente 2024-2025"],
   rol: "XXX",

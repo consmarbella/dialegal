@@ -162,6 +162,21 @@ export type DraftTipo =
 // valor del union: la indeterminación se representa con area?: undefined.
 export type DraftArea = "laboral" | "civil" | "familia" | "penal" | "administrativo" | "constitucional" | "transito";
 
+// Postura procesal: voz del escrito. La fija el formulario (obligatoria) y el
+// servidor la deriva del tipo cuando falta. Ver DraftInput.postura.
+export type DraftPostura = "demandante" | "demandado";
+
+// Hallazgo del control táctico determinista (lintTactico.ts): una fórmula
+// prohibida detectada en el borrador ya generado, con la frase exacta y la
+// fórmula correcta. Anotación visible; JAMÁS bloquea.
+export interface HallazgoTactico {
+  id: string;
+  severidad: "critico" | "alto" | "medio";
+  frase: string;
+  regla: string;
+  reemplazo: string;
+}
+
 export interface DraftInput {
   tipo: DraftTipo;
   hechos: string;
@@ -170,6 +185,13 @@ export interface DraftInput {
   area?: DraftArea;
   rol?: string;
   tribunal?: string;
+  // Postura procesal OBLIGATORIA en el formulario: por quién redacta el motor.
+  // Fija la voz del escrito (demandante/demandado) y manda sobre el [DICTAMEN]:
+  // si el dictamen es de la vereda contraria, se usa para rebatir, no para
+  // adoptar su estrategia. Opcional en el tipo para compatibilidad con
+  // historial guardado y clientes API; el servidor la deriva del tipo cuando
+  // falta (demanda=demandante, contestacion=demandado) y lo deja anotado.
+  postura?: DraftPostura;
   // Contexto heredado del análisis (Motor v2): dictamen técnico previo y documento real del expediente
   dictamen?: string;
   documentoCaso?: string;
@@ -214,6 +236,10 @@ export interface DraftOutput {
   draft: string;
   validacion: ValidacionLegalHelp;
   vacios?: VacioCritico[];
+  // Control táctico (lintTactico.ts): fórmulas prohibidas detectadas en el
+  // texto final (Ley Bustos, allanamiento, postura invertida). undefined = sin
+  // hallazgos. La misma información queda anexada al draft como nota visible.
+  tactico?: HallazgoTactico[];
   bcn: {
     citados: BcnArticuloCitado[];
     pendientes: Array<{ nombreNorma: string; motivo: string }>;

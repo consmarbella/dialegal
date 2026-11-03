@@ -62,6 +62,9 @@ export const LegalHelpDraft: React.FC = () => {
       area: item.input.area as any,
       hechos: item.input.hechos,
       pretensiones: item.input.pretensiones,
+      postura: item.input.tipo === 'contestacion' ? 'demandado'
+        : item.input.tipo === 'demanda' ? 'demandante'
+          : undefined,
     });
     setView('result');
   }, []);

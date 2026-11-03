@@ -149,6 +149,8 @@ export interface PlazoEmpateDef {
   descripcion: string;
   materia: keyof typeof HABILES;
   diasHabiles: number;
+  /** "corridos" = todos los días del calendario (ej. 10 días corridos del monitorio de arriendo Ley 18.101 art. 18-C). Default "habiles". */
+  tipoDias?: "habiles" | "corridos";
   emplazamiento: boolean;   // aplica tabla 258/259?
   fundamento: string;
 }
@@ -156,26 +158,44 @@ export const PLAZOS: PlazoEmpateDef[] = [
   {
     id: "civil_contestacion",
     descripcion: "Plazo para contestar demanda civil ordinaria",
-    materia: "civil", diasHabiles: 18, emplazamiento: true,
+    materia: "civil", diasHabiles: 18, tipoDias: "habiles", emplazamiento: true,
     fundamento: "CPC art. 258 (texto según Ley 21.394 art. 3° N°12, D.O. 30-11-2021): dieciocho días, que corren de lunes a sábado — suspenden solo domingos y feriados (CPC art. 66, fv 2014: 'se entenderán suspendidos durante los feriados', sin exclusión de sábados; Ley 2.977 art. 2 declara sábado feriado solo para dependencias públicas). Emplazamiento por distancia: arts. 258/259 (tabla quinquenal CS). No se suspende en febrero (Ley 20.774, D.O. 04-09-2014). No modela el aumento por pluralidad de demandantes (CPC art. 260: +1 día por cada 3 demandantes sobre 10, máx. 30) — [VERIFICAR] en causas con más de 10 demandantes.",
+  },
+  {
+    id: "civil_monitorio_arrendamiento",
+    descripcion: "Plazo para formular oposición al requerimiento en procedimiento monitorio de arrendamiento",
+    materia: "civil", diasHabiles: 10, tipoDias: "corridos", emplazamiento: false,
+    fundamento: "Ley 18.101 arts. 18-C y 18-F (texto según Ley 21.461, XML oficial BCN idNorma=29526): diez días CORRIDOS desde que se practica la notificación para pagar o formular por escrito oposición fundada a la demanda monitoria, acompañando los documentos e indicando todos los demás medios de prueba de que se valdrá en el juicio declarativo posterior.",
+  },
+  {
+    id: "civil_ejecutivo_oposicion",
+    descripcion: "Plazo para oponer excepciones en juicio ejecutivo civil",
+    materia: "civil", diasHabiles: 8, tipoDias: "habiles", emplazamiento: false,
+    fundamento: "CPC art. 459 (XML oficial BCN idNorma=22740): si el deudor es requerido en la comuna/jurisdicción asiento del tribunal, tiene término de ocho días hábiles para oponerse a la ejecución. CPC art. 462: el término comienza a correr desde el día del requerimiento de pago. Corren lunes a sábado — suspenden solo domingos y feriados (CPC art. 66; Ley 2.977).",
   },
   {
     id: "civil_apelacion_auto",
     descripcion: "Apelación de resoluciones interlocutorias en civil",
-    materia: "civil", diasHabiles: 5, emplazamiento: false,
+    materia: "civil", diasHabiles: 5, tipoDias: "habiles", emplazamiento: false,
     fundamento: "CPC art. 107 Nº 2 (5 días). Corren lunes a sábado — suspenden solo domingos y feriados (CPC art. 66; Ley 2.977). No se suspende en febrero (Ley 20.774, D.O. 04-09-2014).",
   },
   {
     id: "civil_oposicion_medida",
     descripcion: "Oposición a la ejecución de medida (cump. ejecución civil)",
-    materia: "civil", diasHabiles: 3, emplazamiento: false,
+    materia: "civil", diasHabiles: 3, tipoDias: "habiles", emplazamiento: false,
     fundamento: "CPC art. 486 Nº 3 (3 días para la oposición). Corren lunes a sábado — suspenden solo domingos y feriados (CPC art. 66; Ley 2.977). No se suspende en febrero (Ley 20.774, D.O. 04-09-2014).",
   },
   {
     id: "familia_apelacion",
     descripcion: "Apelación en causas de familia (término base; para sentencias definitivas es de 10 días, ver fundamento)",
-    materia: "civil", diasHabiles: 5, emplazamiento: false,
+    materia: "civil", diasHabiles: 5, tipoDias: "habiles", emplazamiento: false,
     fundamento: "Ley 19.968 art. 67 (los recursos se rigen por el CPC, en lo no incompatible) + CPC art. 189 (fv 1989): la apelación se interpone en el término fatal de CINCO días desde la notificación — el motor modela el término base; para SENTENCIAS DEFINITIVAS el mismo art. 189 fija 10 días (consigne esa variante al apelar una definitiva). Calendario CPC: lunes a sábado — suspenden solo domingos y feriados (CPC art. 66; Ley 2.977). [VERIFICACIÓN Fase E contra XML oficial: la cita previa 'Ley 19.968 art. 51' era ERRÓNEA — el art. 51 regula la declaración de partes, no los recursos.]",
+  },
+  {
+    id: "transito_apelacion_jpl",
+    descripcion: "Apelación de sentencia definitiva en Juzgado de Policía Local",
+    materia: "civil", diasHabiles: 5, tipoDias: "habiles", emplazamiento: false,
+    fundamento: "Ley 18.287 art. 32 (XML oficial BCN idNorma=29705): cinco días hábiles desde la notificación de la sentencia definitiva o resolución que haga imposible la continuación del juicio para interponer recurso de apelación fundada.",
   },
 ];
 
@@ -205,10 +225,13 @@ export function calcularPlazo(entrada: EntradaPlazoP): ResultadoPlazo {
   const notif = new Date(`${entrada.fechaNotificacion}T00:00:00Z`);
   if (isNaN(notif.getTime())) return { ok: false, plazoId: entrada.plazoId, fuente: "fecha-invalida", aviso: "[VERIFICAR: fecha de notificación sin formato ISO]" };
 
+  const esCorridos = def.tipoDias === "corridos";
   let extra = 0;
   let kmUsado: number | null = null;
   const desglose: string[] = [
-    `Notificación: ${entrada.fechaNotificacion} (el plazo corre desde el día siguiente a la notificación; CPC art. 66, fv 2014: los plazos de días se suspenden solo en feriados).`,
+    esCorridos
+      ? `Notificación: ${entrada.fechaNotificacion} (el plazo de días corridos corre desde el día siguiente a la notificación y computa todos los días del calendario sin suspenderse en domingos ni feriados; CC art. 50).`
+      : `Notificación: ${entrada.fechaNotificacion} (el plazo corre desde el día siguiente a la notificación; CPC art. 66, fv 2014: los plazos de días se suspenden solo en feriados).`,
   ];
   if (def.emplazamiento) {
     kmUsado = entrada.kmDemandado == null ? 0 : entrada.kmDemandado;
@@ -219,21 +242,25 @@ export function calcularPlazo(entrada: EntradaPlazoP): ResultadoPlazo {
   const total = def.diasHabiles + extra;
   const regla = HABILES[def.materia];
   const anioFin = notif.getUTCFullYear() + 2; // margen de seguridad
-  let fechaIter = new Date(notif.getTime() + 24 * 60 * 60 * 1000); // art. 251
+  let fechaIter = new Date(notif.getTime() + 24 * 60 * 60 * 1000);
   let diasCuenta = 0;
   let limite: Date | null = null;
   while (diasCuenta < total) {
     if (fechaIter.getUTCFullYear() > anioFin) break;
-    if (esDiaHabil(fechaIter, def.materia)) diasCuenta++;
+    if (esCorridos || esDiaHabil(fechaIter, def.materia)) diasCuenta++;
     if (diasCuenta < total) fechaIter = new Date(fechaIter.getTime() + 24 * 60 * 60 * 1000);
     else limite = fechaIter;
   }
   if (!limite) return { ok: false, plazoId: entrada.plazoId, fuente: "sin-fecha-limite", aviso: "[VERIFICAR: no se consinto fecha limite dentro del margen anual]" };
 
-  desglose.push(`Días computados: ${total} (${def.diasHabiles} base${extra ? ` + ${extra} emplazamiento` : ""}).`);
-  desglose.push(regla.sabadosHabiles
-    ? "Inhábiles aplicados: domingo + feriados (el sábado corre: CPC art. 258 'dieciocho días' a secas + art. 66 solo suspende feriados; Ley 2.977)."
-    : `Inhábiles aplicados: sábado/domingo + feriados${regla.vacacionesJudiciales === "si" ? " + vacaciones judiciales (febrero)" : ""}.`);
+  desglose.push(`Días computados: ${total} ${esCorridos ? "corridos" : "hábiles"} (${def.diasHabiles} base${extra ? ` + ${extra} emplazamiento` : ""}).`);
+  if (esCorridos) {
+    desglose.push("Calendario aplicado: días corridos continuos (incluye sábados, domingos y festivos).");
+  } else {
+    desglose.push(regla.sabadosHabiles
+      ? "Inhábiles aplicados: domingo + feriados (el sábado corre: CPC art. 258 'dieciocho días' a secas + art. 66 solo suspende feriados; Ley 2.977)."
+      : `Inhábiles aplicados: sábado/domingo + feriados${regla.vacacionesJudiciales === "si" ? " + vacaciones judiciales (febrero)" : ""}.`);
+  }
 
   return {
     ok: true,
@@ -379,12 +406,18 @@ export function anotacionesPlazos(calculos: ResultadoPlazo[], escrito: string, f
 }
 
 // ─── Bloque para el prompt del borrador ──────────────────────────────────────
-export function bloquePromptPlazos(calculos: ResultadoPlazo[]): string {  const ok = calculos.filter((c) => c.ok);
+export function bloquePromptPlazos(calculos: ResultadoPlazo[]): string {
+  const ok = calculos.filter((c) => c.ok);
   if (!ok.length) return "";
   let s = "\n\nPLAN DE PLAZOS (MOTOR DETERMINISTA plazosChile.ts — calculado por código, NO por estimación tuya):\n";
-  s += "ESTA FECHA ES UN DATO DEL MOTOR, NO UNA ESTIMACIÓN. Reutilízala literal; si el caso menciona datos que la contradicen, prioriza el desglose del motor y consígignala con [DATO FALTANTE: confirmar fecha de notificación].\n";
+  s += "ESTA FECHA ES UN DATO DEL MOTOR, NO UNA ESTIMACIÓN. Reutilízala literal; si el caso menciona datos que la contradicen, prioriza el desglose del motor y consígnala con [DATO FALTANTE: confirmar fecha de notificación].\n";
   for (const c of ok) {
-    s += `\n[PLAZO ${c.plazoId}] límite: ${c.fechaLimite} (${c.diasOtorgados} días hábiles).\nFundamento: ${c.fuente}\n${(c.desglose || []).join(" ")}\n`;
+    const def = PLAZOS.find((p) => p.id === c.plazoId);
+    const etqDias = def?.tipoDias === "corridos" ? "días corridos" : "días hábiles";
+    s += `\n[PLAZO ${c.plazoId}] límite: ${c.fechaLimite} (${c.diasOtorgados} ${etqDias})${c.vencido ? ` — ⚠️ PLAZO VENCIDO (hoy es ${hoyIso()})` : ""}.\nFundamento: ${c.fuente}\n${(c.desglose || []).join(" ")}\n`;
+    if (c.vencido) {
+      s += `REGLA CRÍTICA DE PLAZO VENCIDO: como la fecha límite (${c.fechaLimite}) es ANTERIOR a hoy (${hoyIso()}), queda PROHIBIDO afirmar en el escrito "encontrándome dentro de plazo legal" o "en tiempo y forma" como hecho cierto. En su lugar debes escribir el marcador "[VERIFICAR PLAZO VENCIDO: según la fecha de notificación detectada, el plazo legal venció el ${c.fechaLimite} — confirmar fecha real de estampado en OJV o evaluar incidente de nulidad de lo obrado por falta de emplazamiento (art. 80 CPC)]".\n`;
+    }
   }
   return s;
 }

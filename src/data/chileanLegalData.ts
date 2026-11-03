@@ -205,37 +205,37 @@ export const PROCEDURAL_PRESETS: ProceduralPreset[] = [
     consequenceIfMissed: 'Caduca definitivamente el derecho a demandar ante los tribunales del trabajo. El plazo se suspende si interpusiste reclamo en la Inspección del Trabajo (máx 90 días).'
   },
   {
-    id: 'laboral-contestacion-demanda',
-    name: 'Laboral - Contestación de Demanda (5 días hábiles antes de Audiencia)',
-    area: 'laboral',
-    days: 5,
-    type: 'habiles_laboral',
-    article: 'Art. 453 N° 1 del Código del Trabajo',
-    code: 'Código del Trabajo',
-    description: 'Debe contestarse por escrito con a lo menos 5 días hábiles de anticipación a la fecha fijada para la audiencia preparatoria.',
-    consequenceIfMissed: 'Se tiene por no contestada la demanda y el juez presumirá verdaderos los hechos alegados por el trabajador.'
+    id: 'civil-monitorio-arrendamiento',
+    name: 'Civil - Monitorio de Arrendamiento (10 días CORRIDOS)',
+    area: 'civil',
+    days: 10,
+    type: 'corridos',
+    article: 'Art. 18-F Ley 18.101',
+    code: 'Ley 18.101 sobre arrendamiento (modificada por Ley 21.461)',
+    description: 'Plazo para formular oposición fundada a la demanda monitoria de cobro de rentas, desde la notificación del requerimiento de pago.',
+    consequenceIfMissed: 'No formular oposición dentro del plazo: la resolución que acoge el requerimiento queda con mérito de sentencia definitiva (art. 18-C) y procede el lanzamiento.'
   },
   {
-    id: 'familia-contestacion',
-    name: 'Familia - Contestación y Reconvención (5 días hábiles antes de Audiencia)',
+    id: 'familia-apelacion',
+    name: 'Familia - Apelación de Sentencia Definitiva (10 días hábiles)',
     area: 'familia',
-    days: 5,
-    type: 'habiles_laboral',
-    article: 'Art. 58 de la Ley 19.968',
-    code: 'Ley 19.968 de Tribunales de Familia',
-    description: 'Plazo para contestar la demanda de alimentos, relación directa y regular o cuidado personal por escrito antes de la audiencia preparatoria.',
-    consequenceIfMissed: 'El tribunal podrá realizar la audiencia preparatoria en tu rebeldía y resolver con los antecedentes aportados por la parte demandante.'
+    days: 10,
+    type: 'habiles_cpc',
+    article: 'Ley 19.968 art. 67 + CPC art. 189',
+    code: 'Ley 19.968 de Tribunales de Familia / Código de Procedimiento Civil',
+    description: 'Apelación de sentencia definitiva en causas de familia. El art. 67 L19.968 remite los recursos al CPC; el término fatal base es de 5 días y de 10 días para sentencias definitivas.',
+    consequenceIfMissed: 'La sentencia definitiva queda firme y ejecutoriada, no pudiendo ser modificada por ningún tribunal superior.'
   },
   {
-    id: 'policia-local-descargos',
-    name: 'Policía Local - Descargos o Apelación (5 días hábiles)',
+    id: 'policia-local-apelacion',
+    name: 'Policía Local - Apelación de Sentencia (5 días hábiles)',
     area: 'policia_local',
     days: 5,
     type: 'habiles_cpc',
     article: 'Art. 32 de la Ley 18.287',
     code: 'Ley 18.287 sobre procedimiento en Juzgados de Policía Local',
-    description: 'Plazo para interponer recurso de apelación contra sentencias dictadas por los Juzgados de Policía Local.',
-    consequenceIfMissed: 'La multa o resolución dictada por el Juez de Policía Local queda ejecutoriada, aplicándose órdenes de arresto o suspensión de licencia.'
+    description: 'Plazo para interponer recurso de apelación fundada contra sentencias dictadas por los Juzgados de Policía Local.',
+    consequenceIfMissed: 'La sentencia queda firme y ejecutoriada, aplicándose órdenes de arresto o suspensión de licencia según proceda.'
   }
 ];
 

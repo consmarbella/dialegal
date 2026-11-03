@@ -23,7 +23,7 @@ export interface ExtractoChileno {
 }
 
 const NORMAS: Record<string, { nombre: string; re: RegExp }> = {
-  CT: { nombre: "Código del Trabajo", re: /C[oó]digo\s+del\s+Trabajo|DFL\s*n?[°º]?\s*1\s*de\s*2003|DFL\s*1/i },
+  CT: { nombre: "Código del Trabajo", re: /C[oó]digo\s+del\s+Trabajo|\bDFL\s*(?:N[°º.\s]*)?2\s*(?:\/|de)?\s*2003\b/i },
   CPC: { nombre: "Código de Procedimiento Civil", re: /C[oó]digo\s+de\s+Procedimiento\s+Civil/i },
   CC: { nombre: "Código Civil", re: /C[oó]digo\s+Civil/i },
   CP: { nombre: "Código Penal", re: /C[oó]digo\s+Penal/i },
@@ -48,6 +48,15 @@ const ACCIONES: Array<{ nombre: string; re: RegExp }> = [
   { nombre: "fuero maternal", re: /fuero (maternal|paternal)|desafuero|protecci[oó]n a la maternidad/gi },
   { nombre: "contrata/mandante", re: /mandante|contratista|subcontrata|due[ñn]a de la obra/gi },
   { nombre: "prácticas antisindicales", re: /pr[áa]cticas antisindicales|sindical/gi },
+  { nombre: "procedimiento monitorio de arrendamiento", re: /monitorio|18\.?\s?101|arrendamiento/gi },
+  { nombre: "excepción de contrato no cumplido", re: /contrato\s+no\s+cumplido|exceptio\s+non\s+adimpleti|art\.?\s*1552/gi },
+  { nombre: "mandamiento de ejecución y embargo", re: /mandamiento\s+de\s+ejecuci[oó]n|desp[aá]chese\s+mandamiento|ejecuci[oó]n\s+y\s+embargo/gi },
+  { nombre: "nulidad de lo obrado", re: /nulidad\s+de\s+lo\s+obrado/gi },
+  { nombre: "apelación", re: /apelaci/gi },
+  { nombre: "prescripción de la acción", re: /prescripci/gi },
+  { nombre: "multa / infracción de tránsito", re: /infracci[oó]n(?:es)?\s+(?:de|al)\s+tr[aá]nsito|juzgado\s+de\s+polic[ií]a\s+local|boleta\s+de\s+citaci|lem|multa\s+(?:de\s+)?tr[aá]nsito/gi },
+  { nombre: "pensión de alimentos", re: /pensi[oó]n\s+de\s+alimentos|alimentos\s+provisorios/gi },
+  { nombre: "desahucio / precario", re: /desahucio|precario|desalojo/gi },
 ];
 
 // Encabezados reales de escritos chilenos. El emparejamiento es sobre texto

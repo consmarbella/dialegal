@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DraftInput, DraftTipo, DraftArea } from '../types';
+import { DraftInput, DraftTipo, DraftArea, DraftPostura } from '../types';
 import { clasificarMateria, MATERIAS } from '../../materias.js';
 import { FileText, Scale, MessageSquare, PenTool, Mail, X, Loader2, Brain, AlertTriangle, FilePlus2 } from 'lucide-react';
 
@@ -31,6 +31,7 @@ const AREA_LABELS: Record<DraftArea, { label: string; color: string }> = {
 export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initialData }) => {
   const [tipo, setTipo] = useState<DraftTipo>(initialData?.tipo || "demanda");
   const [area, setArea] = useState<DraftArea | "auto">(initialData?.area || "auto");
+  const [postura, setPostura] = useState<DraftPostura | "">(initialData?.postura || "");
   const [hechos, setHechos] = useState(initialData?.hechos || "");
   const [pretensiones, setPretensiones] = useState<string[]>(initialData?.pretensiones?.length ? initialData.pretensiones : [""]);
   const [documentos, setDocumentos] = useState<string[]>(initialData?.documentos || []);
@@ -77,9 +78,19 @@ export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initi
     setDocumentos(next);
   };
 
+  const advertenciaPostura =
+    postura === 'demandado' && tipo === 'demanda'
+      ? 'Elegiste postura DEMANDADA en un escrito tipo DEMANDA. Si representas al demandado, lo habitual es usar tipo CONTESTACIÓN. El motor respetará tu elección, pero en esa combinación no podrá usar fórmulas prohibidas (allanarse "por si acaso", prometer pagos, etc.).'
+      : postura === 'demandante' && tipo === 'contestacion'
+      ? 'Elegiste postura DEMANDANTE en un escrito tipo CONTESTACIÓN. Si representas al demandante, lo habitual es tipo DEMANDA. El motor respetará tu elección, pero considera el escrito correcto para tu caso.'
+      : '';
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!hechos.trim() || !pretensiones.some(p => p.trim())) return;
+    if (!postura) {
+      window.alert('Debes indicar la postura procesal del escrito: DEMANDANTE o DEMANDADO.');
+      return;
+    }
     
     const input: DraftInput = {
       tipo,
@@ -91,6 +102,7 @@ export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initi
       documentos: documentos.map(d => d.trim()).filter(Boolean),
       rol: rol.trim() || undefined,
       tribunal: tribunal.trim() || undefined,
+      postura: postura as DraftPostura,
     };
     await onSubmit(input);
   };
@@ -120,6 +132,41 @@ export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initi
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Postura procesal (obligatoria) */}
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 mb-3">
+          Postura procesal <span className="text-red-500">*</span>
+          <span className="block text-[11px] font-normal text-slate-500 mt-0.5">
+            Por quién escribe el motor. Determina la voz del escrito y manda sobre el dictamen.
+          </span>
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          {([
+            ['demandante', 'Demandante', 'Actúo por quien presenta la acción (quien demanda)'],
+            ['demandado', 'Demandado', 'Actúo por quien debe contestar o defenderse'],
+          ] as const).map(([val, label, desc]) => (
+            <button
+              key={val}
+              type="button"
+              onClick={() => setPostura(val)}
+              className={`relative p-4 rounded-xl border-2 transition-all text-left ${
+                postura === val
+                  ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-100'
+                  : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'
+              }`}
+            >
+              <span className="font-bold text-slate-900">{label}</span>
+              <p className="text-[11px] text-slate-500 mt-1">{desc}</p>
+            </button>
+          ))}
+        </div>
+        {advertenciaPostura && (
+          <p className="mt-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-snug">
+            ⚠️ {advertenciaPostura}
+          </p>
+        )}
       </div>
 
       {/* Área legal */}
@@ -306,7 +353,7 @@ export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initi
       {/* Submit */}
       <button
         type="submit"
-        disabled={isLoading || !hechos.trim() || !pretensiones.some(p => p.trim())}
+        disabled={isLoading || !hechos.trim() || !pretensiones.some(p => p.trim()) || !postura}
         className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:from-slate-300 disabled:to-slate-400 text-white font-extrabold text-base rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 disabled:transform-none flex items-center justify-center gap-3"
       >
         {isLoading ? (

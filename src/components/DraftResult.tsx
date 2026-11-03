@@ -192,14 +192,14 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
       </div>
 
       {/* Panel de Auditoría de Vacíos Críticos (Fase 2 — Regla de Oro) */}
-      {output.metadatos.tipo === 'contestacion' && (
+      {(output.metadatos.tipo === 'contestacion' || output.metadatos.tipo === 'demanda') && (
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-start gap-2.5 mb-4">
             <Search className="w-5 h-5 text-rose-600 mt-0.5 shrink-0" />
             <div className="flex-1">
               <h3 className="text-lg font-bold tracking-tight text-slate-900">Auditoría de vacíos críticos antes de presentar</h3>
               <p className="text-xs text-slate-600 mt-1">
-                Análisis determinista del escrito: datos operativos indispensables que faltan para que la contestación sea 100% admisible.
+                Análisis determinista del escrito: datos operativos indispensables que faltan.
                 Responde en el campo de abajo y el borrador se regenerará con esos datos integrados. Nunca se inventan datos faltantes.
               </p>
             </div>
@@ -256,6 +256,36 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
               </button>
             </>
           )}
+        </div>
+      )}
+
+      {/* Control táctico del escrito (Ley Bustos, allanamientos, postura, plazo vencido) */}
+      {output.tactico && output.tactico.length > 0 && (
+        <div className="bg-white border-2 border-red-300 rounded-xl p-6 shadow-sm">
+          <div className="flex items-start gap-2.5 mb-3">
+            <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-lg font-bold tracking-tight text-red-900">Control táctico del escrito (obligatorio antes de presentar)</h3>
+              <p className="text-xs text-red-800 mt-1">
+                El motor detectó fórmulas de riesgo procesal en el borrador. Corrige o elimina cada una antes de presentar.
+              </p>
+            </div>
+          </div>
+          <ul className="space-y-3">
+            {output.tactico.map((h, i) => (
+              <li key={`${h.id}-${i}`} className={`border rounded-lg p-3 text-xs ${h.severidad === 'critico' ? 'border-red-300 bg-red-50' : h.severidad === 'alto' ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-slate-50'}`}>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded border ${h.severidad === 'critico' ? 'bg-red-600 text-white border-red-700' : h.severidad === 'alto' ? 'bg-amber-500 text-slate-950 border-amber-600' : 'bg-slate-200 text-slate-700 border-slate-300'}`}>
+                    {h.severidad}
+                  </span>
+                  <span className="font-mono font-bold text-slate-700">{h.id}</span>
+                </div>
+                <p className="mt-1.5 text-slate-800 leading-snug"><span className="font-semibold">Frase:</span> “{h.frase}”</p>
+                <p className="mt-1 text-slate-700 leading-snug"><span className="font-semibold">Por qué:</span> {h.regla}</p>
+                <p className="mt-1 text-emerald-900 leading-snug bg-emerald-50/60 border border-emerald-200 rounded p-1.5"><span className="font-semibold">Corrección:</span> {h.reemplazo}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

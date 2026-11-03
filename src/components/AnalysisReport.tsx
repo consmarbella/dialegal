@@ -86,7 +86,11 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
   // dictamen (premium si está desbloqueado; análisis como fallback) + documento real del expediente.
   // El borrador se genera con los hechos/fechas/montos reales del caso, no con texto genérico.
   const draftContextExtra = (): Pick<DraftInput, 'dictamen' | 'documentoCaso'> => ({
-    dictamen: ((premium?.report || analysisMarkdown) || '').trim().slice(0, 9000) || undefined,
+    // Enviar SIEMPRE el dictamen base generado por /api/analyze. El premium es un
+    // COMPLEMENTO de verificación (no contiene los hechos, fechas, montos ni el
+    // reporte completo); usar solo el complemento dejaba al redactor sin caso.
+    // Ambos cortados a 9000 chars (límite de contexto heredado).
+    dictamen: [analysisMarkdown, premium?.report ? `\n\n--- COMPLEMENTO DE VERIFICACIÓN ---\n\n${premium.report}` : ''].filter(Boolean).join('').trim().slice(0, 9000) || undefined,
     documentoCaso: (documentText || '').trim().slice(0, 9000) || undefined,
   });
 

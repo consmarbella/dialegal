@@ -33,12 +33,12 @@ export interface InsumosValidacionLegalHelp {
 }
 
 const ARTICULOS_CLAVE_POR_AREA: Record<string, string[]> = {
-  laboral: ["159", "161", "162", "174", "201", "452", "485", "489"],
-  civil: ["1445", "1545", "1547", "1554", "1559", "2314", "2320"],
-  familia: ["229", "230", "232", "233", "439", "440", "441"],
-  penal: ["1", "2", "12", "13", "14", "15", "16", "17"],
-  administrativo: ["5", "6", "7", "8", "9", "10", "11", "12"],
-  constitucional: ["1", "2", "3", "4", "5", "19", "20", "21"],
+  laboral: ["159", "161", "162", "168", "452", "485", "489"],
+  civil: ["1545", "1698"],
+  familia: ["229", "230"],
+  penal: ["1", "11", "12", "14", "15"],
+  administrativo: ["6", "7"],
+  constitucional: ["6", "7", "19", "20", "21"],
 };
 
 function normalizarRol(s: string): string {
@@ -57,12 +57,27 @@ function baseDeRol(r: string): string {
 }
 
 const ROLES_RE = /\brol(?:\s*n?[°º]|\s*n?o|\s*numero|\s*nro)?\s*\.?\s*:?\s*([0-9][0-9 .,]{2,14}[0-9])(?:\s*[-–]\s*([0-9]{2,4}|[0-9]{1,2}[A-Za-z](?:-[A-Za-z]{2,6})?|[A-Za-z]{2,6}))?/gi;
-const ARTS_RE = /art(?:[íi]culos?|[íi]culo|\.)?\s*n?[°º]?\s*([0-9]{1,4})/gi;
 const MONTOS_RE = /(?:\$|CLP)[\s]*(\d{1,3}(?:\.\d{3})+(?:,\d+)?)|(\d{1,3}(?:\.\d{3})+)\s*(?:CLP|pesos)/gi;
+
+// Normaliza «18-C», «18 C», «18C», «018 C» al mismo token interno.
+function normArtNum(s: string): string {
+  const t = String(s)
+    .trim()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/\./g, "")
+    .replace(/[°º\s]+/g, "")
+    .replace(/^0+/, "");
+  return t.replace(/-/g, "") || "0";
+}
 
 const ESTRUCTURA_DEMANDA = [
   /S\.J\.L\.|Juzgado\s+(?:de\s+)?(?:Letras\s+)?(?:del\s+)?(?:Trabajo|Laboral|de\s+Letras)/i,
-  /EN\s+LO\s+PRINCIPAL|DEMANDA\s+DE/i,
+  // Solo "EN LO PRINCIPAL": antes era /EN LO PRINCIPAL|DEMANDA DE/, y
+  // "CONTESTACIÓN DE DEMANDA DE DESPIDO" contenía "DEMANDA DE", de modo que
+  // una contestación completa pasaba el chequeo de estructura de DEMANDA
+  // (inversión de postura indetectable).
+  /EN\s+LO\s+PRINCIPAL/i,
   /PRIMERO:|SEGUNDO:|TERCERO:|ANTECEDENTES\s+DE\s+HECHO/i,
   /FUNDAMENTOS\s+DE\s+DERECHO|EL\s+DERECHO/i,
   /PETITORIO|POR\s+TANTO|SOLICITO/i,
@@ -70,7 +85,7 @@ const ESTRUCTURA_DEMANDA = [
 
 const ESTRUCTURA_CONTESTACION = [
   /S\.J\.L\.|Juzgado/i,
-  /CONTESTACI[OÓ]N\s+DE\s+DEMANDA|CONTESTAR\s+(?:LA\s+)?DEMANDA|CONTESTAR\b/i,
+  /CONTESTACI[OÓ]N\s+DE\s+DEMANDA|CONTESTAR\s+(?:LA\s+)?DEMANDA|CONTESTAR\b|OPOSICI[OÓ]N\s+FUNDADA/i,
   /EXCEPCIONES?\s+PREVIAS|EXCEPCI[OÓ]N[^\n]{0,80}|DEFENSA\s+PREVIA/i,
   /NEGATIVA\s+DE\s+HECHOS|HECHOS\s+(?:NEGADOS|ADMITIDOS)|NEGATIVA[^\n]{0,60}HECHOS|NEGO\s+(?:CATEG[OÓ]RICAMENTE\s+)?(?:Y\s+)?CONTROVIERTO|CONTROVERTIENDO\s+EXPRESAMENTE/i,
   /DEFENSAS?\s+DE\s+FONDO|FUNDAMENTOS?\s+DE\s+DERECHO|EL\s+DERECHO/i,
@@ -138,7 +153,6 @@ export function validarLegalHelp(report: string, insumos: InsumosValidacionLegal
   try {
     const rolesCorpusSet = new Set(insumos.rolesCorpus.map(normalizarRol).filter(Boolean));
     const rolesCorpusBaseSet = new Set(insumos.rolesCorpus.map(baseDeRol).filter(Boolean));
-    const artsCubiertosSet = new Set(insumos.artsCubiertos.map((x) => String(x).replace(/\s+/g, "")));
 
     ROLES_RE.lastIndex = 0;
     const rolesInforme: string[] = [];
@@ -151,12 +165,8 @@ export function validarLegalHelp(report: string, insumos: InsumosValidacionLegal
       if (rolesInforme.length >= 20) break;
     }
 
-    ARTS_RE.lastIndex = 0;
-    const artsInforme: string[] = [];
-    while ((m = ARTS_RE.exec(texto)) !== null) {
-      if (!artsInforme.includes(m[1])) artsInforme.push(m[1]);
-      if (artsInforme.length >= 30) break;
-    }
+    const ext = extraerCitadasPorNorma(texto);
+    const artsInforme = [...new Set(ext.pares.map((p) => normArtNum(p.num)))];
 
     MONTOS_RE.lastIndex = 0;
     const montosInforme: string[] = [];
@@ -178,29 +188,31 @@ export function validarLegalHelp(report: string, insumos: InsumosValidacionLegal
     // un "Art. 161" del borrador SOLO esta cubierto si el 161 fue verificado en
     // la MISMA norma que el cruce asigno a esa cita dentro del texto. El cruce
     // se recalcula aqui con el propio extractor BCN (regex, sin red).
-    const claves = insumos.artsCubiertos.map((x) => String(x).replace(/\s+/g, ""));
-    const esCoberturaPorNorma = claves.length > 0 && claves.every((x) => /^[A-Z]+[0-9]*:/i.test(x));
-    const numKey = (s: string) => s.trim().replace(/\./g, "").replace(/^0+/, "") || "0";
+    const clavesRaw = insumos.artsCubiertos.map((x) => String(x).replace(/\s+/g, ""));
+    const esCoberturaPorNorma = clavesRaw.length > 0 && clavesRaw.every((x) => /^[A-Z]+[0-9]*:/i.test(x));
+    // Clave de comparación: número de ley (sin prefijos "L"/"LEY") + número de artículo normalizado.
+    const claveComparar = (k: string): string => {
+      const i = k.indexOf(":");
+      return `${k.slice(0, i).replace(/^[^0-9]*/, "")}:${normArtNum(k.slice(i + 1))}`;
+    };
+    const claves = esCoberturaPorNorma ? clavesRaw.map(claveComparar) : clavesRaw;
+    const clavesSet = new Set(claves);
+    const artsCubiertosSet = new Set(claves.map((k) => (esCoberturaPorNorma ? normArtNum(k.slice(k.indexOf(":") + 1)) : normArtNum(k))));
 
     // num -> conjunto de normas a las que el cruce asigno ese numero en el texto.
     const pareos = new Map<string, Set<string>>();
-    if (esCoberturaPorNorma) {
-      try {
-        const ex = extraerCitadasPorNorma(texto);
-        for (const p of ex.pares) {
-          const nk = numKey(p.num);
-          if (!pareos.has(nk)) pareos.set(nk, new Set());
-          if (p.norma) pareos.get(nk)!.add(p.norma.key);
-        }
-      } catch { /* extractor fallo: degradar a cobertura por numero */ }
+    for (const p of ext.pares) {
+      const nk = normArtNum(p.num);
+      if (!pareos.has(nk)) pareos.set(nk, new Set());
+      if (p.norma) pareos.get(nk)!.add(p.norma.key.replace(/^[^0-9]*/, ""));
     }
     const claveCubierta = (a: string): { valido: boolean; asignado: boolean } => {
-      const nk = numKey(a);
+      const nk = normArtNum(a);
       const setNormas = pareos.get(nk);
       // Cita sin norma asignable en el texto (set vacio) -> no la juzgamos
       // contra una norma en particular; degrada a cobertura por numero.
       if (!setNormas || setNormas.size === 0) return { valido: false, asignado: false };
-      for (const key of setNormas) if (claves.includes(`${key}:${nk}`)) return { valido: true, asignado: true };
+      for (const key of setNormas) if (clavesSet.has(`${key}:${nk}`)) return { valido: true, asignado: true };
       return { valido: false, asignado: true };
     };
 

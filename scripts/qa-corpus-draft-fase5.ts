@@ -8,6 +8,7 @@ const instFamilia = new Set(familia.fichas.map((f: any) => f.institucion));
 
 const input = {
   tipo: "demanda" as any,
+  postura: "demandante",
   hechos: "Madre residiente en Los Angeles, Region del Bio Bio, reclama pension de alimentos para su hija de 7 anios. El padre trabaja y percibe $1.100.000 liquidos mensuales. No ha habido pago voluntario. Se solicita pension de alimentos provisional durante el juicio.",
   pretensiones: ["Pension de alimentos provisional", "Regimen cuidado personal a favor de la madre"],
   rol: "F-1234-2026",

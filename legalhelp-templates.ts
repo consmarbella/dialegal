@@ -12,28 +12,29 @@ ESTRUCTURA OBLIGATORIA PARA DEMANDA:
 - OTROSIES (notificaciones art. 44 CPC, pruebas, medida cautelar si procede)
 
 REGLAS DE REDACCIÓN:
-- Lenguaje forense chileno formal (usted, su, vuestra señoría)
+- Voz EXCLUSIVA de la parte DEMANDANTE (prohibidas fórmulas de contestación: "mi representada se allana", "excepciones previas", "negativa de hechos", "defensas de fondo")
+- Lenguaje forense chileno formal y sobrio (su Señoría, S.S.)
 - Hechos en pasado, pretensiones en futuro
 - Cada artículo citado con su numeral exacto
-- Jurisprudencia: "Fallo rector CS Rol N° X-YYYY" + síntesis de doctrina
+- Jurisprudencia: solo citar Rol si consta en las fuentes verificadas del caso
 - Montos en CLP con separador de miles (punto)
 `,
 
   contestacion: `
-ESTRUCTURA OBLIGATORIA PARA CONTESTACIÓN:
+ESTRUCTURA OBLIGATORIA PARA CONTESTACIÓN U OPOSICIÓN:
 - Encabezado judicial completo
-- EN LO PRINCIPAL: CONTESTACIÓN DE DEMANDA DE [TIPO]
-- EXCEPCIONES PREVIAS (si caben: incompetencia, litispendencia, cosa juzgada, prescripción)
-- NEGATIVA DE HECHOS (específica, por numerales: "Niegan el hecho 3°...", "Admiten el hecho 1°...")
-- DEFENSAS DE FONDO (artículos, jurisprudencia, prueba documental)
-- PETITORIO (rechazo total/parcial, absolución, costas)
-- OTROSIES (notificaciones, pruebas, reconvención si procede)
+- EN LO PRINCIPAL: CONTESTACIÓN DE DEMANDA (o en procedimiento monitorio de arrendamiento Ley 18.101: OPOSICIÓN FUNDADA A LA DEMANDA MONITORIA)
+- EXCEPCIONES Y DEFENSAS (incompetencia, litispendencia, pago efectivo, contrato no cumplido art. 1552 CC, prescripción, etc.)
+- NEGATIVA DE HECHOS (específica, por numerales: "En cuanto al Hecho PRIMERO...", "En cuanto al Hecho SEGUNDO...")
+- FUNDAMENTOS DE DERECHO (Art. 309 CPC en ordinario; Arts. 18-F y 18-H Ley 18.101 en monitorio de arrendamiento; Arts. 459, 462 y 464 CPC en ejecutivo; jamás citar Art. 254 CPC como fundamento de una contestación u oposición)
+- PETITORIO (coherente con lo reconocido: rechazo total o en todo lo que exceda el saldo expresamente reconocido, costas)
+- OTROSÍES (acompaña documentos; en oposición monitoria Ley 18.101 art. 18-F: otrosí OBLIGATORIO anunciando todos los demás medios de prueba — testimonial, pericial, confesional, inspección personal — para el juicio declarativo posterior; patrocinio y poder Ley 18.120)
 
 REGLAS:
+- Voz EXCLUSIVA de la parte DEMANDADA
 - Negativa taxativa por numerales (no genérica)
-- Excepciones antes que fondo
-- Reconocer hechos incontroversos
-- Citar prueba documental anexada
+- PROHIBIDO prometer pagos o regularización futura en Ley Bustos ("procederá a regularizar/pagar", "con el objeto de convalidar") y PROHIBIDO allanarse "por si acaso" ("sumas que pudieren corresponder", "si existiere algún saldo")
+- Si el PLAN DE PLAZOS marca PLAZO VENCIDO, prohibido escribir "encontrándome dentro de plazo legal" o "en tiempo y forma"
 `,
 
   otrosi: `
@@ -108,12 +109,12 @@ REGLAS:
 };
 
 export const ARTICULOS_CLAVE_POR_AREA: Record<string, string[]> = {
-  laboral: ["159", "161", "162", "174", "201", "452", "485", "489", "Ley 21.643"],
-  civil: ["1445", "1545", "1547", "1554", "1559", "2314", "2320", "1557"],
-  familia: ["229", "230", "232", "233", "439", "440", "441", "14908"],
-  penal: ["1", "2", "12", "13", "14", "15", "16", "17", "19.696"],
-  administrativo: ["5", "6", "7", "8", "9", "10", "11", "12", "19.880"],
-  constitucional: ["1", "2", "3", "4", "5", "19", "20", "21", "16"],
+  laboral: ["159", "161", "162", "168", "452", "485", "489"],
+  civil: ["1545", "1698"],
+  familia: ["229", "230", "14908", "19.968"],
+  penal: ["1", "11", "12", "14", "15"],
+  administrativo: ["6", "7", "19.880"],
+  constitucional: ["6", "7", "19", "20", "21"],
 };
 
 export function getPlantilla(tipo: string): string {

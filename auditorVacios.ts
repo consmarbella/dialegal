@@ -3,7 +3,7 @@ import type { DraftInput, VacioCritico } from './src/types';
 /**
  * Auditoría determinista de vacíos críticos (Fase 2).
  * Sin LLM: reglas puras sobre el borrador generado + input.
- * Alcance MVP: solo contestación de demanda. Regla de oro:
+ * Alcance: contestación y demanda (mismo patrón de otrosí/patrocinio). Regla de oro:
  * no inventar datos ni dejar corchetes ciegos sin pregunta.
  */
 
@@ -20,7 +20,7 @@ const contieneFecha = (t: string): boolean =>
   /\b\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}\b/.test(t);
 
 export function auditarVacios(draft: string, input: DraftInput): VacioCritico[] {
-  if (input.tipo !== 'contestacion') return [];
+  if (input.tipo !== 'contestacion' && input.tipo !== 'demanda') return [];
 
   const vacios: VacioCritico[] = [];
   const push = (campo: string, prioridad: 'fatal' | 'importante', pregunta: string, fragmento?: string) => {
@@ -53,7 +53,7 @@ export function auditarVacios(draft: string, input: DraftInput): VacioCritico[] 
   const corcheteEnPatrocinio = /\[/.test(seccionPatrocinio);
   const nombreRealEnPatrocinio = /[A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,}\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]{2,}/.test(sinCorchetes(seccionPatrocinio));
   if (corcheteEnPatrocinio || !nombreRealEnPatrocinio) {
-    push('patrocinio', 'fatal', 'Datos del abogado patrocinante para el otrosí PATROCINIO Y PODER: nombre completo, N° de patente (o pasaporte) y cédula, domicilio procesal y contacto, como exige el art. 17 N° 1 y 26 del CPC.', corcheteEnPatrocinio ? seccionPatrocinio.split('[').slice(1, 2).map(t => `[${t.split(']')[0]}]`).join('') : undefined);
+    push('patrocinio', 'fatal', 'Datos del abogado patrocinante para el otrosí PATROCINIO Y PODER: nombre completo, N° de patente (o pasaporte) y cédula, domicilio procesal y contacto, como exigen la Ley 18.120 (arts. 1 y 2) y el art. 7 CPC.', corcheteEnPatrocinio ? seccionPatrocinio.split('[').slice(1, 2).map(t => `[${t.split(']')[0]}]`).join('') : undefined);
   }
 
   // 4. Plazo fatal: fecha de notificación / audiencia preparatoria (importante)
@@ -61,7 +61,7 @@ export function auditarVacios(draft: string, input: DraftInput): VacioCritico[] 
   const tieneNotificacion = /notific(aci|ad[oa]|amiento)/i.test(todoElTexto) && contieneFecha(todoElTexto);
   const tieneAudiencia = /audiencia\s+preparatoria/i.test(todoElTexto) && contieneFecha(todoElTexto);
   if (!tieneNotificacion && !tieneAudiencia) {
-    push('plazo', 'importante', 'Fecha en que se notificó la demanda (o plazo restante): indispensable para confirmar que la contestación entra dentro del plazo de 15 días hábiles del art. 405 CPC y para fijar el término probatorio.');
+    push('plazo', 'importante', 'Fecha en que se notificó la demanda o el requerimiento (o plazo restante): indispensable para confirmar que el escrito entra en el plazo legal aplicable — 18 días hábiles (art. 258 CPC) en juicio civil ordinario; 10 días corridos (art. 18-F Ley 18.101) en monitorio de arrendamiento; 8 días hábiles (arts. 459 y 462 CPC) en juicio ejecutivo.');
   }
 
   // 5. Individualización de partes (fatal si hay corchetes de nombre)

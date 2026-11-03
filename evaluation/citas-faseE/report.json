@@ -1,6 +1,6 @@
 {
-  "fecha": "2026-11-03T01:26:26.412Z",
-  "ok": 22,
+  "fecha": "2026-11-03T20:43:16.534Z",
+  "ok": 26,
   "fail": 0,
   "confirma": {
     "Ley 21.394 -> CPC art. 258 (quince->dieciocho)": true
@@ -9,6 +9,9 @@
     "laboral_contestacion": "removido: CT vigente no fija plazo de contestacion (audiencia preparatoria CT 451/452)",
     "laboral_apelacion": "removido: canal leychile del CT trunca en art. 519 (CT 533 inverificable)",
     "familia_apelacion": "re-modelado: L19.968 art. 67 (remite al CPC) + CPC art. 189 (5 dias; 10 definitivas)",
+    "civil_monitorio_arrendamiento": "agregado: Ley 18.101 arts. 18-C y 18-F (diez días CORRIDOS); tipoDias=corridos",
+    "civil_ejecutivo_oposicion": "agregado: CPC art. 459 (8 días hábiles en comuna/jurisdicción), art. 462 (término de oposición)",
+    "transito_apelacion_jpl": "agregado: Ley 18.287 art. 32 (término fatal de cinco días; el sábado corre según CPC art. 66)",
     "cita_251_cpc": "desglose del motor corregido: el 251 actual = resoluciones extranjeras; ahora cita art. 66"
   },
   "detalle": "Ver scripts/qa-citas-faseE.ts; sentencia contra XML oficial leychile (obtxml opt=7)."

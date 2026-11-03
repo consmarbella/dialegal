@@ -46,7 +46,7 @@ export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: Reg
   CC: { id: 172986, nombre: "Codigo Civil (DFL 1, 2000)", detect: /\bC[oó]digo\s+Civil\b|\bDFL\s*(?:N[°º.]?\s*)?1\s*(?:\/|de)?\s*2000\b/i },
   CP: { id: 1984, nombre: "Codigo Penal", detect: /\bC[oó]digo\s+Penal\b/i },
   CT: { id: 207436, nombre: "Codigo del Trabajo (DFL 2, 2003)", detect: /\bC[oó]digo\s+del\s+Trabajo\b|\bDFL\s*(?:N[°º.]?\s*)?2\s*(?:\/|de)?\s*2003\b/i },
-  CPC: { id: 22740, nombre: "Codigo de Procedimiento Civil (Ley 1.552)", detect: /\bC[oó]digo\s+de\s+Procedimiento\s+Civil\b|\bLey\s*n?[°º.\s]*1\.?\s?552\b/i },
+  CPC: { id: 22740, nombre: "Codigo de Procedimiento Civil (Ley 1.552)", detect: /\bC[oó]digo\s+de\s+Procedimiento\s+Civil\b|\bLey\s*n?[°º.\s]*1\.?\s?552\b|\bCPC\b/i },
   CPP: { id: 176595, nombre: "Codigo Procesal Penal (Ley 19.696)", detect: /\bC[oó]digo\s+Procesal\s+Penal\b|\bLey\s*n?[°º.\s]*19\.?\s?696\b/i },
   CCom: { id: 1974, nombre: "Codigo de Comercio", detect: /\bC[oó]digo\s+de\s+Comercio\b/i },
   CTrib: { id: 6374, nombre: "Codigo Tributario (DL 830)", detect: /\bC[oó]digo\s+Tributario\b/i },
@@ -62,14 +62,16 @@ export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: Reg
   // el canal genérico idLey no puede resolver. Cada idNorma verificado contra
   // el XML oficial (obtxml: <Tipo>, <Numero>, normaId y <TituloNorma>).
   L14908: { id: 27977, nombre: "Ley 14.908 (pensiones alimenticias)", detect: /\bLey\s*n?[°º.\s]*14\.?\s?908\b/i },
+  L15231: { id: 28104, nombre: "Ley 15.231 (organizacion y atribuciones de los juzgados de policia local)", detect: /\bLey\s*n?[°º.\s]*15\.?\s?231\b/i },
   L16744: { id: 28650, nombre: "Ley 16.744 (accidentes del trabajo)", detect: /\bLey\s*n?[°º.\s]*16\.?\s?744\b|\bLey\s+de\s+Accidentes\s+del\s+Trabajo\b/i },
   L17336: { id: 28933, nombre: "Ley 17.336 (propiedad intelectual)", detect: /\bLey\s*n?[°º.\s]*17\.?\s?336\b|\bLey\s+de\s+Propiedad\s+Intelectual\b/i },
   L18046: { id: 29473, nombre: "Ley 18.046 (sociedades anonimas)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?046\b|\bLey\s+de\s+Sociedades\s+An[oó]nimas\b/i },
-  L18101: { id: 29526, nombre: "Ley 18.101 (arrendamiento urbano)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?101\b/i },
+  L18101: { id: 29526, nombre: "Ley 18.101 (arrendamiento urbano)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?101\b|\bLey\s*n?[°º.\s]*21\.?\s?461\b/i },
   L18216: { id: 29636, nombre: "Ley 18.216 (penas sustitutivas)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?216\b/i },
   L18287: { id: 29705, nombre: "Ley 18.287 (justicia de policia local)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?287\b/i },
-  L18290: { id: 29708, nombre: "Ley 18.290 (transito)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?290\b/i },
+  L18290: { id: 29708, nombre: "Ley 18.290 (transito)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?290\b|\bLey\s+de\s+Tr[aá]nsito\b/i },
   L18314: { id: 29731, nombre: "Ley 18.314 (conductas terroristas)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?314\b/i },
+  L18490: { id: 29893, nombre: "Ley 18.490 (seguro obligatorio de accidentes personales SOAP)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?490\b/i },
   L18575: { id: 29967, nombre: "Ley 18.575 (bases generales de la administracion)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?575\b/i },
   L18695: { id: 30077, nombre: "Ley 18.695 (LOC de municipalidades)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?695\b|\bLey\s+Org[aá]nica\s+Constitucional\s+de\s+Municipalidades\b/i },
   L18834: { id: 30210, nombre: "Ley 18.834 (estatuto administrativo)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?834\b|\bEstatuto\s+Administrativo(?!\s+(?:Municipal|para\s+Funcionarios\s+Municipales))\b/i },
@@ -262,10 +264,62 @@ function extraerPartes(xml: string): Array<{ idParte?: string; nombre?: string; 
 }
 
 function normNum(s: string): string {
-  return decodeXml(s).trim().replace(/[°º\s]+$/g, "").replace(/^0+/, "").replace(/\./g, "");
+  const base = decodeXml(s).trim().replace(/[°º]+/g, "").replace(/\./g, "").replace(/\s+/g, " ").trim();
+  const mLetra = base.match(/^0*(\d+)\s*[-–\s]\s*([A-Za-z])$/);
+  if (mLetra) return `${mLetra[1] || "0"}-${mLetra[2].toUpperCase()}`;
+  return base.replace(/\s+/g, "").replace(/^0+/, "") || "0";
 }
 
-const ART_RE = /(?:art[ií]culo|arts?\.?)\s*(\d{1,4})\s*[°º]?/gi;
+// Reconoce singular y plural ("artículo", "artículos", "art.", "arts."),
+// sufijos con guion-letra ("18-A", "18-C"), rangos ("18-A a 18-K") y listas
+// ("artículos 1545, 1552, 1924 y 1927", "artículos 1567 N° 1 y 1568",
+// "Artículos 254, 309"), saltando sub-numerales ("N° 1", "N° 2 y 3", "inciso 2°")
+// y glosas entre paréntesis para no confundir un numeral con otro artículo.
+const ART_HEAD_RE = /\b(?:art[ií]culos?|arts?\.?)\s*(?:n[°ºo.]?\s*)?(\d{1,4}(?:\.\d{3})?(?:\s*[-–]\s*[A-Za-z])?)[°º]?/gi;
+
+function extraerMencionesArticulos(textoLimpio: string): Array<{ n: string; idx: number; endIdx: number }> {
+  const out: Array<{ n: string; idx: number; endIdx: number }> = [];
+  ART_HEAD_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = ART_HEAD_RE.exec(textoLimpio)) !== null) {
+    const startIdx = m.index;
+    const primero = normNum(m[1]);
+    let cursor = startIdx + m[0].length;
+    const items: string[] = [primero];
+
+    // ¿Rango con letra del mismo artículo base? Ej: "Artículos 18-A a 18-K"
+    const mRango = textoLimpio.slice(cursor, cursor + 36).match(/^\s*(?:a|al|hasta)\s+(?:el\s+)?(?:art[ií]culos?|arts?\.?)?\s*(\d{1,4})\s*[-–]\s*([A-Za-z])\b/i);
+    const mBaseLetra = primero.match(/^(\d+)-([A-Z])$/);
+    if (mRango && mBaseLetra && mRango[1] === mBaseLetra[1]) {
+      const cIni = mBaseLetra[2].charCodeAt(0);
+      const cFin = mRango[2].toUpperCase().charCodeAt(0);
+      if (cFin > cIni && cFin - cIni <= 15) {
+        for (let c = cIni + 1; c <= cFin; c++) items.push(`${mBaseLetra[1]}-${String.fromCharCode(c)}`);
+        cursor += mRango[0].length;
+      }
+    }
+
+    // Consumir lista posterior (", 1552, 1924 y 1927", "N° 1 y 1568", "(glosa), 1552")
+    for (let pasos = 0; pasos < 10; pasos++) {
+      const resto = textoLimpio.slice(cursor, cursor + 180);
+      const mMod = resto.match(/^(?:\s*(?:n[°ºo.]?\s*\d{1,2}(?:\s+y\s+\d{1,2})?\b|incisos?\s+(?:primero|segundo|tercero|cuarto|quinto|final|\d+[°º]?)|\([^()\n]{1,90}\)))+/i);
+      const offsetMod = mMod ? mMod[0].length : 0;
+      const trasMod = resto.slice(offsetMod);
+      const mSig = trasMod.match(/^\s*(?:,\s*(?:y\s+)?|\b(?:y|e)\s+)(\d{1,4}(?:\.\d{3})?(?:\s*[-–]\s*[A-Za-z])?)[°º]?(?!\s*(?:de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)|a[ñn]os?|d[ií]as?|meses|uf\b|utm\b|pesos|clp|%))/i);
+      if (!mSig) {
+        cursor += offsetMod;
+        break;
+      }
+      items.push(normNum(mSig[1]));
+      cursor += offsetMod + mSig[0].length;
+    }
+
+    for (const it of items) {
+      out.push({ n: it, idx: startIdx, endIdx: cursor });
+    }
+  }
+  return out;
+}
 
 // ====== Fase 4: indice de leyes en Postgres (si DATABASE_URL existe) ======
 // Tabla leyes: numero de ley -> idNorma canónico. La resolución de una ley
@@ -421,27 +475,42 @@ export function extraerCitadasPorNorma(texto: string): { pares: CitaPareada[]; s
     .replace(/\s{3,}(?:L\.?\s*\d|D\.?(?:F\.)?L\.|D\.O\.)[^\n]*$/gm, "")
     .replace(/\s{3,}(?:Art(?:\.|ículo)?\s*\d+[^\n]*)$/gm, "");
   const normas = detectarNormas(textoLimpio);
-  const arts: Array<{ n: string; idx: number }> = [];
-  let am: RegExpExecArray | null;
-  ART_RE.lastIndex = 0;
-  while ((am = ART_RE.exec(textoLimpio)) !== null) arts.push({ n: am[1], idx: am.index });
+  const arts = extraerMencionesArticulos(textoLimpio);
   const pares: CitaPareada[] = [];
-  const contadas = new Map<string, number>(); // cuenta de usos por keyNorma
+  // Tope por artículos ÚNICOS por norma (antes contaba ocurrencias repetidas
+  // y al llegar a 12 menciones en el texto dejaba el resto de los artículos de
+  // esa misma ley con norma=null).
+  const unicosPorNorma = new Map<string, Set<string>>();
   for (const a of arts) {
     // ventana de emparejamiento: primero el cuerpo mas cercano DESPUES del
-    // articulo ("Art. 1 de la Ley X") hasta 120 chars; si no hay, el cuerpo
-    // anterior mas cercano ("... Ley X ... Art. 1") hasta 400 chars atras.
+    // articulo o fin de lista ("Arts. 1545, 1552 y 1924 del Código Civil") hasta
+    // 140 chars; si no hay, el cuerpo anterior mas cercano hasta 400 chars atras.
+    const refFin = a.endIdx ?? a.idx;
     const despues = normas
-      .filter((n) => n.idx > a.idx && n.idx - a.idx < 120)
+      .filter((n) => {
+        if (n.idx < a.idx || n.idx - refFin >= 140) return false;
+        const entre = textoLimpio.slice(refFin, n.idx);
+        if (/[;:\n]/.test(entre)) return false;
+        if (/\b(?:art[ií]culos?|arts?\.?)\s*\d/i.test(entre)) return false;
+        return true;
+      })
       .sort((x, y) => x.idx - y.idx)[0];
     const anterior = normas.filter((c) => c.idx < a.idx && a.idx - c.idx < 400).sort((x, y) => y.idx - x.idx)[0];
-    const elegida = despues ?? anterior ?? null;
+    // "Norma, Art. N" (a ±3 chars) manda; si no, gana la norma que viene después.
+    const preNominalInmediata = anterior && a.idx - anterior.end <= 3;
+    const elegida = preNominalInmediata ? anterior : (despues ?? anterior ?? null);
+    const nk = normNum(a.n);
     if (elegida) {
-      const c = contadas.get(elegida.key) || 0;
-      if (c < 12) { pares.push({ num: normNum(a.n), idx: a.idx, norma: elegida }); contadas.set(elegida.key, c + 1); }
-      else pares.push({ num: normNum(a.n), idx: a.idx, norma: null });
+      let setU = unicosPorNorma.get(elegida.key);
+      if (!setU) { setU = new Set(); unicosPorNorma.set(elegida.key, setU); }
+      if (setU.has(nk) || setU.size < 16) {
+        setU.add(nk);
+        pares.push({ num: nk, idx: a.idx, norma: elegida });
+      } else {
+        pares.push({ num: nk, idx: a.idx, norma: elegida });
+      }
     } else {
-      pares.push({ num: normNum(a.n), idx: a.idx, norma: null });
+      pares.push({ num: nk, idx: a.idx, norma: null });
     }
   }
   // arts que quedaron sin norma: los distintos
@@ -512,7 +581,7 @@ export async function verificarCitasBCN(textos: string[]): Promise<{ verificados
       const parte = partes.find((p) => {
         const nom = p.nombre ? normNum(p.nombre) : "";
         if (nom === num) return true;
-        const head = p.texto.match(/^(?:Art(?:[íi]culo|\.)\s*)?(\d{1,4})/i);
+        const head = p.texto.match(/^(?:Art(?:[íi]culo|\.)\s*)?(\d{1,4}(?:\s*[-–]\s*[A-Za-z])?)/i);
         return Boolean(head) && normNum(head![1]) === num;
       });
       if (!parte || !parte.texto) { faltantes.push(num); continue; }

@@ -64,7 +64,7 @@ function extraerArticulos(xml: string): Map<string, { texto: string; fechaVersio
     const bloque = m[1];
     const nombreM = bloque.match(/<NombreParte[^>]*>([\s\S]*?)<\/NombreParte>/);
     if (!nombreM) continue; // (el CC/DFL usa partes sin NombreParte: no aplica aquí)
-    const numero = normalizar(nombreM[1]).replace(/^art\.?\s*/, "").trim();
+    const numero = normalizar(nombreM[1]).replace(/^art\.?\s*/, "").trim().replace(/\s+/g, "-").toUpperCase();
     const textoM = bloque.match(/<Texto>([\s\S]*?)<\/Texto>/);
     const fvM = m[0].slice(0, m[0].indexOf(">")).match(/fechaVersion="([0-9-]{8,10})"/);
     if (!out.has(numero)) out.set(numero, { texto: normalizar(textoM?.[1] || ""), fechaVersion: fvM ? fvM[1] : "" });
@@ -171,15 +171,55 @@ try {
   chk("6 Ley 19.968 fetch+parse", false, String(e?.message || e));
 }
 
+// ── 4bis. Ley 18.101 (idNorma 29526): monitorio de arrendamiento ───────────
+// Sentencias: arts. 18-C y 18-F = diez días CORRIDOS; art. 18-H = el tribunal
+// declara terminado el procedimiento monitorio y sin efecto de pleno derecho
+// la resolución del art. 18-C (la defensa es OPOSICIÓN FUNDADA, no
+// "contestación de demanda" en sentido ordinario).
+try {
+  const xml = await fetchXML(UA_URL("idNorma=29526"));
+  const l = extraerArticulos(xml);
+  const a18C = l.get("18-C");
+  const a18F = l.get("18-F");
+  const a18H = l.get("18-H");
+  if (a18C) chk("6c Ley 18.101 art. 18-C: requerimiento en diez días corridos",
+    a18C.texto.includes("diez dias corridos"), a18C.texto.slice(0, 300));
+  if (a18F) chk("6d Ley 18.101 art. 18-F: oposición por escrito dentro del plazo legal acompañando documentos y medios de prueba",
+    a18F.texto.includes("oposicion") && a18F.texto.includes("acompanar los documentos") && a18F.texto.includes("demas medios de prueba"), a18F.texto.slice(0, 400));
+  if (a18H) chk("6e Ley 18.101 art. 18-H: declarar terminado el procedimiento monitorio",
+    a18H.texto.includes("terminado el procedimiento monitorio"), a18H.texto.slice(0, 200));
+  else chk("6c Ley 18.101 arts. 18-C/18-F/18-H existen", Boolean(a18C && a18F && a18H), [...l.keys()].filter(k => k.startsWith("18")));
+} catch (e: any) {
+  chk("6 Ley 18.101 fetch+parse", false, String(e?.message || e));
+}
+
+// ── 4ter. Ley 18.287 (idNorma 29705): apelación ante JPL ────────────────────
+// Art. 32: recurso de apelación fundada contra sentencias definitivas en el
+// término fatal de cinco días (CPC art. 66: días de días, suspenden solo en
+// feriados; el sábado corre).
+try {
+  const xml = await fetchXML(UA_URL("idNorma=29705"));
+  const l = extraerArticulos(xml);
+  const a32 = l.get("32");
+  if (a32) chk("6f Ley 18.287 art. 32: apelación en término fatal de cinco días",
+    a32.texto.includes("cinco dias") && a32.texto.includes("apelacion"), a32.texto.slice(0, 300));
+  else chk("6f Ley 18.287 art. 32 existe", false, [...l.keys()].filter(k => k.startsWith("3")).slice(0, 10));
+} catch (e: any) {
+  chk("6 Ley 18.287 fetch+parse", false, String(e?.message || e));
+}
+
 // ── 5. Coherencia del registro PLAZOS: cada fundamento cita artículos
 //    verificados arriba (cruce duro; si se agrega un plazo, este QA obliga a
 //    sentenciar su cita contra BCN antes de desplegar). ──────────────────────
 const P = await import("../plazosChile.js");
 const CITAS_ESPERADAS: Record<string, Array<{ norma: string; articulo: RegExp }>> = {
   civil_contestacion: [{ norma: "CPC", articulo: /art\.? 258/ }, { norma: "CPC", articulo: /art\.? 66/ }],
+  civil_monitorio_arrendamiento: [{ norma: "18.101", articulo: /18-[CFH]/ }],
+  civil_ejecutivo_oposicion: [{ norma: "CPC", articulo: /art\.? 462/ }],
   civil_apelacion_auto: [{ norma: "CPC", articulo: /art\.? 107/ }],
   civil_oposicion_medida: [{ norma: "CPC", articulo: /art\.? 486/ }],
   familia_apelacion: [{ norma: "Ley 19.968", articulo: /art\.? 67/ }, { norma: "CPC", articulo: /art\.? 189/ }],
+  transito_apelacion_jpl: [{ norma: "18.287", articulo: /art\.? 32/ }],
 };
 let coherentes = 0, incoherentes = 0;
 for (const p of P.PLAZOS) {
@@ -190,8 +230,10 @@ for (const p of P.PLAZOS) {
   else { incoherentes++; console.log(`   plazo ${p.id}: fundamento no cita ${faltan.map(f => f.norma + " " + f.articulo).join("; ")}`); }
 }
 chk("7 todos los plazos del registro citan sus articulos verificados", incoherentes === 0, { coherentes, incoherentes });
-chk("8 el registro ya NO contiene plazos laborales refutados/inverificables",
-  !P.existePlazo("laboral_contestacion") && !P.existePlazo("laboral_apelacion") && P.PLAZOS.length === 4, P.PLAZOS.map(p => p.id));
+chk("8 el registro ya NO contiene plazos refutados/inverificables y SÍ el monitorio y el JPL",
+  !P.existePlazo("laboral_contestacion") && !P.existePlazo("laboral_apelacion")
+    && P.existePlazo("civil_monitorio_arrendamiento") && P.existePlazo("civil_ejecutivo_oposicion")
+    && P.existePlazo("transito_apelacion_jpl") && P.PLAZOS.length === 7, P.PLAZOS.map(p => p.id));
 
 // Reporte para evaluacion/ (trazabilidad)
 try {
@@ -205,6 +247,9 @@ try {
       "laboral_contestacion": "removido: CT vigente no fija plazo de contestacion (audiencia preparatoria CT 451/452)",
       "laboral_apelacion": "removido: canal leychile del CT trunca en art. 519 (CT 533 inverificable)",
       "familia_apelacion": "re-modelado: L19.968 art. 67 (remite al CPC) + CPC art. 189 (5 dias; 10 definitivas)",
+      "civil_monitorio_arrendamiento": "agregado: Ley 18.101 arts. 18-C y 18-F (diez días CORRIDOS); tipoDias=corridos",
+      "civil_ejecutivo_oposicion": "agregado: CPC art. 459 (8 días hábiles en comuna/jurisdicción), art. 462 (término de oposición)",
+      "transito_apelacion_jpl": "agregado: Ley 18.287 art. 32 (término fatal de cinco días; el sábado corre según CPC art. 66)",
       "cita_251_cpc": "desglose del motor corregido: el 251 actual = resoluciones extranjeras; ahora cita art. 66",
     },
     detalle: "Ver scripts/qa-citas-faseE.ts; sentencia contra XML oficial leychile (obtxml opt=7).",
