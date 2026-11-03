@@ -999,3 +999,16 @@ Canal: `Consulta/obtxml?opt=7` (mismo del runtime), sin LLM.
     recurso: destruiria la base. Se mantiene ademas el bloqueo de CI GitHub
     Actions a nivel cuenta (startup_failure desde 29-oct) — pendiente del
     dueño.
+15. **DESBLOQUEO y deploy verificado (2026-11-02 21:52)**: el dueño restauro
+    el proyecto Supabase; el store paso a `available` /
+    `externalResourceStatus: ready` a las 21:52 (-03). Deploy CLI unico
+    `dpl_GbBJ6NBiUA68BjtmMyhYxqbx6VE8`: `readyState: READY` y aliado a
+    legalhelp.cl. Verificacion en prod REAL (no declarada): HTTP 200;
+    bundle nuevo `index-ChURvBdF.js` (antes `index-TCnwaXqv.js`) contiene
+    "decidida por la plataforma", "caso mixto", `materiaOrigen` y
+    `materiaSecundaria` (`materiaAdvertencia` no aparece porque solo existe
+    como tipo en src/types.ts y se borra en el build — correcto); probe de
+    lectura `GET /api/payment/status?orderId=probe-inexistente` -> 404
+    "Orden no encontrada": Postgres/SUPABASE lee bien tras la restauracion
+    (paywall operativo). Pendiente del dueño: CI GitHub Actions
+    (startup_failure a nivel cuenta desde 29-oct).
