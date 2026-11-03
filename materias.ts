@@ -101,7 +101,7 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
       // data/corpus-full: 12/12 formas observadas cubiertas).
       s("despido", "despid\\w*|desped\\w*|finiquito|autodespido", 3),
       s("tutela laboral", "tutela laboral|ley karin|acoso laboral|hostigamiento", 3),
-      s("cotizaciones/CT", "cotizaciones|codigo del trabajo|art. 161|articulo 161|art. 162|articulo 162|inspeccion del trabajo|direcci[o]?n del trabajo", 2),
+      s("cotizaciones/CT", "cotizaciones|imposiciones previsionales|mora previsional|ley\\s*bustos|codigo del trabajo|art. 161|articulo 161|art. 162|articulo 162|inspeccion del trabajo|direcci[o]?n del trabajo", 2),
       s("juzgado laboral", "juzgado de letras del trabajo|juzgado del trabajo|s\\.?j\\.?l\\b", 2),
       s("otros laboral", "trabajador|empleador|remuneraci[o]?n|horas extra|feriado laboral|a[nf]os de servicio|fuero maternal|fuero paternal|sindicato|negociaci[o]?n colectiva|huelga|cesant[i]?a|afc\\b|seguro de cesant[i]?a", 1),
     ],
@@ -116,6 +116,7 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
       c("acoso+laboral", ["acoso", "laboral"], 3, 4),
       c("acoso+sexual+trabajo", ["acoso", "sexual", "trabaj"], 8, 4),
       c("finiquito+cotizacion", ["finiquit", "cotizacion"], 8, 3),
+      c("despido+cotizaciones", ["despid|desped|finiquito", "cotiz|previsional|imposicion"], 8, 3),
       c("juzgado+trabajo", ["juzgado", "trabajo"], 4, 3),
       c("direccion+trabajo", ["direccion", "trabajo"], 4, 3),
       c("contrato+trabajo", ["contrato", "trabajo"], 4, 3),
@@ -128,7 +129,7 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
       a("audiencia preparatoria", "audiencia preparatoria"),
       a("dinaco", "\\bdinaco\\b", 1),
     ],
-    normasSemilla: ["CT"],
+    normasSemilla: ["CT" , "L17322", "L19728", "L20585", "L19631", "L21220", "L20609"],
     // Fase E: sin plazos laborales verificados — el CT vigente NO fija plazo de
     // 15 días para contestar (la contestación es en la audiencia preparatoria,
     // CT 451/452) y el canal leychile del CT trunca en art. 519 (no hay forma
@@ -172,7 +173,7 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
       a("conservador de bienes raices", "conservador de bienes ra|\\bcbr\\b"),
       a("rol C", "\\brol\\s+C\\s*-"),
     ],
-    normasSemilla: ["CC", "CPC", "L18101", "L20720"],
+    normasSemilla: ["CC", "CPC", "L18101", "L20720" , "L18010", "L18092", "L16271", "L20886", "L19537", "L19799"],
     plazos: ["civil_contestacion", "civil_apelacion_auto", "civil_oposicion_medida"],
   },
   familia: {
@@ -200,7 +201,7 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
     anclas: [
       a("mediacion familiar", "mediaci[o]?n familiar"),
     ],
-    normasSemilla: ["L19968", "L14908"],
+    normasSemilla: ["L19968", "L14908" , "L21400", "L20830", "L19585", "L21120", "L16618", "L21302"],
     plazos: ["familia_apelacion"],
   },
   penal: {
@@ -225,7 +226,7 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
       a("RUC", "\\bruc\\b"),
       a("audiencia de formalizacion", "audiencia de formalizaci[o]?n"),
     ],
-    normasSemilla: ["CP", "CPP"],
+    normasSemilla: ["CP", "CPP", "L20393"],
     plazos: [],
   },
   administrativo: {
@@ -251,7 +252,7 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
       a("decreto alcaldicio", "decreto alcaldicio"),
       a("toma de razon", "toma de raz[o]?n"),
     ],
-    normasSemilla: [],
+    normasSemilla: ["L20285", "L20422", "L20584", "L19966", "L19253"],
     plazos: [],
   },
   constitucional: {
@@ -277,7 +278,7 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
       a("recurso de amparo", "recurso de amparo"),
       a("amparo economico", "amparo econ[o]?mico"),
     ],
-    normasSemilla: [],
+    normasSemilla: ["L20609", "L20285"],
     plazos: [],
   },
   transito: {

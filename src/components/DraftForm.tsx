@@ -92,6 +92,12 @@ export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initi
       return;
     }
     
+    let audience: DraftInput["audience"] = "abogado";
+    try {
+      const saved = localStorage.getItem("legalhelp_audience");
+      if (saved === "persona" || saved === "abogado") audience = saved;
+    } catch { /* incógnito */ }
+
     const input: DraftInput = {
       tipo,
       area: area === "auto" ? undefined : area,
@@ -103,6 +109,7 @@ export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initi
       rol: rol.trim() || undefined,
       tribunal: tribunal.trim() || undefined,
       postura: postura as DraftPostura,
+      audience,
     };
     await onSubmit(input);
   };

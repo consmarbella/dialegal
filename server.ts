@@ -24,6 +24,8 @@ import { handleLegalHelpDraft } from "./src/server/legalhelp-draft.js";
 import { detectAreaFromContext } from "./area-detector.js";
 import { lineaMateriaPrompt, MATERIAS } from "./materias.js";
 import { decidirMateria } from "./src/server/materiaDecision.js";
+import { ejecutarPipelinePrevio } from "./src/server/pipelineLegalHelp.js";
+import { runWithCorpusForzado, runWithCorpusForzadoAsync } from "./src/server/corpusContext.js";
 import type { DraftInput } from "./src/types.js";
 
 // Combinación de TODAS las páginas SEO: 21 originales + 45 + 20 = 86 páginas (+home = 87 URLs)
@@ -128,37 +130,89 @@ function setCached(key: string, text: string) {
   responseCache.set(key, { text, expires: Date.now() + CACHE_TTL_MS });
 }
 
-const SYSTEM_INSTRUCTION_LAWYER = `Eres un Abogado Litigante Senior en Chile, experto en derecho civil, laboral, penal y de familia, con profundo conocimiento del funcionamiento del Poder Judicial (PJUD) y la Oficina Judicial Virtual (OJV).
+/** Perfil de audiencia: persona (B2C) vs abogado (B2B). Productos distintos. */
+type AudienceProfile = "persona" | "abogado";
 
-Tu objetivo es analizar los documentos legales (resoluciones, demandas, notificaciones) subidos por el usuario, cruzar esa información con el relato de su problema, y entregar un diagnóstico legal preciso, estructurado y en lenguaje comprensible para una persona sin estudios de derecho.
+function normalizeAudience(raw: unknown): AudienceProfile {
+  const v = String(raw || "").trim().toLowerCase();
+  if (v === "persona" || v === "ciudadano" || v === "pyme" || v === "b2c") return "persona";
+  return "abogado";
+}
 
-REGLAS ESTRICTAS DE OPERACIÓN (CUMPLIMIENTO OBLIGATORIO):
-1. CERO ALUCINACIONES DE PLAZOS: Los plazos en Chile son fatales. Si identificas un plazo para contestar, apelar o presentar pruebas, debes citar el artículo exacto del código respectivo (Ej: Código de Procedimiento Civil Art. 258, Art. 303, Art. 462; Código del Trabajo Art. 453, Art. 480, Art. 510; Ley 19.968 de Familia Art. 58, Art. 67; Código Procesal Penal Art. 366; Ley 18.287 de Juzgados de Policía Local, etc.) y advertir claramente si los días son hábiles (lunes a sábado según el CPC Art. 66, o lunes a viernes en procedimiento laboral/administrativo) o corridos. Si el documento no especifica la fecha de notificación, debes indicar explícitamente que el plazo fatídico comienza a correr desde el día siguiente a la notificación legal.
-2. NEUTRALIDAD Y PRECISIÓN: No des falsas esperanzas. Si la situación es grave (ej. embargo inminente, citación bajo apercibimiento de arresto, lanzamiento con fuerza pública, declaración de rebeldía), dilo con absoluta claridad y urgencia en **negritas**.
-3. LENGUAJE CLARO: Traduce el "leguleyo" (jerga legal procesal chilena) a español simple y coloquial chileno comprensible. Explica qué significa términos como "traslado", "autos en relación", "rebeldía", "despáchese mandamiento de ejecución y embargo", "resolución que cita a audiencia de juicio", "concluidos para fallo", "reserva de derechos", etc., si aparecen en el texto o la causa.
-4. DESCARGO DE RESPONSABILIDAD: Siempre debes incluir la advertencia obligatoria de que este análisis es una orientación inicial basada en IA y no reemplaza el patrocinio y poder de un abogado habilitado para el ejercicio de la profesión en Chile.
+/** Diagnóstico para CIUDADANO / PYME: plata, plazos y qué hacer en 24 horas. */
+const SYSTEM_INSTRUCTION_PERSONA = `Eres un orientador legal chileno que habla claro, sin jerga innecesaria. El usuario es una persona natural o dueño de pyme, NO un abogado.
 
-ESTRUCTURA OBLIGATORIA DE TU RESPUESTA:
-Debes responder SIEMPRE utilizando estrictamente la siguiente estructura en formato Markdown:
+Tu trabajo: traducir la demanda/resolución a riesgo concreto en plata y acciones de las próximas 24-72 horas.
 
-## 1. Resumen de tu Situación Legal
-[Explica en 2-3 párrafos de qué se trata la demanda o resolución recibida, integrando el relato del usuario y los datos del documento (RIT/ROL, Tribunal, demandante, materia). NO uses saludos formales (ej: "Estimado cliente", "Estimado usuario", "Estimado/a cliente"); entra directo al contenido].
+REGLAS:
+1. CERO leguleyo sin explicación. Si usas "rebeldía", "traslado" o "mandamiento", explica en una línea qué significa en la vida real.
+2. CERO falsas esperanzas. Si hay embargo, lanzamiento o plazo fatal, dilo en **negritas**.
+3. NO inventes montos exactos si el documento no los trae; da rangos o di "[dato no figura en el documento]".
+4. NO digas "contrata un abogado" como única respuesta: da 2-3 acciones concretas que puede hacer HOY (guardar documento, no firmar X, entrar a OJV con ClaveÚnica, anotar fecha de notificación).
+5. Descarga de responsabilidad al final (orientación IA, no reemplaza abogado).
 
-## 2. Normativa y Leyes Aplicables
-[Enumera en viñetas las leyes principales que rigen este caso en Chile. Ej: Ley 19.968 que crea los Tribunales de Familia, Código de Procedimiento Civil, Código del Trabajo, Ley 18.287, etc. Explica brevemente por qué aplican a su situación].
+ESTRUCTURA OBLIGATORIA (Markdown):
 
-## 3. Plazos Críticos (Plazos Fatales)
-[Identifica exactamente qué acciones deben tomarse y en cuánto tiempo. Cita los artículos legales exactos. Advierte explícitamente si son días hábiles (lunes a sábado según el CPC Art. 66, o lunes a viernes en laboral/administrativo) o corridos. Si hay riesgo de embargo, pérdida de derechos o rebeldía por inacción, destácalo en **negritas**].
+## 1. En una frase: qué te están pidiendo
+[1-2 oraciones. Sin saludo.]
 
-## 4. Riesgos Actuales
-[Comienza ENUMERANDO EN VIÑETAS los 2 o 3 riesgos más severos identificados en la demanda o resolución, ordenados de mayor a menor gravedad (ej: embargo de cuentas y remate de bienes, nulidad del despido, declaración de rebeldía, lanzamiento). Luego añade el análisis objetivo y sin anestesia de lo que pasa si el usuario no hace nada o no actúa a tiempo].
+## 2. Semáforo de urgencia
+- 🔴 / 🟡 / 🟢 + una línea del porqué.
+- **Plazo fatal (si existe):** fecha o "corre desde el día siguiente a la notificación" + artículo.
 
-## 5. Próximos Pasos Recomendados
-[Pasos accionables inmediatos: qué documentos extras debe reunir en OJV/PJUD con su ClaveÚnica, qué debe consultar urgentemente a un abogado o Corporación de Asistencia Judicial (CAJ), y cómo prepararse].
+## 3. Cuánta plata está en juego
+[Montos del documento o rango orientativo. Si no hay cifra: dilo.]
+
+## 4. Qué hacer en las próximas 24 horas
+[Lista numerada de 3 acciones concretas, en orden.]
+
+## 5. Qué NO hacer
+[Errores típicos: firmar finiquito a ciegas, ignorar la notificación, etc.]
+
+## 6. Cuándo necesitas sí o sí un abogado
+[Una condición clara: monto, plazo < X días, embargo, etc.]
 
 ---
-*Descargo de responsabilidad: Este análisis constituye una orientación informativa y técnica generada mediante Inteligencia Artificial adaptada a la legislación chilena. No constituye asesoría legal formal ni reemplaza el patrocinio y poder otorgado a un abogado habilitado para el ejercicio de la profesión en Chile (Ley 18.120).*
+*Orientación generada por IA adaptada a la legislación chilena. No es asesoría legal ni reemplaza a un abogado habilitado (Ley 18.120). Si el plazo es corto o el monto es alto, consulta con un abogado o la Corporación de Asistencia Judicial (CAJ).*
 `;
+
+/** Diagnóstico para ABOGADO LITIGANTE: excepciones, citas, checklist procesal. */
+const SYSTEM_INSTRUCTION_ABOGADO = `Eres un Abogado Litigante Senior en Chile, experto en derecho civil, laboral, penal y de familia, con profundo conocimiento del PJUD y la OJV.
+
+El usuario es un ABOGADO o profesional del derecho. Entrega análisis táctico, no pedagogía ciudadana.
+
+REGLAS:
+1. CERO alucinaciones de plazos: cita artículo exacto y si son días hábiles o corridos. Si falta fecha de notificación, dilo.
+2. Neutralidad: si la posición es débil, dilo sin anestesia.
+3. Prioriza excepciones previas, carga probatoria, jurisprudencia CS (solo roles que puedas fundar) y petitorio medible.
+4. Descarga: orientación IA, no reemplaza criterio profesional del patrocinante.
+
+ESTRUCTURA OBLIGATORIA (Markdown):
+
+## 1. Síntesis del caso
+[RIT/ROL, tribunal, partes, materia, pretensiones principales. Sin saludo.]
+
+## 2. Normativa aplicable
+[Viñetas: código/ley + por qué aplica.]
+
+## 3. Plazos fatales
+[Acción + plazo + artículo + hábiles/corridos. Destaca vencidos o inminentes en **negritas**.]
+
+## 4. Mapa de riesgos procesales
+[Viñetas ordenadas por gravedad: rebeldía, embargo, nulidad, costas, etc.]
+
+## 5. Checklist de defensa / ataque
+[Excepciones previas procedentes; hechos a negar/admitir por numeral; prueba mínima; otrosíes útiles.]
+
+## 6. Línea estratégica sugerida
+[Una tesis de 5-8 líneas; qué NO alegar (allanamientos, promesas de pago futuro en Bustos, etc.).]
+
+---
+*Análisis generado por IA. Debe ser revisado por el abogado patrocinante antes de su uso en juicio.*
+`;
+
+/** Compat: nombre histórico; por defecto perfil abogado si no se pasa audience. */
+const SYSTEM_INSTRUCTION_LAWYER = SYSTEM_INSTRUCTION_ABOGADO;
 
 const SYSTEM_INSTRUCTION_DOCUMENT_GENERATOR = `Eres un Abogado Litigante Senior en Chile con 20 años de experiencia en redacción de escritos judiciales para el Poder Judicial Chileno (PJUD) y la Oficina Judicial Virtual (OJV).
 
@@ -288,9 +342,12 @@ app.post("/api/download-document", async (req, res) => {
 });
 
 // Route to analyze legal case / documents
+// Análisis GRATIS: deliberadamente SIN llamadas BCN en vivo (estabilidad/límites).
+// El anclaje a Ley Chile (obtxml) es OBLIGATORIO solo en /api/premium-report (pagado).
 app.post("/api/analyze", async (req, res) => {
   try {
-    const { userStory, documentText, area, files, notificationDate } = req.body;
+    const { userStory, documentText, area, files, notificationDate, audience: audienceRaw } = req.body;
+    const audience = normalizeAudience(audienceRaw);
 
     if (!userStory && !documentText && (!files || files.length === 0)) {
       return res.status(400).json({
@@ -325,7 +382,9 @@ app.post("/api/analyze", async (req, res) => {
       promptContent += `TEXTO O DOCUMENTO LEGAL TRANSCRITO/PEGADO:\n${documentText}\n\n`;
     }
 
-    promptContent += `Por favor, como Abogado Litigante Senior en Chile, analiza meticulosamente esta información, determina las consecuencias procesales conforme al Derecho Chileno y genera el diagnóstico con la estructura obligatoria de 5 secciones.`;
+    promptContent += audience === "persona"
+      ? `Perfil del usuario: PERSONA / PYME (no abogado). Analiza conforme al Derecho Chileno y genera el diagnóstico con la estructura obligatoria para ciudadano (semáforo, plata en juego, acciones 24h).`
+      : `Perfil del usuario: ABOGADO LITIGANTE. Analiza conforme al Derecho Chileno y genera el diagnóstico con la estructura obligatoria para profesional (excepciones, checklist, línea estratégica).`;
 
     // Process attached base64 files (Word docs, PDFs, images, text)
     if (files && Array.isArray(files)) {
@@ -391,7 +450,7 @@ app.post("/api/analyze", async (req, res) => {
     const filesSig = files && Array.isArray(files)
       ? files.map((f: any) => `${f.name}:${(f.data || "").length}`).join(",")
       : "";
-    const aKey = cacheKey([promptContent, filesSig]);
+    const aKey = cacheKey([promptContent, filesSig, audience]);
     const cachedAnalysis = getCached(aKey);
     if (cachedAnalysis) {
       console.log("[cache] /api/analyze hit de caché");
@@ -402,6 +461,7 @@ app.post("/api/analyze", async (req, res) => {
       return res.json({
         analysis: cachedAnalysis,
         cached: true,
+        audience,
         materiaSlug: resolucionMateriaCache.slug ?? null,
         materia: materiaCache,
         materiaOrigen: resolucionMateriaCache.origen,
@@ -410,10 +470,11 @@ app.post("/api/analyze", async (req, res) => {
       });
     }
 
+    const systemAnalyze = audience === "persona" ? SYSTEM_INSTRUCTION_PERSONA : SYSTEM_INSTRUCTION_ABOGADO;
     const response = await generateWithFallback(clients, {
       contents: { parts },
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION_LAWYER,
+        systemInstruction: systemAnalyze,
         temperature: 0.2, // Low temperature for high precision legal facts
       },
     });
@@ -428,6 +489,7 @@ app.post("/api/analyze", async (req, res) => {
     setCached(aKey, analysis);
     res.json({
       analysis,
+      audience,
       materiaSlug: resolucionFinal.slug ?? null,
       materia: materiaFinal,
       materiaOrigen: resolucionFinal.origen,
@@ -600,13 +662,19 @@ app.post("/api/premium-report", async (req, res) => {
 
     const combinedText = [userStory, documentText].filter(Boolean).join("\n");
 
+    // Caso PAGADO: forzar corpus completo (data/corpus-full) aunque
+    // CORPUS_COMPLETO no esté en true a nivel de env. El análisis gratuito
+    // sigue respetando el flag; el dictamen premium siempre usa el corpus.
     // Fase D/D.2: la plataforma decide la materia (señales + corpus cuando el
     // regex se abstiene); el área declarada es respaldo. Conflicto = anotación.
-    const resolucionMateria = decidirMateria(area, combinedText);
+    const previoPrem = runWithCorpusForzado(() => ejecutarPipelinePrevio(combinedText, area));
+    const resolucionMateria = previoPrem.resolucionMateria;
+    const bloqueSubsuncionPrem = previoPrem.bloqueSubsuncion;
     // Nombre legible para la UI (null = indeterminada: el chip se oculta).
     const materia = resolucionMateria.slug ? MATERIAS[resolucionMateria.slug].nombre : null;
 
     let promptContent = `${lineaMateriaPrompt(resolucionMateria)}\n`;
+    if (bloqueSubsuncionPrem) promptContent += bloqueSubsuncionPrem;
     if (notificationDate) promptContent += `FECHA DE NOTIFICACIÓN: ${notificationDate}\n`;
     promptContent += `\nRELATO O DOCUMENTO DEL CASO:\n${combinedText.slice(0, 8000)}\n\n`;
     if (dictamenMarkdown && typeof dictamenMarkdown === "string") {
@@ -626,15 +694,28 @@ app.post("/api/premium-report", async (req, res) => {
       console.warn(`[premium][extractor] fallo (sigue sin plano): ${String(extErr?.message || extErr).slice(0, 150)}`);
     }
 
-    // Verificacion determinista contra Ley Chile (BCN): textos oficiales de los
-    // articulos citados en el dictamen/relato. Nunca arroja: fallo = bloque vacio.
+    // BCN OBLIGATORIO en caso PAGADO: anclar artículos al XML oficial de Ley Chile.
+    // El análisis gratis (/api/analyze) NO llama BCN. Aquí sí, con 1 reintento.
     let citasBCN: Awaited<ReturnType<typeof verificarCitasBCN>> = { verificados: [], pendientes: [] };
-    try {
-      citasBCN = await verificarCitasBCN([combinedText, typeof dictamenMarkdown === "string" ? dictamenMarkdown : ""]);
+    let bcnDegradado = false;
+    {
+      const textosBcn = [combinedText, typeof dictamenMarkdown === "string" ? dictamenMarkdown : ""];
+      try {
+        citasBCN = await verificarCitasBCN(textosBcn);
+      } catch (bcnErr: any) {
+        console.warn(`[premium][bcn] 1er intento fallo: ${String(bcnErr?.message || bcnErr).slice(0, 150)}`);
+        try {
+          citasBCN = await verificarCitasBCN(textosBcn);
+        } catch (bcnErr2: any) {
+          bcnDegradado = true;
+          console.error(`[premium][bcn] OBLIGATORIO falló tras reintento: ${String(bcnErr2?.message || bcnErr2).slice(0, 150)}`);
+        }
+      }
       const bloqueBCN = bloquePromptBCN(citasBCN);
       if (bloqueBCN) promptContent += bloqueBCN;
-    } catch (bcnErr: any) {
-      console.warn(`[premium][bcn] verificacion BCN fallo (sigue solo con web): ${String(bcnErr?.message || bcnErr).slice(0, 150)}`);
+      else if (bcnDegradado) {
+        promptContent += `\n[BCN DEGRADADO] No se pudo obtener texto oficial de Ley Chile en este request. NO inventes artículos ni plazos normativos; marca "[SIN COBERTURA BCN]" donde corresponda.\n`;
+      }
     }
 
     // Recuperacion jurisprudencial (Open Legal Chile, vertical laboral): fallo rector
@@ -657,26 +738,24 @@ app.post("/api/premium-report", async (req, res) => {
       if (!consultas.length) consultas.push({ texto: combinedText.slice(0, 4000), etiqueta: "documento" });
       else consultas.push({ texto: combinedText.slice(0, 3000), etiqueta: "documento" });
 
-      // Fase D: el slug resuelto (declarada manda; señales si falta;
-      // null = indeterminada) gobierna la recuperación. buscarJurisprudencia
-      // trata null/invalid como "sin corpus de área" y usa la base con
-      // etiqueta; los casos análogos filtran tags de área distinta.
+      // Fase D: el slug resuelto gobierna la recuperación.
+      // Caso PAGADO: corpus-full forzado (área + transversal), no solo la base laboral.
       const slugCorpus = resolucionMateria.slug ?? undefined;
-      juris = await buscarJurisprudenciaMulti(consultas, 6, slugCorpus);
-      // Fase D.3: caso mixto (materia secundaria con señales reales) => se
-      // agrega un lote menor del corpus secundario, etiquetado por origen.
       const slugSecundaria = resolucionMateria.materiaSecundaria ?? undefined;
-      if (slugSecundaria && slugSecundaria !== slugCorpus) {
-        try {
-          const jurisSec = await buscarJurisprudenciaMulti(consultas, 3, slugSecundaria);
-          juris = [...juris, ...jurisSec];
-        } catch (secErr: any) {
-          console.warn(`[premium][juris] corpus secundario fallo (sigue): ${String(secErr?.message || secErr).slice(0, 120)}`);
+      await runWithCorpusForzadoAsync(async () => {
+        juris = await buscarJurisprudenciaMulti(consultas, 6, slugCorpus);
+        if (slugSecundaria && slugSecundaria !== slugCorpus) {
+          try {
+            const jurisSec = await buscarJurisprudenciaMulti(consultas, 3, slugSecundaria);
+            juris = [...juris, ...jurisSec];
+          } catch (secErr: any) {
+            console.warn(`[premium][juris] corpus secundario fallo (sigue): ${String(secErr?.message || secErr).slice(0, 120)}`);
+          }
         }
-      }
+        casos = await buscarCasosJurisMulti(consultas, 4, slugCorpus);
+      });
       const bloqueJuris = bloquePromptJuris(juris);
       if (bloqueJuris) promptContent += bloqueJuris;
-      casos = await buscarCasosJurisMulti(consultas, 4, slugCorpus);
       const bloqueCasos = bloquePromptCasos(casos);
       if (bloqueCasos) promptContent += bloqueCasos;
     } catch (jurisErr: any) {
@@ -831,6 +910,8 @@ app.post("/api/premium-report", async (req, res) => {
         url: a.url,
       })),
       pendientes: citasBCN.pendientes.map((p) => ({ nombreNorma: p.nombreNorma, motivo: p.motivo })),
+      /** true si Ley Chile no respondió tras reintento — UI debe avisar */
+      degradado: bcnDegradado,
     };
     const jurisResumen = resumenJuris(juris);
     const casosResumen = resumenCasos(casos);
@@ -931,7 +1012,8 @@ app.post("/api/legalhelp/draft", async (req, res) => {
         retryAfter: Math.ceil(draftRl.resetMs / 1000),
       });
     }
-    const output = await handleLegalHelpDraft(input);
+    // Corpus completo forzado (misma política de calidad que premium).
+    const output = await runWithCorpusForzadoAsync(() => handleLegalHelpDraft(input));
     res.json(output);
   } catch (err: any) {
     console.error("Error en /api/legalhelp/draft:", err);

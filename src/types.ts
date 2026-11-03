@@ -138,6 +138,8 @@ export interface PremiumResult {
   bcn?: {
     citados: BcnArticuloCitado[];
     pendientes: Array<{ nombreNorma: string; motivo: string }>;
+    /** Ley Chile no respondió tras reintento — UI debe avisar */
+    degradado?: boolean;
   };
   jurisprudencia?: JurisRecomendacion[];
   casos?: CasoJurisRecomendacion[];
@@ -156,6 +158,9 @@ export type DraftTipo =
   | "minuta" 
   | "contrato" 
   | "correo";
+
+/** Dualidad de producto: persona (B2C / ciudadano-pyme) vs abogado (B2B / litigante). */
+export type Audience = "persona" | "abogado";
 
 // Fase D: en sincronía con SlugMateria de materias.ts (backend). tránsito =
 // multas/JPL (mapea al "policia_local" del wizard). "indeterminada" NO es un
@@ -197,6 +202,8 @@ export interface DraftInput {
   documentoCaso?: string;
   // Respuestas de la auditoría de vacíos (regeneración guiada)
   respuestasAuditoria?: string;
+  /** Quién usa el producto: cambia tono y profundidad del output. Default abogado. */
+  audience?: Audience;
 }
 
 // Auditoría determinista de vacíos críticos (Fase 2)
@@ -230,6 +237,13 @@ export interface DraftMetadatos {
   chequeoPlazos?: {
     ok: boolean; plazoId: string; fechaLimite: string; consignado: boolean; vencido?: boolean;
   }[];
+  audience?: Audience;
+  lintTactico?: Array<{
+    regla: string;
+    snippet: string;
+    severidad: string;
+    sugerencia: string;
+  }>;
 }
 
 export interface DraftOutput {

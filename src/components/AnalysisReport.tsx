@@ -82,17 +82,20 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [draftPrefill, setDraftPrefill] = useState<DraftInput | null>(null);
 
-  // Contexto heredado para el Motor de Redacción (LegalHelp IA):
-  // dictamen (premium si está desbloqueado; análisis como fallback) + documento real del expediente.
-  // El borrador se genera con los hechos/fechas/montos reales del caso, no con texto genérico.
-  const draftContextExtra = (): Pick<DraftInput, 'dictamen' | 'documentoCaso'> => ({
-    // Enviar SIEMPRE el dictamen base generado por /api/analyze. El premium es un
-    // COMPLEMENTO de verificación (no contiene los hechos, fechas, montos ni el
-    // reporte completo); usar solo el complemento dejaba al redactor sin caso.
-    // Ambos cortados a 9000 chars (límite de contexto heredado).
-    dictamen: [analysisMarkdown, premium?.report ? `\n\n--- COMPLEMENTO DE VERIFICACIÓN ---\n\n${premium.report}` : ''].filter(Boolean).join('').trim().slice(0, 9000) || undefined,
-    documentoCaso: (documentText || '').trim().slice(0, 9000) || undefined,
-  });
+  // Contestación/otrosí: NUNCA inyectar el diagnóstico (decisión de origen remoto).
+  // La defensa sale del DOCUMENTO DEL CASO + hechos del usuario.
+  // Demanda/minuta/resto: dictamen base + complemento premium (el premium solo NO
+  // trae hechos, fechas ni montos; reemplazar el base dejaba al redactor sin caso).
+  const draftContextExtra = (
+    tipo?: string,
+  ): Pick<DraftInput, 'dictamen' | 'documentoCaso'> => {
+    const doc = (documentText || '').trim().slice(0, 9000) || undefined;
+    const esDefensa = tipo === 'contestacion' || tipo === 'otrosi';
+    if (esDefensa) return { documentoCaso: doc, dictamen: undefined };
+    const dictamen = [analysisMarkdown, premium?.report ? `\n\n--- COMPLEMENTO DE VERIFICACIÓN ---\n\n${premium.report}` : '']
+      .filter(Boolean).join('').trim().slice(0, 9000) || undefined;
+    return { documentoCaso: doc, dictamen };
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(analysisMarkdown);
@@ -177,22 +180,26 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
         data.suggestedTipo = tipoLocal;
         data.suggestedInput = {
           tipo: tipoLocal,
-          hechos: userStory || analysisMarkdown.slice(0, 4000),
+          hechos:
+            tipoLocal === 'contestacion' || tipoLocal === 'otrosi'
+              ? (userStory || documentText || '').slice(0, 6000)
+              : (userStory || analysisMarkdown.slice(0, 4000)),
           area,
           pretensiones:
             tipoLocal === 'contestacion'
               ? ['Rechazar la demanda en todas sus partes', 'Costas']
               : ['Declarar...', 'Condenar...', 'Costas'],
-          ...draftContextExtra(),
+          ...draftContextExtra(tipoLocal),
         };
         console.log('[draft] Tier 3: negativa ética interceptada en cliente → abriendo modal con prefill local');
       }
 
       // Detectar acción de generar borrador (LegalHelp IA)
       if (data.draftAction) {
+        const tipoPrefill = (data.suggestedInput as DraftInput)?.tipo || data.suggestedTipo;
         setDraftPrefill({
           ...(data.suggestedInput as DraftInput),
-          ...draftContextExtra(),
+          ...draftContextExtra(tipoPrefill),
         });
         setShowDraftModal(true);
         
@@ -553,6 +560,11 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                   {premium.grounded && (
                     <span className="text-[10px] font-bold uppercase px-2 py-1 bg-blue-100 text-blue-800 rounded border border-blue-200 flex items-center gap-1">
                       <Globe className="w-3 h-3" /> Búsqueda web oficial activa (Web RAG)
+                    </span>
+                  )}
+                  {premium.bcn?.degradado && (
+                    <span className="text-[10px] font-bold uppercase px-2 py-1 bg-amber-100 text-amber-900 rounded border border-amber-300 flex items-center gap-1">
+                      ⚠ BCN no disponible — citas sin cobertura oficial en este request
                     </span>
                   )}
                   {premium.bcn && premium.bcn.citados.length > 0 && (

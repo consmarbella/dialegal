@@ -10,9 +10,11 @@ import { validarLegalHelp, notaBlindajeLegalHelp, type InsumosValidacionLegalHel
 import { auditarVacios } from "../../auditorVacios.js";
 import { lineaMateriaPrompt, MATERIAS } from "../../materias.js";
 import { decidirMateria } from "./materiaDecision.js";
+import { ejecutarPipelinePrevio } from "./pipelineLegalHelp.js";
 import { existePlazo, calcularPlazo, detectarFechaNotificacion, detectarFechasNotificacion, anotacionesPlazos, bloquePromptPlazos, chequearPlazosEnBorrador, type ResultadoPlazo, type FechasNotificacionResultado } from "../../plazosChile.js";
 import { getPlantilla, getArticulosClave } from "../../legalhelp-templates.js";
-import { lintTactico, notaTactica } from "../../lintTactico.js";
+import { lintTactico as lintTacticoBorrador, notaTactica } from "../../lintTactico.js";
+import { lintTacticoProcesal, sanitizarTactico } from "../../lintTacticoLegalHelp.js";
 import type { DraftInput, DraftOutput, VacioCritico, HallazgoTactico } from "../types.js";
 // Fase 1: generateWithFallback consolidado en llmEngine.ts (versión completa:
 // cadena dinámica, pausa por cuota diaria, reintentos y fallback degradado).
@@ -49,7 +51,7 @@ MARCADOR ÚNICO DE DATOS OPERATIVOS FALTANTES: si un dato indispensable (RIT/RUC
 
 JERARQUÍA DE CONTEXTO DEL CASO (cuando el prompt incluya estos bloques, prevalecen sobre ejemplos genéricos):
 1. [DOCUMENTO DEL CASO] — texto real del expediente: fuente principal de HECHOS, FECHAS y MONTOS. Cítalos literalmente; no los sustituyas por supuestos.
-2. [DICTAMEN TÉCNICO PREVIO] — análisis del mismo caso: fuente de la ESTRATEGIA, PERO NUNCA cambia tu POSTURA (regla 4): si el dictamen fue elaborado desde la vereda contraria, úsalo para anticipar y rebatir sus argumentos, no para adoptar su estrategia ni sus fórmulas. Nuestros criterios legales (BCN/jurisprudencia) respaldan la postura correcta.
+2. [DICTAMEN TÉCNICO PREVIO] — SOLO si viene en el prompt y el escrito NO es contestación: orienta estrategia. En CONTESTACIÓN está PROHIBIDO usar diagnóstico orientativo como estrategia (contamina con tesis del actor). En contestación: documento + pretensiones del usuario + BCN/jurisprudencia. En todo caso el dictamen NUNCA cambia tu POSTURA (regla 4): si viene de la vereda contraria, úsalo para anticipar y rebatir, no para adoptar sus fórmulas.
 3. BCN/Ley Chile y jurisprudencia — verificación normativa.
 4. Plantilla — da la FORMA, nunca inventa contenido.
 
@@ -62,14 +64,29 @@ CALIDAD FORENSE OBLIGATORIA (aplica a todo borrador con documento/dictamen adjun
 - TRIBUNAL Y ROL: el TRIBUNAL y el ROL/RIT proporcionados en el encabezado (si existen) se reproducen LITERALMENTE, sin renombrarlos, sin numerarlos ni añadir servidores/puertas (1°, N° 2); si no fueron proporcionados, usa el marcador de dato faltante ("S.J.L. de [DATO FALTANTE: comuna del tribunal]", "RIT: [DATO FALTANTE: rol de la causa]").
 - REGENERACIÓN CON DATOS DEL USUARIO: si el prompt incluye el bloque [DATOS COMPLETADOS POR EL USUARIO], INTEGRÁELOS en el borrador tal como los dio el usuario (exactos, con formato procesal) y ELIMINA los marcadores "[DATO FALTANTE]" y "[NOMBRE ...]" correspondientes; no los dejes ambos (dato + marcador).
 - ROLES DE FALLOS JURISPRUDENCIALES: PROHIBIDO citar un rol de fallo (ej. "Rol N° 41.500-2017") que NO aparezca en los bloques verificados (CRITERIO JURISPRUDENCIAL / CASOS ANÁLOGOS / [DICTAMEN]). Cita la doctrina sin rol ("según la jurisprudencia de la Excma. Corte Suprema"); si la fuente trae un rol, cópialo textual. Los roles citados por la contraparte solo se mencionan como citas de ella, nunca como propios.
-- PROCEDIMIENTO MONITORIO DE ARRENDAMIENTO (Ley N° 18.101 modificada por Ley N° 21.461):
+D) PROCEDIMIENTO MONITORIO DE ARRENDAMIENTO (Ley N° 18.101 modificada por Ley N° 21.461):
   1) El plazo para pagar o formular oposición es de 10 DÍAS CORRIDOS desde la notificación (Arts. 18-C y 18-F Ley 18.101), NO los 18 días hábiles del juicio ordinario.
   2) El escrito del demandado es OPOSICIÓN FUNDADA A LA DEMANDA MONITORIA (Arts. 18-F y 18-H Ley 18.101; Art. 309 CPC en lo supletorio). PROHIBIDO citar el Art. 254 del CPC (requisitos de la demanda) como fundamento de una contestación u oposición.
   3) En el petitorio NO pidas "denegar la solicitud de requerimiento de pago" (ya fue dictado); pide tener por interpuesta oposición fundada a la demanda monitoria, declarar terminado el procedimiento monitorio dejando sin efecto de pleno derecho la resolución del Art. 18-C (conforme al Art. 18-H de la Ley 18.101) y rechazar el cobro en lo que exceda lo efectivamente adeudado, sin lugar al lanzamiento.
   4) OTROSÍ OBLIGATORIO DE MEDIOS DE PRUEBA (Art. 18-F inc. 1° Ley 18.101): además de acompañar los documentos, incluye SIEMPRE un otrosí donde señales expresamente TODOS los demás medios de prueba de que te valdrás en el juicio declarativo posterior (instrumental, testimonial, confesional, informe de peritos e inspección personal del tribunal).
   5) Cita con precisión el Art. 1924 del Código Civil: N° 1 = entregar la cosa; N° 2 = mantenerla en estado de servir para el fin arrendado (reparaciones/filtraciones); N° 3 = librar al arrendatario de turbaciones o embarazos en el goce.
 - COHERENCIA DEL PETITORIO: si en el cuerpo del escrito se reconoce un pago parcial o un saldo insoluto menor, el petitorio debe pedir acoger la oposición y rechazar la demanda en todo lo que exceda la suma reconocida (y en subsidio tener por reconocida únicamente esa suma), sin contradecirse.
-- SOBRIEDAD FORENSE Y PLAZOS VENCIDOS: prohibido usar calificativos agresivos ("maliciosamente exigidos", "manifiesta falta de fundamento") o giros erróneos ("de manera íntegra e imprevista" → usa "íntegra y oportuna"; escribe "adeudo/adeudar", jamás "adude"). Si el PLAN DE PLAZOS marca PLAZO VENCIDO, queda PROHIBIDO escribir "encontrándome dentro de plazo legal" o "en tiempo y forma".`;
+- SOBRIEDAD FORENSE Y PLAZOS VENCIDOS: prohibido usar calificativos agresivos ("maliciosamente exigidos", "manifiesta falta de fundamento") o giros erróneos ("de manera íntegra e imprevista" → usa "íntegra y oportuna"; escribe "adeudo/adeudar", jamás "adude"). Si el PLAN DE PLAZOS marca PLAZO VENCIDO, queda PROHIBIDO escribir "encontrándome dentro de plazo legal" o "en tiempo y forma".
+
+REGLAS DE ORO PROCESALES CHILENAS (OBLIGATORIAS EN CONTESTACIÓN / DEFENSA LABORAL):
+
+A) LEY BUSTOS / ART. 162 CT — MORA PREVISIONAL:
+- PROHIBIDO redactar promesas o futuros: "procederá a pagar", "se regularizarán las cotizaciones", "una vez pagadas se convalida", "el empleador se compromete a enterar".
+- El tratamiento es BINARIO y solo con base en el [DOCUMENTO DEL CASO] / [DICTAMEN]:
+  (1) Si consta pago Y notificación al trabajador ANTES del término: alegar convalidación efectiva con FECHA exacta y prueba; o
+  (2) Si NO consta: NEGAR que la eventual mora prive de efectos al despido, negar perjuicio, y exigir al actor la carga de acreditar mora, monto, periodo y nexo causal. NUNCA ofrecer regularización futura en el escrito.
+
+B) FERIADO LEGAL Y HORAS EXTRAORDINARIAS:
+- PROHIBIDO allanarse "por si acaso" o en condicional: "si existiere saldo", "si resultare diferencia", "se pagará lo que corresponda", "sin perjuicio de liquidar feriado".
+- Debe NEGARSE CATEGÓRICAMENTE la existencia de saldo pendiente por feriado y/o horas extraordinarias, salvo que el [DOCUMENTO DEL CASO] reconozca un monto líquido y exigible.
+- Trasladar expresamente la CARGA PROBATORIA al demandante (existencia, liquidación, no pago).
+
+C) Si el caso no es laboral, ignora A y B. Si es laboral y el rubro no fue demandado, no lo introduzcas.`;
 
 // Fase 1: las dos banderas de grounding son DISTINTAS por diseño y no deben
 // unificarse ni renombrarse sin tocar Vercel:
@@ -155,12 +172,17 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   // (indeterminada, NUNCA "laboral" por defecto — causa raíz de la
   // contaminación civil→laboral del informe real). Conflicto = anotación
   // visible, jamás bloqueo.
+  // Contestación/otrosí: el dictamen orientativo NO se usa (contaminaba la defensa).
+  const esDefensaEscrita = input.tipo === "contestacion" || input.tipo === "otrosi";
+  const dictamenUtil = esDefensaEscrita ? undefined : input.dictamen;
   const combinedText = [input.documentoCaso, input.hechos, ...input.pretensiones, ...(input.documentos || [])]
     .filter(Boolean)
     .join("\n");
-  // Fase D.3: decisión con señales + corpus (BM25 normalizado) como desempate.
-  const resolucionMateria = decidirMateria(input.area, combinedText);
+  // Pipeline ①②③⑤⑥: jerga → materia (regex+corpus) → slots → subsunción top normas.
+  const previo = ejecutarPipelinePrevio(combinedText, input.area);
+  const resolucionMateria = previo.resolucionMateria;
   const area = resolucionMateria.slug;
+  const bloqueSubsuncion = previo.bloqueSubsuncion;
   let ext: ReturnType<typeof extraerChileno> | null = null;
   let planoExt = "";
   try {
@@ -168,13 +190,11 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     planoExt = planoBlindajePrompt(ext);
   } catch { /* silencioso */ }
 
-  // 4. BCN PRE: verificar artículos citados en input
+  // 4. BCN PRE: verificar artículos citados en input (siempre en borradores)
   let citasBCN: Awaited<ReturnType<typeof verificarCitasBCN>> = { verificados: [], pendientes: [] };
   try {
     citasBCN = await verificarCitasBCN([combinedText]);
   } catch (e: any) {
-    // Resiliencia BCN: visible en logs (antes silencioso, indistinguible de un
-    // caso sin citas si BCN caia).
     console.warn(`[draft][bcn-pre] verificacion fallo (sigue sin BCN): ${String(e?.message || e).slice(0, 150)}`);
   }
 
@@ -182,7 +202,7 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   const consultas: ConsultaEtiquetada[] = [];
   if (input.hechos) consultas.push({ texto: input.hechos.slice(0, 2500), etiqueta: "hechos" });
   if (input.documentoCaso) consultas.push({ texto: input.documentoCaso.slice(0, 2500), etiqueta: "documento" });
-  if (input.dictamen) consultas.push({ texto: input.dictamen.slice(0, 2500), etiqueta: "dictamen" });
+  if (dictamenUtil) consultas.push({ texto: dictamenUtil.slice(0, 2500), etiqueta: "dictamen" });
   if (ext) {
     if (ext.secciones.hechos) consultas.push({ texto: ext.secciones.hechos.slice(0, 2200), etiqueta: "hechos" });
     if (ext.secciones.derecho) consultas.push({ texto: ext.secciones.derecho.slice(0, 2500), etiqueta: "derecho" });
@@ -223,13 +243,16 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   promptContent += `\nHECHOS:\n${input.hechos}\n\n`;
   promptContent += `PRETENSIONES:\n${input.pretensiones.map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\n`;
   if (planoExt) promptContent += planoExt;
+  if (bloqueSubsuncion) promptContent += bloqueSubsuncion;
   // Bloques de contexto heredado (Motor v2): documento real + dictamen del caso.
   // Van antes de la plantilla para que fijen hechos/estrategia y la plantilla solo dé forma.
   if (input.documentoCaso) {
     promptContent += `\n[DOCUMENTO DEL CASO] — texto real del expediente; HECHOS, FECHAS y MONTOS autoritativos:\n${input.documentoCaso.slice(0, 9000)}\n`;
   }
-  if (input.dictamen) {
-    promptContent += `\n[DICTAMEN TÉCNICO PREVIO] — análisis del mismo caso; ESTRATEGIA y defensas conforme al diagnóstico:\n${input.dictamen.slice(0, 9000)}\n`;
+  if (dictamenUtil) {
+    promptContent += `\n[DICTAMEN TÉCNICO PREVIO] — orienta estrategia solo si el usuario lo adjunta; NO es la demanda:\n${dictamenUtil.slice(0, 9000)}\n`;
+  } else if (esDefensaEscrita) {
+    promptContent += `\n[REGLA CONTESTACIÓN] Sin dictamen de estrategia. Redacta la defensa SOLO con el [DOCUMENTO DEL CASO] y HECHOS/PRETENSIONES del usuario. No inventes concesiones ni copies la tesis del actor.\n`;
   }
   if (input.respuestasAuditoria?.trim()) {
     promptContent += `\n[DATOS COMPLETADOS POR EL USUARIO] — respuestas a la auditoría de vacíos de una versión anterior del borrador. Insértalas en su lugar exacto (RIT, techo de notificación, patrocinante, testigos, etc.), con la ortografía y detalle que el usuario entregó, y ELIMINA los marcadores que reemplazan:\n${input.respuestasAuditoria.slice(0, 4000)}\n`;
@@ -348,6 +371,27 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     vacios = auditarVacios(draftCuerpo, input);
   } catch { /* silencioso */ }
 
+  // 10.55 Linting táctico procesal (Ley Bustos + feriado/HE): intercepta alucinaciones
+  // del LLM antes de entregar el escrito. Solo aplica en laboral.
+  // cuerpoSanitizado = cuerpo ya corregido por el lint procesal y SIN sus notas:
+  // es lo que evalúa el lint de borrador (evita duplicar hallazgos ya saneados).
+  let cuerpoSanitizado = draft;
+  let lintTacticoProc: ReturnType<typeof lintTacticoProcesal> = [];
+  try {
+    lintTacticoProc = lintTacticoProcesal(draft, area);
+    if (lintTacticoProc.length) {
+      const { texto: draftLimpio, corregidos } = sanitizarTactico(draft, lintTacticoProc);
+      draft = draftLimpio;
+      cuerpoSanitizado = draftLimpio;
+      if (corregidos || lintTacticoProc.some((h) => h.severidad === "bloqueante")) {
+        draft +=
+          `\n\n## ⚠️ Control táctico procesal (automático)\n` +
+          lintTacticoProc.map((h) => `- [${h.regla}] «${h.snippet}» → ${h.sugerencia}`).join("\n") +
+          "\n";
+      }
+    }
+  } catch { /* silencioso: el lint jamás rompe el borrador */ }
+
   // 10.6 Cross-check plazos (Fase 7, enforcement de ANOTACIÓN): verifica que la
   // fecha límite calculada por el motor aparezca consignada en el borrador (en
   // cualquier formato razonable). Si no aparece, se appenda una nota visible.
@@ -369,7 +413,7 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   let tactico: HallazgoTactico[] = [];
   try {
     const plazoVencido = plazosMotor.some((p) => p.vencido === true);
-    tactico = lintTactico(draftCuerpo, { tipo: input.tipo, postura, plazoVencido });
+    tactico = lintTacticoBorrador(cuerpoSanitizado, { tipo: input.tipo, postura, plazoVencido });
     if (tactico.length) {
       draft = draft + notaTactica(tactico);
     }
@@ -400,6 +444,8 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
       plazosMotor: plazosMotor.length ? plazosMotor : undefined,
       // Fase 7: cross-check (¿el borrador consigna la fecha límite del motor?)
       chequeoPlazos: chequeoPlazos.length ? chequeoPlazos : undefined,
+      audience: input.audience || "abogado",
+      lintTactico: lintTacticoProc.length ? lintTacticoProc : undefined,
     },
   };
 
