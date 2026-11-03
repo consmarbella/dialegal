@@ -1012,3 +1012,61 @@ Canal: `Consulta/obtxml?opt=7` (mismo del runtime), sin LLM.
     "Orden no encontrada": Postgres/SUPABASE lee bien tras la restauracion
     (paywall operativo). Pendiente del dueño: CI GitHub Actions
     (startup_failure a nivel cuenta desde 29-oct).
+
+## Semilla BCN ampliada (11 -> 44 normas) + fix de LEY_EXTRA - 2026-11-02
+
+1. **Auditoria de frecuencia sobre datos reales** (16,1 MB: corpus-full 5.711
+   fichas + jurisprudencia 3.444 casos + motor): leyes citadas por numero
+   (Ley 20.000 x564, 19.968 x194, 21.430 x84, 18.314 x66, 20.084 x65,
+   18.216 x57, 21.325 x56...) y citas SIN numero ("ley de matrimonio civil"
+   x61, "estatuto administrativo" x13, "ley de alcoholes" x8) que el canal
+   generico idLey no puede resolver.
+2. **idLey NO indexa DL/DFL (verificado)**: `idLey=1122` devuelve "Ley 1122
+   Cuerpo de Bomberos de Taltal" (otra ley) y `idLey` 830/725/458 responde
+   vacio -> los codigos SOLO se resuelven con idNorma explicito. La semilla
+   es la via correcta, no el canal generico.
+3. **FIX CRITICO - LEY_EXTRA inyectaba decretos ajenos**: el mapa guardaba el
+   NUMERO DE LEY en el campo idNorma, y verificarCitasBCN lo usa tal cual
+   (bcnLeyChile.ts:436/:446): "Ley 18.916" descargaba idNorma=18916 =
+   "Decreto 2226: pension por gracia a Santiago Florio Cvitanic" y entraba al
+   prompt premium como fuente mas prioritaria que la web. Corregido:
+   numero -> idNorma real (Aeronautico 30287, Mineria 29668). "Ley 8.274" no
+   existe en el indice de Ley Chile (idLey=8274 vacio): etiqueta eliminada;
+   el Codigo de Justicia Militar (Decreto 2226, idNorma 18914) entra a
+   NORMA_IDS detectado por su nombre.
+4. **NORMA_IDS: 11 -> 44 entradas**, todas verificadas contra el XML oficial
+   (obtxml: <Tipo>, <Numero>, normaId echo y <TituloNorma>) el 2026-11-02:
+   +6 codigos/DFL (Tributario 6374/DL 830, Comercio 1974, Aguas 5605/DFL
+   1122, Sanitario 5595/DFL 725, Mineria 29668/Ley 18.248, LGUC 13560/DFL
+   458) y +25 leyes sectoriales con alias por nombre (20.000, 21.430,
+   20.066, 19.947, 19.880, 21.325, 18.216, 20.084, 18.314, 19.496 "Ley del
+   Consumidor", 19.628, 21.719, 18.575, 18.834 "Estatuto Administrativo",
+   18.883, 18.695, 18.046, 19.300, 19.886, 16.744, 17.336, 19.039, 21.561
+   "Ley de 40 Horas", 20.009, 21.643 "Ley Karin").
+5. **Hardening de detect CC/CT**: "DFL N 1"/"DFL N 2" pelados ya NO resuelven
+   (cualquier DFL 1 o 2 del mundo caia en Codigo Civil / del Trabajo); exige
+   denominador (1/2000, 2/2003). "Estatuto Administrativo" lleva lookahead
+   negativo para no pisar el estatuto municipal.
+6. **Guardian scripts/qa-semilla-bcn.ts** (red, manual, exit 1): 97/97 —
+   verifica CADA entrada contra el XML oficial (titulo/tipo/numero/normaId
+   echo) + deteccion offline + negativos/positivos DFL + no-pisado de
+   estatutos + LEY_EXTRA por numero. Ninguna entrada entra o permanece en la
+   semilla sin pasar este chequeo. Hallazgo propio del guardian: la primera
+   keyword de L14.908 ("ALIMENT") fallo porque el titulo oficial dice
+   "REFUNDIDO DE LA LEY NUMERO 5.750" — se corrigio la expectativa, no el id
+   (reverificado por idLey=14908 -> normaId 27977).
+7. **qa-leyes-fase4 +25 pareos offline** de la semilla ampliada (cada cita
+   canonica pare su articulo con su clave) + hardening DFL. 25/25.
+8. **QA**: semilla 97/97, leyes-fase4 25/25, bcn-resiliencia 7/7,
+   citas-faseE 22/22, dorado 44/44, materias-faseD 37/37, tsc 0, build 0.
+   Commit `ce2ad06`.
+9. **Deploy y verificacion en prod** (`dpl` 89qfo8cpj, READY, aliado
+   legalhelp.cl): POST /api/legalhelp/draft citando "articulo 21 del Codigo
+   Tributario" -> bcn.citados trae "Codigo Tributario (DL 830)" Art.6 y
+   Art.21, vigente=true, fv=2026-10-17, url idNorma=6374; y "Codigo Civil
+   (DFL 1, 2000)" Arts. 1545/1559/1698 (citados por el propio borrador;
+   fv=2222-02-02 es la fecha fantasma ya documentada). pendientes=[].
+10. **Lo que no se toco**: /api/analyze sigue sin BCN (decidido: expondria el
+    canal legacy al trafico abierto), TTL 24h e indice `leyes` en Postgres
+    absorben las nuevas entradas sin cambios, limite 300/dia intacto (la
+    semilla AHORRA llamadas: evita la resolucion idLey de cada ley frecuente).
