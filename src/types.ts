@@ -128,6 +128,11 @@ export interface PremiumResult {
   // Fase D: null = materia indeterminada (sin área declarada ni señales);
   // la UI oculta el chip en ese caso (ya no se inventa "civil" encubierto).
   materia: string | null;
+  // Fase D.2: "senales" = la plataforma decidió la materia; "declarada" = respaldo.
+  materiaOrigen?: string;
+  materiaAdvertencia?: string | null;
+  // Fase D.3: segunda materia con señales reales (caso mixto), nombre legible.
+  materiaSecundaria?: string | null;
   grounded: boolean;
   cached?: boolean;
   bcn?: {

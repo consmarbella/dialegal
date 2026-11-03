@@ -38,6 +38,8 @@ interface AnalysisReportProps {
   analysisMarkdown: string;
   userStory: string;
   area: LegalArea;
+  /** Fase D.2: "senales" = materia decidida por la plataforma. */
+  materiaOrigen?: string;
   notificationDate?: string;
   documentText?: string;
   onSaveToHistory: () => void;
@@ -57,6 +59,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
   analysisMarkdown,
   userStory,
   area,
+  materiaOrigen,
   notificationDate,
   documentText,
   onSaveToHistory,
@@ -372,11 +375,19 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                 {isUnlocked ? 'Pago Confirmado ($19.990 CLP)' : 'Resumen Gratuito'}
               </span>
             </div>
-            {notificationDate && (
-              <p className="text-xs text-slate-500 mt-0.5">
-                Materia: <strong className="text-slate-800 uppercase">{area}</strong> • Fecha notificación: <strong className="text-slate-800">{notificationDate}</strong>
-              </p>
-            )}
+            <p className="text-xs text-slate-500 mt-0.5">
+              Materia: <strong className="text-slate-800 uppercase">{area === 'otro' ? 'indeterminada' : area}</strong>
+              {materiaOrigen === 'senales' && (
+                <span className="text-emerald-700 font-semibold"> · decidida por la plataforma</span>
+              )}
+              {materiaOrigen === 'corpus' && (
+                <span className="text-amber-700 font-semibold"> · sugerida por corpus (confirma)</span>
+              )}
+              {premium?.materiaSecundaria && (
+                <span className="text-slate-600"> · caso mixto: + {premium.materiaSecundaria}</span>
+              )}
+              {notificationDate && <> • Fecha notificación: <strong className="text-slate-800">{notificationDate}</strong></>}
+            </p>
           </div>
         </div>
 
@@ -553,6 +564,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                   {premium.materia && (
                     <span className="text-[10px] font-bold uppercase px-2 py-1 bg-slate-100 text-slate-700 rounded border border-slate-200">
                       Materia: {premium.materia}
+                      {premium.materiaSecundaria ? ` + ${premium.materiaSecundaria}` : ""}
                     </span>
                   )}
                 </div>

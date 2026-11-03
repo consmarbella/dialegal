@@ -22,7 +22,8 @@ import { extraerChileno, planoBlindajePrompt } from "./extractorChile.js";
 import { validarInforme, notaBlindajeReporte, hallazgosBloqueantes } from "./validadorInforme.js";
 import { handleLegalHelpDraft } from "./src/server/legalhelp-draft.js";
 import { detectAreaFromContext } from "./area-detector.js";
-import { resolverMateria, lineaMateriaPrompt, MATERIAS } from "./materias.js";
+import { lineaMateriaPrompt, MATERIAS } from "./materias.js";
+import { decidirMateria } from "./src/server/materiaDecision.js";
 import type { DraftInput } from "./src/types.js";
 
 // Combinación de TODAS las páginas SEO: 21 originales + 45 + 20 = 86 páginas (+home = 87 URLs)
@@ -310,9 +311,11 @@ app.post("/api/analyze", async (req, res) => {
     const clients = getGeminiClients();
 
     const parts: any[] = [];
+    // Texto plano de los adjuntos (Word/TXT) para que el clasificador de
+    // materia vea TODO el caso, no solo el relato pegado.
+    const textosAdjuntos: string[] = [];
 
-    // Add user story and context
-    let promptContent = `ÁREA/MATERIA DECLARADA: ${area || "No especificada / A determinar"}\n`;
+    let promptContent = "";
     if (notificationDate) {
       promptContent += `FECHA DE NOTIFICACIÓN INDICADA POR EL USUARIO: ${notificationDate}\n`;
     }
@@ -343,6 +346,7 @@ app.post("/api/analyze", async (req, res) => {
               const result = await mammoth.extractRawText({ buffer });
               const extractedText = result.value;
               if (extractedText && extractedText.trim()) {
+                textosAdjuntos.push(extractedText.trim());
                 promptContent += `\n\n--- DOCUMENTO WORD ADJUNTADO: ${file.name || "documento.docx"} ---\n${extractedText.trim()}\n`;
               }
             } catch (docxErr) {
@@ -352,6 +356,7 @@ app.post("/api/analyze", async (req, res) => {
             try {
               const textContent = Buffer.from(file.data, "base64").toString("utf-8");
               if (textContent && textContent.trim()) {
+                textosAdjuntos.push(textContent.trim());
                 promptContent += `\n\n--- DOCUMENTO TEXTO ADJUNTADO: ${file.name || "archivo.txt"} ---\n${textContent.trim()}\n`;
               }
             } catch (txtErr) {
@@ -370,6 +375,15 @@ app.post("/api/analyze", async (req, res) => {
         }
       }
     }
+
+    // Fase D.2: la plataforma decide la materia con el texto completo del caso
+    // (relato + documento + adjuntos de texto). El área declarada solo respalda
+    // o desempata; la discrepancia se anota en el prompt (nunca bloquea).
+    const combinedText = [userStory, documentText, ...textosAdjuntos].filter(Boolean).join("\n");
+    // Fase D.3: decisión de materia con corpus (BM25 normalizado) además de las señales.
+    const resolucionMateria = decidirMateria(area, combinedText);
+    const materia = resolucionMateria.slug ? MATERIAS[resolucionMateria.slug].nombre : null;
+    promptContent = `${lineaMateriaPrompt(resolucionMateria)}\n` + promptContent;
 
     parts.push({ text: promptContent });
 
@@ -479,36 +493,34 @@ async function consumeUseSeguro(orderId: string): Promise<{ ok: boolean; usos: n
   }
 }
 
-// ── Fase D: materia por registro único (materias.ts) ────────────────────────
+// ── Fase D/D.2: materia por registro único (materias.ts) ────────────────────
 // Reemplaza MATERIA_RULES (7 regex ad-hoc, orden de prioridad arbitrario y
-// default "civil" encubierto). Reglas del dueño: el área declarada manda, las
-// señales solo sugieren, sin señal = indeterminada (null), conflicto =
-// anotación visible. La discrepancia la imprime lineaMateriaPrompt.
+// default "civil" encubierto). Regla del dueño (D.2): la plataforma decide la
+// materia con las señales del texto cuando son concluyentes; el área declarada
+// es respaldo y desempate. Sin señal = indeterminada (null); discrepancia =
+// anotación visible. La decisión la imprime lineaMateriaPrompt.
 
 const PREMIUM_SYSTEM_INSTRUCTION = `
-PROCEDIMIENTO OBLIGATORIO PREVIO (no negociable):
-ANTES de redactar UNA sola línea, DEBES invocar la herramienta de búsqueda de Google Search MÍNIMO 5 VECES con consultas distintas (cada artículo citado, cada plazo, cada requisito formal). Si tu respuesta llega sin haber ejecutado búsquedas, se descarta automáticamente. Primero busca, después escribe.
+JERARQUÍA DE FUENTES (obligatoria, de mayor a menor):
+1) TEXTO OFICIAL BCN: los artículos que recibes en el contexto ya fueron extraídos del XML oficial de Ley Chile. Son la fuente que MANDA para normas, plazos y requisitos. Cítalos con su norma y artículo.
+2) CORPUS JURISPRUDENCIAL INTERNO: las fichas, fallos rectores y casos análogos que recibes son doctrina y jurisprudencia del corpus de la plataforma. Úsalos para la estrategia y la trazabilidad, etiquetándolos como corpus (no como ley).
+3) BÚSQUEDA WEB (Google Search): SOLO para confirmar vigencia, fecha de versión o URL oficial de lo que ya está en 1) o 2). NO la uses para introducir normas, artículos o plazos que no estén en el contexto. Si un dato no está en BCN ni en el corpus, escribe "[SIN COBERTURA: verificar en fuente oficial]" y no lo inventes.
 
 Eres un auditor legal escéptico, especialista en Derecho Chileno, con más de 20 años de litigación en tribunales chilenos.
-El usuario ha PAGADO. Recibirás el DICTAMEN JURÍDICO ya emitido por nuestro sistema para su caso. Tu tarea NO es reescribirlo ni repetirlo: es AÑADIR un complemento de verificación con búsqueda web que eleve la calidad del dictamen ya entregado.
-
-Tienes acceso a Google Search. Realiza búsquedas y verifica el dictamen EXCLUSIVAMENTE contra fuentes OFICIALES chilenas:
-bcn.cl (Biblioteca del Congreso Nacional / Leychile), pjud.cl (Poder Judicial), dt.gob.cl / dti.gob.cl (Dirección del Trabajo),
-bcu.cl (Banco Central), mintrab.gob.cl, igm.cl, contraloria.cl, sernac.cl, diariooficial.interior.gob.cl,
-y fallos o resoluciones oficiales publicadas por tribunales chilenos.
+El usuario ha PAGADO. Recibirás el DICTAMEN JURÍDICO ya emitido por nuestro sistema para su caso. Tu tarea NO es reescribirlo ni repetirlo: es AÑADIR un complemento de verificación que eleve la calidad del dictamen ya entregado.
 
 REGLAS ESTRICTAS:
-1. Verifica los artículos, leyes y plazos CITADOS en el dictamen: confírmalos con la fuente oficial o marca "no verificado" si no aparecen en tus búsquedas. NO inventes números de artículos.
-2. Aporta lo que el dictamen NO cubre: vicios de notificación, nulidades de todo género, plazos fatales fácilmente pasados por alto, requisitos formales estrictos y puntos ciegos que puedan hacer fracasar la estrategia.
-3. PRIORIZA EXCLUSIVAMENTE fuentes oficiales. NO cites estudios de abogados, blogs ni sitios comerciales aunque aparezcan en los resultados.
-4. Si un punto del dictamen contradice una fuente oficial que encontraste, dilo con claridad ("El dictamen indica X, pero la fuente oficial Y establece Z").
+1. Verifica los artículos, leyes y plazos CITADOS en el dictamen contra el texto BCN del contexto. Si no está en el contexto, marca "no verificado" o "[SIN COBERTURA]". NO inventes números de artículos.
+2. Aporta lo que el dictamen NO cubre usando el corpus (fichas/fallos): vicios de notificación, nulidades de todo género, plazos fatales fácilmente pasados por alto, requisitos formales estrictos y puntos ciegos que puedan hacer fracasar la estrategia.
+3. Si decides usar Google Search, PRIORIZA EXCLUSIVAMENTE fuentes oficiales (bcn.cl, pjud.cl, dt.gob.cl, bcu.cl, contraloria.cl, sernac.cl, diariooficial.interior.gob.cl). NO cites estudios de abogados, blogs ni sitios comerciales. No es obligatorio buscar si el contexto BCN/corpus ya cubre el punto.
+4. Si un punto del dictamen contradice el texto BCN o el corpus, dilo con claridad ("El dictamen indica X, pero la fuente oficial Y establece Z").
 5. Prohibido saludar o usar fórmulas de cortesía. Entra directo al análisis.
 6. No inventes fechas, montos ni hechos no entregados por el usuario.
-7. El criterio jurisprudencial entregado en el contexto (fallos rectores CS) es un insumo de TRAZABILIDAD: úsalo para fundamentar la estrategia, pero antes de afirmar que un criterio sigue vigente, contrasta con tus búsquedas (puede haber fallos posteriores que lo superen). Marca "no verificado en línea" cuando no puedas confirmarlo.
+7. El criterio jurisprudencial entregado en el contexto (fallos rectores CS) es un insumo de TRAZABILIDAD: úsalo para fundamentar la estrategia. Si lo contrastas en web y aparece un fallo posterior que lo supera, dilo; si no puedes confirmarlo, marca "no verificado en línea".
 
 ESTRUCTURA OBLIGATORIA (usa exactamente estos títulos, en Markdown):
 ## 1. Criterio Jurisprudencial Dominante y Estrategia Procesal
-(Con el insumo de fallos rectores del contexto: criterio dominante de la materia, el fallo rector que lo fija, cómo se aplica al caso, la hoja de ruta procesal sugerida (pretensión, vía, prueba) y el riesgo principal si existiera criterio contrario. Si el insumo es insuficiente, no lo inventes: indica "criterio no determinado por el corpus, trasládese a la verificación web".)
+(Con el insumo de fallos rectores del contexto: criterio dominante de la materia, el fallo rector que lo fija, cómo se aplica al caso, la hoja de ruta procesal sugerida (pretensión, vía, prueba) y el riesgo principal si existiera criterio contrario. Si el insumo es insuficiente, no lo inventes: indica "[SIN COBERTURA EN CORPUS: verificar en fuente oficial]".)
 
 ## 2. Control de Nulidades y Puntos Ciegos
 (Revisión de notificaciones, feriados, plazos fatales y exigencias procedimentales del caso; identifica requisitos formales estrictos y posibles vicios que el dictamen pudo omitir.)
@@ -516,10 +528,10 @@ ESTRUCTURA OBLIGATORIA (usa exactamente estos títulos, en Markdown):
 ## 3. Verificación de Artículos y Plazos Citados
 (Para cada artículo/ley/plazo citado en el dictamen, indícalo con viñeta y su estado: "verificado en [fuente oficial]" o "no verificado en las fuentes consultadas". Máximo 8 viñetas, las más relevantes.)
 
-## 4. Fuentes y Enlaces Oficiales Consultadas
-(Listado con la URL EXACTA de cada fuente oficial que consultaste, en formato:
+## 4. Fuentes Consultadas (BCN, corpus y web)
+(Primero las normas BCN y fichas del corpus que usaste, con su identificador. Si además buscaste en web, agrega la URL EXACTA de cada fuente oficial consultada, en formato:
 - Nombre del instrumento o página — URL completa (https://...)
-Sin URLs inventadas: usa solo las URLs que realmente aparecieron en tus resultados de búsqueda.)
+Sin URLs inventadas: usa solo las URLs que realmente aparecieron en tus resultados. Si no buscaste, dilo: "verificación web no realizada; fuentes BCN/corpus".)
 `.trim();
 
 app.post("/api/premium-report", async (req, res) => {
@@ -564,9 +576,9 @@ app.post("/api/premium-report", async (req, res) => {
 
     const combinedText = [userStory, documentText].filter(Boolean).join("\n");
 
-    // Fase D: el área declarada por la UI manda; las señales del texto solo
-    // sugieren; sin señal = indeterminada. Conflicto = anotación en el prompt.
-    const resolucionMateria = resolverMateria(area, combinedText);
+    // Fase D/D.2: la plataforma decide la materia (señales + corpus cuando el
+    // regex se abstiene); el área declarada es respaldo. Conflicto = anotación.
+    const resolucionMateria = decidirMateria(area, combinedText);
     // Nombre legible para la UI (null = indeterminada: el chip se oculta).
     const materia = resolucionMateria.slug ? MATERIAS[resolucionMateria.slug].nombre : null;
 
@@ -627,6 +639,17 @@ app.post("/api/premium-report", async (req, res) => {
       // etiqueta; los casos análogos filtran tags de área distinta.
       const slugCorpus = resolucionMateria.slug ?? undefined;
       juris = await buscarJurisprudenciaMulti(consultas, 6, slugCorpus);
+      // Fase D.3: caso mixto (materia secundaria con señales reales) => se
+      // agrega un lote menor del corpus secundario, etiquetado por origen.
+      const slugSecundaria = resolucionMateria.materiaSecundaria ?? undefined;
+      if (slugSecundaria && slugSecundaria !== slugCorpus) {
+        try {
+          const jurisSec = await buscarJurisprudenciaMulti(consultas, 3, slugSecundaria);
+          juris = [...juris, ...jurisSec];
+        } catch (secErr: any) {
+          console.warn(`[premium][juris] corpus secundario fallo (sigue): ${String(secErr?.message || secErr).slice(0, 120)}`);
+        }
+      }
       const bloqueJuris = bloquePromptJuris(juris);
       if (bloqueJuris) promptContent += bloqueJuris;
       casos = await buscarCasosJurisMulti(consultas, 4, slugCorpus);
@@ -659,7 +682,17 @@ app.post("/api/premium-report", async (req, res) => {
         });
       }
       console.log("[cache] /api/premium-report hit de caché");
-      return res.json({ ...cachedPayload, materia, cached: true, usosRestantes: consumed.usos == null ? null : Math.max(0, 3 - consumed.usos) });
+      return res.json({
+        ...cachedPayload,
+        materia,
+        materiaOrigen: resolucionMateria.origen,
+        materiaAdvertencia: resolucionMateria.advertencia,
+        materiaSecundaria: resolucionMateria.materiaSecundaria
+          ? MATERIAS[resolucionMateria.materiaSecundaria].nombre
+          : null,
+        cached: true,
+        usosRestantes: consumed.usos == null ? null : Math.max(0, 3 - consumed.usos),
+      });
     }
 
     const clients = getGeminiClients();
@@ -681,8 +714,10 @@ app.post("/api/premium-report", async (req, res) => {
             tools: [{ googleSearch: {} }],
           },
         },
-        // El premium exige búsqueda real: nada de modelos lite ni respuestas sin grounding.
-        { requireGrounding: true, skipLite: true }
+        // Fase D.2: la base es BCN + corpus; Google es verificación secundaria.
+        // Ya NO se exige grounding: si la búsqueda falla, el informe se entrega
+        // igual y la UI muestra "verificación web no disponible" (grounded=false).
+        { requireGrounding: false, skipLite: true }
       );
       grounded = true;
     } catch (toolErr: any) {
@@ -819,7 +854,12 @@ app.post("/api/premium-report", async (req, res) => {
     }
 
     const result = {
-      report, materia, sources, grounded, bcn, jurisprudencia: jurisResumen, casos: casosResumen,
+      report, materia, materiaOrigen: resolucionMateria.origen,
+      materiaAdvertencia: resolucionMateria.advertencia,
+      materiaSecundaria: resolucionMateria.materiaSecundaria
+        ? MATERIAS[resolucionMateria.materiaSecundaria].nombre
+        : null,
+      sources, grounded, bcn, jurisprudencia: jurisResumen, casos: casosResumen,
       validacion: validacion ? {
         rolesEnCorpus: validacion.rolesEnCorpus,
         rolesNoEnCorpus: validacion.rolesNoEnCorpus,
@@ -881,10 +921,9 @@ app.post("/api/juris-test", async (req, res) => {
   try {
     const { texto, area } = req.body || {};
     const q = typeof texto === "string" ? texto : "despedido por necesidades de la empresa con carta que solo invoca reestructuración, no acredita antecedentes objetivos";
-    // Fase D: el área declarada manda; si falta, resolverMateria clasifica por
-    // señales del texto; sin señal = sin slug (corre solo la base, con
-    // etiquetas de origen visibles). Nunca asume "laboral".
-    const resolucion = resolverMateria(typeof area === "string" && area.trim() ? area : null, q.slice(0, 4000));
+    // Fase D.3: decisión con señales + corpus; sin señal = sin slug (corre solo
+    // la base, con etiquetas de origen visibles). Nunca asume "laboral".
+    const resolucion = decidirMateria(typeof area === "string" && area.trim() ? area : null, q.slice(0, 4000));
     const slug = resolucion.slug ?? undefined;
     const resultados = await buscarJurisprudencia([q], 8, slug);
     res.json({ total: resultados.length, area: slug || "sin-area", clasificacion: resolucion.clasificacion, resultados: resumenJuris(resultados) });

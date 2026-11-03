@@ -59,7 +59,9 @@ function quitarAcentos(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-function tokenizar(s: string): string[] {
+/** Tokenizador compartido con el clasificador de materias (Fase D.3):
+ *  minúsculas, sin tildes, sin stopwords, tokens de 3+ caracteres. */
+export function tokenizar(s: string): string[] {
   const base = quitarAcentos(s.toLowerCase());
   const out: string[] = [];
   const re = /[a-z0-9]{3,}/g;

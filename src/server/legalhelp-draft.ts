@@ -8,7 +8,8 @@ import { verificarCitasBCN, bloquePromptBCN } from "../../bcnLeyChile.js";
 import { buscarJurisprudenciaMulti, buscarCasosJurisMulti, type ConsultaEtiquetada } from "../../jurisprudenciaChile.js";
 import { validarLegalHelp, notaBlindajeLegalHelp, type InsumosValidacionLegalHelp, type ValidacionLegalHelp } from "../../validadorLegalHelp.js";
 import { auditarVacios } from "../../auditorVacios.js";
-import { resolverMateria, lineaMateriaPrompt, MATERIAS } from "../../materias.js";
+import { lineaMateriaPrompt, MATERIAS } from "../../materias.js";
+import { decidirMateria } from "./materiaDecision.js";
 import { existePlazo, calcularPlazo, detectarFechaNotificacion, detectarFechasNotificacion, anotacionesPlazos, bloquePromptPlazos, chequearPlazosEnBorrador, type ResultadoPlazo, type FechasNotificacionResultado } from "../../plazosChile.js";
 import { getPlantilla, getArticulosClave } from "../../legalhelp-templates.js";
 import type { DraftInput, DraftOutput, VacioCritico } from "../types.js";
@@ -125,7 +126,8 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   const combinedText = [input.documentoCaso, input.hechos, ...input.pretensiones, ...(input.documentos || [])]
     .filter(Boolean)
     .join("\n");
-  const resolucionMateria = resolverMateria(input.area, combinedText);
+  // Fase D.3: decisión con señales + corpus (BM25 normalizado) como desempate.
+  const resolucionMateria = decidirMateria(input.area, combinedText);
   const area = resolucionMateria.slug;
   let ext: ReturnType<typeof extraerChileno> | null = null;
   let planoExt = "";

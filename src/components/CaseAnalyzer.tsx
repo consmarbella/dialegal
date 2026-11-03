@@ -6,7 +6,9 @@ interface CaseAnalyzerProps {
   onAnalyze: (payload: {
     userStory: string;
     documentText: string;
-    area: LegalArea;
+    /** Fase D.2: opcional. Sin área, la plataforma decide la materia con las
+     *  señales del texto + el corpus. El formulario principal NO declara área. */
+    area?: LegalArea;
     files: { mimeType: string; data: string; name: string }[];
     notificationDate: string;
   }) => void;
@@ -14,7 +16,6 @@ interface CaseAnalyzerProps {
 }
 
 export const CaseAnalyzer: React.FC<CaseAnalyzerProps> = ({ onAnalyze, isLoading }) => {
-  const [area, setArea] = useState<LegalArea>('civil');
   const [userStory, setUserStory] = useState('');
   const [documentText, setDocumentText] = useState('');
   const [notificationDate, setNotificationDate] = useState(new Date().toISOString().split('T')[0]);
@@ -92,7 +93,7 @@ export const CaseAnalyzer: React.FC<CaseAnalyzerProps> = ({ onAnalyze, isLoading
     onAnalyze({
       userStory,
       documentText,
-      area,
+      // Fase D.2: no se declara área; la plataforma la decide con el texto.
       files: attachedFiles.map(({ mimeType, data, name }) => ({ mimeType, data, name })),
       notificationDate,
     });
@@ -391,7 +392,11 @@ export const CaseAnalyzer: React.FC<CaseAnalyzerProps> = ({ onAnalyze, isLoading
         </div>
 
         {/* Submit Button */}
-        <div className="pt-2">
+        <div className="pt-2 space-y-2">
+          <p className="text-[11px] text-slate-500 flex items-start gap-1.5">
+            <Shield className="w-3.5 h-3.5 text-blue-600 mt-0.5 shrink-0" />
+            <span>La materia (civil, laboral, familia…) la decide la plataforma con tu relato y el corpus legal; no tienes que elegirla.</span>
+          </p>
           <button
             type="submit"
             disabled={isLoading}

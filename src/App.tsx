@@ -19,6 +19,8 @@ export default function App() {
     markdown: string;
     userStory: string;
     area: LegalArea;
+    /** Fase D.2: "senales" = la plataforma decidió la materia; "declarada" = respaldo del usuario. */
+    materiaOrigen?: string;
     notificationDate?: string;
     documentText?: string;
     isPaid?: boolean;
@@ -33,7 +35,7 @@ export default function App() {
   const lastPayloadRef = useRef<{
     userStory: string;
     documentText: string;
-    area: LegalArea;
+    area?: LegalArea;
     notificationDate: string;
   } | null>(null);
   const premiumRequestedRef = useRef(false);
@@ -145,7 +147,7 @@ export default function App() {
   const handleAnalyze = async (payload: {
     userStory: string;
     documentText: string;
-    area: LegalArea;
+    area?: LegalArea;
     files: { mimeType: string; data: string; name: string }[];
     notificationDate: string;
   }) => {
@@ -184,10 +186,14 @@ export default function App() {
         return;
       }
 
+      // Fase D.2: la materia la decide el servidor (señales + corpus); el área
+      // declarada solo es respaldo. 'otro' = indeterminada (la UI lo rotula).
+      const areaDetectada = (data.materiaSlug as LegalArea | undefined) ?? payload.area ?? 'otro';
       setAnalysisResult({
         markdown: data.analysis,
         userStory: payload.userStory || 'Análisis de documento legal adjunto',
-        area: payload.area,
+        area: areaDetectada,
+        materiaOrigen: data.materiaOrigen,
         notificationDate: payload.notificationDate,
         documentText: payload.documentText || '',
         isPaid: false,
@@ -259,6 +265,7 @@ export default function App() {
                   analysisMarkdown={analysisResult.markdown}
                   userStory={analysisResult.userStory}
                   area={analysisResult.area}
+                  materiaOrigen={analysisResult.materiaOrigen}
                   notificationDate={analysisResult.notificationDate}
                   documentText={analysisResult.documentText}
                   onSaveToHistory={handleSaveCurrentReport}
