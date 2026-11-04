@@ -785,6 +785,8 @@ const PREFIX_REDIRECTS: Record<string, string> = {
 
 export function resolvePseoRedirect(slug: string): string {
   const s = slug.replace(/^\//, '');
+  // Rutas internas de la SPA: no redirigir (p. ej. /datos NO es una página SEO).
+  if (s === "datos" || s.startsWith("datos/")) return "";
   if (EXACT_REDIRECTS[s]) return EXACT_REDIRECTS[s];
   const parts = s.split('-');
   for (let i = parts.length; i >= 1; i--) {
