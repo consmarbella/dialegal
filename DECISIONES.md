@@ -1095,3 +1095,12 @@ Canal: `Consulta/obtxml?opt=7` (mismo del runtime), sin LLM.
 3. **Deduplicación**: lintTactico conserva un hallazgo por regla, evitando tres tarjetas idénticas si la frase se repite.
 4. **QA**: scripts/qa-plazo-monitorio.ts 7/7; qa-draft-tactico 21/21; tsc 0; build 0. Prod verificado: plazo civil_monitorio_arrendamiento, límite 2026-10-30, encido=true, sin afirmación falsa en el cuerpo y con marcador visible.
 5. **Commit/deploy**: 3673bb4, deploy dialegal-ofkmgl7aa-dolarexpress-projects.vercel.app, READY y aliado a legalhelp.cl.
+
+## Scanner Express /datos (Ley 21.719) - 2026-11-04
+
+1. **MVP implementado**: ruta /datos (vista DatosPage) + endpoint POST /api/datos/scanner. Motor determinista sin LLM: fetch HTTP con timeout 8s, limite 4 MB, SSRF guard (IP privada/metadata bloqueadas, DNS con pinning textual, no credenciales/cookies del sitio escaneado), rate-limit 3/h por IP, autorizacion declarada del titular.
+2. **Reglas (deterministas)**: R0 HTTPS; R1 checkbox marketing pre-marcado; R2 politica accesible; R3 canal ARSOPB (acceso, rectificacion, supresion, oposicion, portabilidad, bloqueo); R4 referencias Ley 19.628 sin mencion Ley 21.719; R5 politica incompleta (responsable/derechos/contacto); R6 CMP sin rechazo equivalente; R7 terceros sin marco. Score 100 - pesos (critica 40, alta 25, media 10); niveles Bajo/Medio/Alto/Critico.
+3. **Aclaracion legal**: Ley 21.719 con vigencia diferida (1-dic-2026; proyecto al 15-oct-2027). El reporte mide preparacion, no infraccion vigente; el disclaimer es obligatorio en UI.
+4. **QA**: scripts/qa-datos-scanner.ts 13/13 (fixtures sanos/riesgo, SSRF, sin score inventado ante DNS caido). Regresion: tsc 0, build 0, qa-dorado 44/44, qa-validador 7/7.
+5. **Prod verificado**: POST /api/datos/scanner sobre example.com -> version datos-scanner-v1, score 50 (Medio), hallazgos R2 + R3, sin errores 500. Commit aee3ef9, deploy dialegal-oujmqcoj1 READY aliado a legalhelp.cl.
+6. **Pendiente (Fase B)**: motor de navegador real (Playwright no cabe en Vercel Hobby 50 MB; Chromium >280 MB). La API no cambia: se agrega proveedor remoto (Browserless/ScrapingBee) o PaaS con Chromium persistente detras de env, para screenshots, flujos paginados y iframe de consentimiento. No se deploya Playwright local en Vercel.
