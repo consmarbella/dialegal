@@ -2770,12 +2770,20 @@ const distPath = path.join(process.cwd(), "dist");
 // Serve static build + SSR home (production on Vercel and local preview)
 app.use(express.static(distPath, { index: false }));
 app.get("/", serveHomePage);
+
 // SPA catch-all para rutas internas de la app (/datos y futuras vistas).
-// Debe ir ANTES de las rutas SEO/páginas registradas en registerSEORoutes().
+// Va después de SEO/sitemap y antes del 404. Revisa el orden real de Express:
+// registerSEORoutes registra sus rutas al ejecutar (ver abajo), pero /datos
+// no colisiona con ninguna slug SEO ni sitemap — va antes del 404 y después
+// de "/" y de los estáticos para evitar caer en el catch-all de 404.
 const SPA_INTERNAS = new Set(["/datos"]);
-app.get("/datos", (req, res) => {
-  res.sendFile(path.join(distPath, "index.html"));
-});
+function serveSpa(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (SPA_INTERNAS.has(req.path)) {
+    res.sendFile(path.join(distPath, "index.html"));
+  } else {
+    next();
+  }
+}
 
 // Vercel / Serverless export: handler receives all requests (routes SEO + API + SPA fallback)
 export const handler = app;
@@ -2784,11 +2792,17 @@ export default app;
 // Only run the persistent server locally (not on Vercel)
 if (!process.env.VERCEL && process.env.NODE_ENV !== "production") {
   registerSEORoutes();
+  app.use("/datos", serveSpa);
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Servidor de Diagnóstico Legal Chile corriendo en http://localhost:${PORT}`);
   });
 } else {
   registerSEORoutes();
+  // SPA: /datos (vista interna) — con fallback explícito para trailing slash descartado por Vercel
+  app.get("/datos", serveSpa);
+  app.get("/datos/", (req, res) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
   // Custom 404: serve 404.html for unmatched routes instead of SPA fallback
   app.get("*", (req, res) => {
     const notFoundPath = path.join(distPath, "404.html");
