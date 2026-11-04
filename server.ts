@@ -27,6 +27,7 @@ import { decidirMateria } from "./src/server/materiaDecision.js";
 import { ejecutarPipelinePrevio } from "./src/server/pipelineLegalHelp.js";
 import { runWithCorpusForzado, runWithCorpusForzadoAsync } from "./src/server/corpusContext.js";
 import type { DraftInput } from "./src/types.js";
+import { auditarUrlDatos } from "./src/server/datosScanner.js";
 
 // Combinación de TODAS las páginas SEO: 21 originales + 45 + 20 = 86 páginas (+home = 87 URLs)
 const ALL_SEO_PAGES = ALL_SEO_PAGES_SHARED;
@@ -993,6 +994,44 @@ app.post("/api/premium-report", async (req, res) => {
     console.error("Error en /api/premium-report:", err);
     if (sendQuotaExhausted(res, err)) return;
     res.status(500).json({ error: "Error generando la auditoría premium. Intenta nuevamente en unos minutos." });
+  }
+});
+
+// Scanner Express Ley 21.719 (determinista, sin LLM). Fase A: HTTP + regex.
+// Rate-limit estricto, SSRF guard, sin almacenar credenciales ni cookies del sitio auditado.
+app.post("/api/datos/scanner", async (req, res) => {
+  try {
+    const { url, email, autorizado } = (req.body || {}) as { url?: unknown; email?: unknown; autorizado?: unknown };
+    const urlStr = typeof url === "string" ? url.trim() : "";
+    const emailStr = typeof email === "string" ? email.trim() : "";
+    if (!urlStr) return res.status(400).json({ error: "Ingresa la URL del sitio a auditar." });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)) return res.status(400).json({ error: "Ingresa un correo válido." });
+    if (autorizado !== true) return res.status(400).json({ error: "Declara que eres titular o autorizado para auditar este sitio." });
+
+    const ip = getClientIp(req.headers as Record<string, string | string[] | undefined>);
+    const rl = checkRateLimit(`datos:${ip}`, { maxRequests: 3, windowMs: 60 * 60 * 1000 });
+    if (!rl.allowed) {
+      return res.status(429).json({ error: "Has alcanzado el límite de auditorías gratuitas (3 por hora). Intenta en una hora.", retryAfter: Math.ceil(rl.resetMs / 1000) });
+    }
+
+    const resultado = await auditarUrlDatos({ url: urlStr, email: emailStr, autorizado: true }, { timeoutMs: 8000 });
+    res.json(resultado);
+  } catch (e: any) {
+    console.warn(`[datos-scanner] fallo: ${String(e?.message || e).slice(0, 200)}`);
+    res.status(200).json({
+      version: "datos-scanner-v1",
+      url: typeof req.body?.url === "string" ? String(req.body.url).slice(0, 500) : "",
+      score: 0,
+      nivel: "Critico",
+      hallazgos: [{
+        id: "R-error-red",
+        gravedad: "critica",
+        titulo: "No se pudo auditar la URL",
+        detalle: `El sitio no respondió o bloqueó la auditoría (${String(e?.message || e).slice(0, 140)}). No se genera score sin evidencia: intentarlo con la URL canónica (https) y reintento en sonda manual.`,
+        fundamento: "Transparencia: sin evidencia del DOM no hay diagnóstico",
+      }],
+      disclaimer: "Diagnóstico automatizado de preparación para la Ley 21.719. No constituye asesoría jurídica.",
+    });
   }
 });
 

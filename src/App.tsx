@@ -6,12 +6,13 @@ import { DeadlineCalculatorComponent } from './components/DeadlineCalculatorComp
 import { CtaAbogadoBanner } from './components/CtaAbogadoBanner';
 import { PaymentModal } from './components/PaymentModal';
 import { LegalHelpDraft } from './pages/LegalHelpDraft';
+import { DatosPage } from './pages/DatosPage';
 import { TestDraftPanel } from './components/TestDraftPanel';
 import { LegalArea, SavedAnalysis, PremiumResult } from './types';
 import { Scale } from 'lucide-react';
 
 export default function App() {
-  const [view, setView] = useState<'diagnostico' | 'redaccion'>('diagnostico');
+  const [view, setView] = useState<'diagnostico' | 'redaccion' | 'datos'>('diagnostico');
   const [isLoading, setIsLoading] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isPremiumLoading, setIsPremiumLoading] = useState(false);
@@ -241,6 +242,10 @@ export default function App() {
 
   // Panel de prueba (solo si ?testdraft=1 en la URL)
   const isTestMode = new URLSearchParams(window.location.search).get('testdraft') === '1';
+  const isDatosPath = window.location.pathname.replace(/\/$/, '') === '/datos';
+  if (isDatosPath && view === 'diagnostico') {
+    setView('datos');
+  }
   if (isTestMode) {
     return (
       <div className="min-h-screen bg-slate-100">
@@ -263,7 +268,9 @@ export default function App() {
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="space-y-6">
-          {view === 'redaccion' ? (
+          {view === 'datos' || isDatosPath ? (
+            <DatosPage onOpenPayment={() => setIsPaymentModalOpen(true)} />
+          ) : view === 'redaccion' ? (
             <LegalHelpDraft />
           ) : (
             <>

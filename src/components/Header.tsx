@@ -4,8 +4,8 @@ import { Shield, Calculator, Lock, PenTool, Scale } from 'lucide-react';
 interface HeaderProps {
   hasAntecedents?: boolean;
   isPaid?: boolean;
-  view?: 'diagnostico' | 'redaccion';
-  onViewChange?: (view: 'diagnostico' | 'redaccion') => void;
+  view?: 'diagnostico' | 'redaccion' | 'datos';
+  onViewChange?: (view: 'diagnostico' | 'redaccion' | 'datos') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -76,6 +76,17 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <PenTool className="w-4 h-4" />
               Redacción
+            </button>
+            <button
+              onClick={() => onViewChange?.('datos')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                view === 'datos'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Shield className="w-4 h-4" />
+              Datos
             </button>
           </div>
 
