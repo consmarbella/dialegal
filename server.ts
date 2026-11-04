@@ -2770,6 +2770,12 @@ const distPath = path.join(process.cwd(), "dist");
 // Serve static build + SSR home (production on Vercel and local preview)
 app.use(express.static(distPath, { index: false }));
 app.get("/", serveHomePage);
+// SPA catch-all para rutas internas de la app (/datos y futuras vistas).
+// Debe ir ANTES de las rutas SEO/páginas registradas en registerSEORoutes().
+const SPA_INTERNAS = new Set(["/datos"]);
+app.get("/datos", (req, res) => {
+  res.sendFile(path.join(distPath, "index.html"));
+});
 
 // Vercel / Serverless export: handler receives all requests (routes SEO + API + SPA fallback)
 export const handler = app;
