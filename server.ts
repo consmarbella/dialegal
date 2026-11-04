@@ -2772,10 +2772,9 @@ app.use(express.static(distPath, { index: false }));
 app.get("/", serveHomePage);
 
 // SPA catch-all para rutas internas de la app (/datos y futuras vistas).
-// Va después de SEO/sitemap y antes del 404. Revisa el orden real de Express:
-// registerSEORoutes registra sus rutas al ejecutar (ver abajo), pero /datos
-// no colisiona con ninguna slug SEO ni sitemap — va antes del 404 y después
-// de "/" y de los estáticos para evitar caer en el catch-all de 404.
+// Debe ir DESPUÉS de registerSEORoutes(): Express ejecuta las rutas en orden de
+// registro, y el catch-all "/:slug" de SEO llama next() cuando no hay destino.
+// Sin este orden, /datos caía al 404 custom en producción.
 const SPA_INTERNAS = new Set(["/datos"]);
 function serveSpa(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (SPA_INTERNAS.has(req.path)) {
@@ -2798,11 +2797,9 @@ if (!process.env.VERCEL && process.env.NODE_ENV !== "production") {
   });
 } else {
   registerSEORoutes();
-  // SPA: /datos (vista interna) — con fallback explícito para trailing slash descartado por Vercel
+  // SPA: /datos (vista interna) registrada DESPUÉS de SEO y ANTES del 404.
   app.get("/datos", serveSpa);
-  app.get("/datos/", (req, res) => {
-    res.sendFile(path.join(distPath, "index.html"));
-  });
+  app.get("/datos/", serveSpa);
   // Custom 404: serve 404.html for unmatched routes instead of SPA fallback
   app.get("*", (req, res) => {
     const notFoundPath = path.join(distPath, "404.html");
