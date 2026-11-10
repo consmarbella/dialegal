@@ -6,10 +6,11 @@
   "functions": {
     "api/index.ts": {
       "maxDuration": 300,
-      "includeFiles": "data/**,dist/index.html"
+      "includeFiles": "data/**"
     }
   },
   "rewrites": [
+    { "source": "/datos", "destination": "/datos.html" },
     { "source": "/prescripcion-multas-tag", "destination": "/prescripcion-multas-tag.html" },
     { "source": "/(.*)", "destination": "/api/index" }
   ],

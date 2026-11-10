@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "fs";
+import { copyFileSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { renderHomeContent } from "../src/lib/homeSsr.ts";
 
@@ -14,3 +14,9 @@ if (injected === html) {
   const links = (injected.match(/href="https:\/\/legalhelp\.cl\/[^"]+"/g) || []).length;
   console.log(`SSR inyectado en dist/index.html: ${links} links internos`);
 }
+
+// /datos se sirve como archivo ESTATICO (vercel.json rewrite /datos -> /datos.html),
+// sin pasar por la lambda: evita depender de includeFiles y hereda el mismo patron
+// que /prescripcion-multas-tag.html. El shell React hidrata la vista DatosPage.
+copyFileSync(indexPath, join(process.cwd(), "dist", "datos.html"));
+console.log("dist/datos.html copiado (shell SPA para /datos)");
