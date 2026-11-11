@@ -239,6 +239,7 @@ export interface ExtraerCasoResult {
   caso: Caso | null;
   advertencias: string[];
   usadoLLM: boolean;
+  motivo: "cuota" | "timeout" | "schema" | "ok" | null;
 }
 
 export async function extraerCaso(
@@ -246,7 +247,7 @@ export async function extraerCaso(
   texto: string,
 ): Promise<ExtraerCasoResult> {
   const relato = (texto || "").trim().slice(0, 12_000);
-  if (relato.length < 40) return { caso: null, advertencias: [], usadoLLM: false };
+  if (relato.length < 40) return { caso: null, advertencias: [], usadoLLM: false, motivo: "schema" };
 
   const payload = {
     contents: {
@@ -274,16 +275,20 @@ export async function extraerCaso(
     const resultado = CasoSchema.safeParse(parsed);
     if (!resultado.success) {
       // El flujo actual sigue: devuelve null sin romper nada.
-      return { caso: null, advertencias: ["CasoSchema no validó la salida del LLM"], usadoLLM: true };
+      return { caso: null, advertencias: ["CasoSchema no validó la salida del LLM"], usadoLLM: true, motivo: "schema" };
     }
     caso = resultado.data;
     // Verificación cruzada con RegEx contra el texto original.
     advertencias = verificarContraTexto(caso, relato);
-  } catch {
+  } catch (e: any) {
     // Cuota agotada, saturación, JSON corrupto o timeout: no rompe el flujo.
-    return { caso: null, advertencias: [], usadoLLM: false };
+    const msg = String(e?.message || e || "");
+    let motivo: "cuota" | "timeout" | "schema" = "schema";
+    if (/quota|RESOURCE_EXHAUSTED|per_day|PerDay/i.test(msg)) motivo = "cuota";
+    else if (/timeout/i.test(msg)) motivo = "timeout";
+    return { caso: null, advertencias: [], usadoLLM: false, motivo };
   }
-  return { caso, advertencias, usadoLLM: true };
+  return { caso, advertencias, usadoLLM: true, motivo: "ok" };
 }
 
 export { CasoSchema };
