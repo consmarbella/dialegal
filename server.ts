@@ -1609,6 +1609,33 @@ app.get("/api/payment/status", async (req, res) => {
 
   const order = await getOrderByOrderId(orderId);
   if (!order) {
+    // Sin orden en memoria/DB: consultar MercadoPago por external_reference
+    // antes de devolver 404 (caso real: lambda distinta o DB desconectada con
+    // pago aprobado — mismo criterio de "curación" que requirePaidOrder).
+    if (isMpConfigured && mpAccessToken) {
+      try {
+        const mpCheck = await verificarPagoMPAprobado(orderId);
+        if (mpCheck.approved && (mpCheck.monto == null || mpCheck.monto >= PRECIO_DICTAMEN)) {
+          const healed = {
+            orderId,
+            preferenceId: `mp-healed-${orderId}`,
+            status: "approved" as const,
+            amount: mpCheck.monto ?? PRECIO_DICTAMEN,
+            title: TITULO_DICTAMEN,
+            createdAt: Date.now(),
+            mpPaymentId: mpCheck.paymentId || undefined,
+            paidAt: Date.now(),
+          };
+          await saveOrder(healed);
+          return res.json({ orderId, status: "approved", paidAt: healed.paidAt });
+        }
+        if (mpCheck.paymentId && !mpCheck.approved) {
+          return res.json({ orderId, status: "failed" });
+        }
+      } catch (e) {
+        console.error("Error verificando pago en MP API (orden no encontrada):", e);
+      }
+    }
     return res.status(404).json({ error: "Orden no encontrada" });
   }
 
@@ -2863,7 +2890,7 @@ app.use(express.static(distPath, { index: false }));
 app.get("/", serveHomePage);
 
 // SPA catch-all para rutas internas de la app (/datos y futuras vistas).
-const SPA_INTERNAS = new Set(["/datos"]);
+const SPA_INTERNAS = new Set(["/datos", "/redaccion"]);
 function serveSpa(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (SPA_INTERNAS.has(req.path)) {
     res.sendFile(path.join(distPath, "index.html"));

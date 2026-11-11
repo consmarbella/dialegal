@@ -26,6 +26,9 @@ export interface BcnArticuloVerificado {
   fechaVersion?: string;
   texto: string;
   url: string;
+  /** Fase I.3: artículo traido como texto BASE de una ley invocada en el caso
+   *  sin artículo citado (arts. semilla) — no es una cita del documento. */
+  viaSemilla?: boolean;
 }
 
 export interface BcnNormaSinArticulo {
@@ -38,12 +41,18 @@ export interface BcnNormaSinArticulo {
 
 // Exportadas para scripts/qa-semilla-bcn.ts (guardián de la semilla). El resto
 // del código debe seguir usando verificarCitasBCN, no estas tablas a pelo.
-export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: RegExp }> = {
+// artsSemilla (Fase I.3): artículos base de la ley que se traen del XML oficial
+// cuando la ley es DETECTADA en el caso pero sin artículos citados (p. ej. la
+// demanda invoca "competencia desleal" sin citar arts. de la Ley 20.169: el
+// prompt recibe su texto oficial y el modelo puede auditar la cita).
+export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: RegExp; artsSemilla?: string[] }> = {
   // ── Códigos ────────────────────────────────────────────────────────────────
   // detect exige el DENOMINADOR del DFL (1/2000, 2/2003): el patrón anterior
   // ("DFL N" pelado) hacía que cualquier "DFL N° 1"/"DFL N° 2" del mundo cayera
   // en CC/CT. Verificación de TODAS las entradas: scripts/qa-semilla-bcn.ts.
-  CC: { id: 172986, nombre: "Codigo Civil (DFL 1, 2000)", detect: /\bC[oó]digo\s+Civil\b|\bDFL\s*(?:N[°º.]?\s*)?1\s*(?:\/|de)?\s*2000\b/i },
+  // Fase I.3: \bCC\b acepta la abreviatura ("Art. 1459 CC") que el par de
+  // proximidad empareja igual que la forma completa.
+  CC: { id: 172986, nombre: "Codigo Civil (DFL 1, 2000)", detect: /\bC[oó]digo\s+Civil\b|\bDFL\s*(?:N[°º.]?\s*)?1\s*(?:\/|de)?\s*2000\b|\bCC\b/i },
   CP: { id: 1984, nombre: "Codigo Penal", detect: /\bC[oó]digo\s+Penal\b/i },
   CT: { id: 207436, nombre: "Codigo del Trabajo (DFL 2, 2003)", detect: /\bC[oó]digo\s+del\s+Trabajo\b|\bDFL\s*(?:N[°º.]?\s*)?2\s*(?:\/|de)?\s*2003\b/i },
   CPC: { id: 22740, nombre: "Codigo de Procedimiento Civil (Ley 1.552)", detect: /\bC[oó]digo\s+de\s+Procedimiento\s+Civil\b|\bLey\s*n?[°º.\s]*1\.?\s?552\b|\bCPC\b/i },
@@ -56,6 +65,16 @@ export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: Reg
   CJM: { id: 18914, nombre: "Codigo de Justicia Militar (D. 2226)", detect: /\bC[oó]digo\s+de\s+Justicia\s+Militar\b/i },
   CAero: { id: 30287, nombre: "Codigo Aeronautico (Ley 18.916)", detect: /\bC[oó]digo\s+Aeron[aá]utico\b/i },
   LGUC: { id: 13560, nombre: "Ley General de Urbanismo y Construcciones (DFL 458)", detect: /\bLey\s+General\s+de\s+Urbanismo\b|\bLGUC\b/i },
+  // Fase I.3 (hallazgo del caso real software/competencia desleal): la demanda
+  // citaba "Ley N° 20.165" pero la ley chilena de competencia desleal es la
+  // 20.169 (idNorma 258377, verificado en leychile.cl). Con la semilla + arts.
+  // base, el sistema trae el texto oficial y puede AUDITAR la cita equivocada.
+  L20169: {
+    id: 258377,
+    nombre: "Ley 20.169 (Competencia Desleal)",
+    detect: /\bLey\s*N?[°º.\s]*20[.,\s]?169\b|\bcompetencia\s+desleal\b/i,
+    artsSemilla: ["1", "2", "3", "4", "5", "6", "7", "8"],
+  },
   // ── Leyes especiales / sectoriales ─────────────────────────────────────────
   // Lote 2026-11-02: frecuencia medida sobre data/corpus-full (16,1 MB) + gap
   // de citas SIN número ("Ley del Consumidor", "Estatuto Administrativo") que
@@ -64,8 +83,8 @@ export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: Reg
   L14908: { id: 27977, nombre: "Ley 14.908 (pensiones alimenticias)", detect: /\bLey\s*n?[°º.\s]*14\.?\s?908\b/i },
   L15231: { id: 28104, nombre: "Ley 15.231 (organizacion y atribuciones de los juzgados de policia local)", detect: /\bLey\s*n?[°º.\s]*15\.?\s?231\b/i },
   L16744: { id: 28650, nombre: "Ley 16.744 (accidentes del trabajo)", detect: /\bLey\s*n?[°º.\s]*16\.?\s?744\b|\bLey\s+de\s+Accidentes\s+del\s+Trabajo\b/i },
-  L17336: { id: 28933, nombre: "Ley 17.336 (propiedad intelectual)", detect: /\bLey\s*n?[°º.\s]*17\.?\s?336\b|\bLey\s+de\s+Propiedad\s+Intelectual\b/i },
-  L18046: { id: 29473, nombre: "Ley 18.046 (sociedades anonimas)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?046\b|\bLey\s+de\s+Sociedades\s+An[oó]nimas\b/i },
+  L17336: { id: 28933, nombre: "Ley 17.336 (propiedad intelectual)", detect: /\bLey\s*n?[°º.\s]*17\.?\s?336\b|\bLey\s+de\s+Propiedad\s+Intelectual\b|\bpropiedad\s+intelectual\b|\bderechos?\s+de\s+autor\b/i, artsSemilla: ["1", "2", "3", "4", "5"] },
+  L18046: { id: 29473, nombre: "Ley 18.046 (sociedades anonimas)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?046\b|\bLey\s+de\s+Sociedades\s+An[oó]nimas\b|\bsociedad(?:es)?\s+an[oó]nimas?\b|\bsociedad(?:es)?\s+por\s+acciones\b|\bjunta\s+de\s+accionistas\b/i, artsSemilla: ["1", "2", "424", "425", "426"] },
   L18101: { id: 29526, nombre: "Ley 18.101 (arrendamiento urbano)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?101\b|\bLey\s*n?[°º.\s]*21\.?\s?461\b/i },
   L18216: { id: 29636, nombre: "Ley 18.216 (penas sustitutivas)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?216\b/i },
   L18287: { id: 29705, nombre: "Ley 18.287 (justicia de policia local)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?287\b/i },
@@ -76,10 +95,10 @@ export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: Reg
   L18695: { id: 30077, nombre: "Ley 18.695 (LOC de municipalidades)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?695\b|\bLey\s+Org[aá]nica\s+Constitucional\s+de\s+Municipalidades\b/i },
   L18834: { id: 30210, nombre: "Ley 18.834 (estatuto administrativo)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?834\b|\bEstatuto\s+Administrativo(?!\s+(?:Municipal|para\s+Funcionarios\s+Municipales))\b/i },
   L18883: { id: 30256, nombre: "Ley 18.883 (estatuto administrativo municipal)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?883\b|\bEstatuto\s+Administrativo\s+(?:Municipal|para\s+Funcionarios\s+Municipales)\b/i },
-  L19039: { id: 30406, nombre: "Ley 19.039 (propiedad industrial)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?039\b|\bLey\s+de\s+Propiedad\s+Industrial\b/i },
+  L19039: { id: 30406, nombre: "Ley 19.039 (propiedad industrial)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?039\b|\bLey\s+de\s+Propiedad\s+Industrial\b|\bpropiedad\s+industrial\b|\bpatentes?\b|\bmodelo\s+de\s+utilidad\b|\bsecreto(?:s)?\s+(?:industrial|empresarial)\b|\bregistro\s+de\s+(?:la\s+)?marca\b|\bmarcas?\s+(?:registrada|comercial|colectiva|de\s+f[aá]brica)\b/i, artsSemilla: ["1", "2", "3", "4"] },
   L19300: { id: 30667, nombre: "Ley 19.300 (bases del medio ambiente)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?300\b|\bLey\s+de\s+Bases\s+(?:Generales\s+)?del\s+Medio\s+Ambiente\b/i },
-  L19496: { id: 61438, nombre: "Ley 19.496 (proteccion del consumidor)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?496\b|\bLey\s+del\s+Consumidor\b/i },
-  L19628: { id: 141599, nombre: "Ley 19.628 (proteccion de la vida privada)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?628\b/i },
+  L19496: { id: 61438, nombre: "Ley 19.496 (proteccion del consumidor)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?496\b|\bLey\s+del\s+Consumidor\b|\bprotecci[oó]n\s+(?:de\s+los\s+)?(?:derechos\s+de\s+los\s+)?consumidores?\b|\bSERNAC\b|\bderechos?\s+del\s+consumidor\b/i, artsSemilla: ["1", "2", "3", "23"] },
+  L19628: { id: 141599, nombre: "Ley 19.628 (proteccion de la vida privada)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?628\b|\bprotecci[oó]n\s+de\s+(?:la\s+)?vida\s+privada\b|\bdatos?\s+personales\b|\btratamiento\s+de\s+datos\b/i, artsSemilla: ["1", "2", "4"] },
   // Ley Bustos: modifica art. 162 CT (cotizaciones al despido). idNorma verificado obtxml 2026-11-03.
   L19631: { id: 144318, nombre: "Ley 19.631 (Ley Bustos — cotizaciones al despido)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?631\b|\bLey\s+Bustos\b/i },
   L19880: { id: 210676, nombre: "Ley 19.880 (procedimiento administrativo)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?880\b/i },
@@ -90,12 +109,12 @@ export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: Reg
   L20009: { id: 236736, nombre: "Ley 20.009 (fraudes tarjetas de pago)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?009\b/i },
   L20066: { id: 242648, nombre: "Ley 20.066 (violencia intrafamiliar)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?066\b|\bLey\s+de\s+Violencia\s+Intrafamiliar\b/i },
   L20084: { id: 244803, nombre: "Ley 20.084 (responsabilidad penal adolescente)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?084\b/i },
-  L20720: { id: 1058072, nombre: "Ley 20.720 (reorganizacion y liquidacion)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?720\b/i },
+  L20720: { id: 1058072, nombre: "Ley 20.720 (reorganizacion y liquidacion)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?720\b|\breorganizaci[oó]n\s+(?:judicial|concursal|empresarial)\b|\bliquidaci[oó]n\s+(?:judicial|concursal|forzosa)\b|\bprocedimiento\s+concursal\b|\bquiebra\b|\binsolvencia\b/i, artsSemilla: ["1", "2", "4"] },
   L21325: { id: 1158549, nombre: "Ley 21.325 (migracion y extranjeria)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?325\b|\bLey\s+de\s+Migraci[oó]n\b/i },
   L21430: { id: 1173643, nombre: "Ley 21.430 (garantias y proteccion de la ninez)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?430\b/i },
   L21561: { id: 1191554, nombre: "Ley 21.561 (reduccion de jornada, 40 horas)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?561\b|\bLey\s+de\s+40\s+Horas\b/i },
   L21643: { id: 1200096, nombre: "Ley 21.643 (Ley Karin, acoso laboral)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?643\b|\bLey\s+Karin\b/i },
-  L21719: { id: 1209272, nombre: "Ley 21.719 (proteccion de datos personales)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?719\b/i },
+  L21719: { id: 1209272, nombre: "Ley 21.719 (proteccion de datos personales)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?719\b|\bnueva\s+ley\s+de\s+(?:protecci[oó]n\s+de\s+)?datos\s+personales\b|\bagencia\s+de\s+protecci[oó]n\s+de\s+datos\b/i, artsSemilla: ["1", "2", "4"] },
   // Lote frecuencia foro 2026-11-03 — normaId verificado obtxml
   L18010: { id: 29438, nombre: "Ley 18.010 (operaciones de credito de dinero)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?010\b|\boperaciones?\s+de\s+cr[eé]dito\s+de\s+dinero\b/i },
   L18092: { id: 29517, nombre: "Ley 18.092 (letra de cambio y pagare)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?092\b|\bletras?\s+de\s+cambio\b|\bpagar[eé]s?\b/i },
@@ -110,7 +129,7 @@ export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: Reg
   L19537: { id: 81505, nombre: "Ley 19.537 (copropiedad inmobiliaria)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?537\b|\bcopropiedad\s+inmobiliaria\b|\bgastos\s+comunes\b/i },
   L20830: { id: 1075210, nombre: "Ley 20.830 (acuerdo de union civil)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?830\b|\bacuerdo\s+de\s+uni[oó]n\s+civil\b|\bAUC\b/i },
   L20609: { id: 1042092, nombre: "Ley 20.609 (medidas contra la discriminacion / Zamudio)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?609\b|\bLey\s+Zamudio\b|\bmedidas\s+contra\s+la\s+discriminaci[oó]n\b/i },
-  L20393: { id: 1008668, nombre: "Ley 20.393 (responsabilidad penal de personas juridicas)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?393\b|\bresponsabilidad\s+penal\s+de\s+(?:las\s+)?personas\s+jur[ií]dicas\b/i },
+  L20393: { id: 1008668, nombre: "Ley 20.393 (responsabilidad penal de personas juridicas)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?393\b|\bresponsabilidad\s+penal\s+de\s+(?:las\s+)?personas\s+jur[ií]dicas\b|\bmodelo\s+de\s+prevenci[oó]n\s+de\s+delitos\b/i, artsSemilla: ["1", "3", "4"] },
   L20285: { id: 276363, nombre: "Ley 20.285 (acceso a la informacion publica / transparencia)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?285\b|\bacceso\s+a\s+la\s+informaci[oó]n\s+p[uú]blica\b|\bLey\s+de\s+Transparencia\b/i },
   L21220: { id: 1143741, nombre: "Ley 21.220 (trabajo a distancia / teletrabajo)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?220\b|\btrabajo\s+a\s+distancia\b|\bteletrabajo\b/i },
   L19585: { id: 126366, nombre: "Ley 19.585 (filiacion)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?585\b|\bfiliaci[oó]n\b/i },
@@ -544,7 +563,19 @@ export function extraerCitadasPorNorma(texto: string): { pares: CitaPareada[]; s
     const anterior = normas.filter((c) => c.idx < a.idx && a.idx - c.idx < 400).sort((x, y) => y.idx - x.idx)[0];
     // "Norma, Art. N" (a ±3 chars) manda; si no, gana la norma que viene después.
     const preNominalInmediata = anterior && a.idx - anterior.end <= 3;
-    const elegida = preNominalInmediata ? anterior : (despues ?? anterior ?? null);
+    let elegida = preNominalInmediata ? anterior : (despues ?? anterior ?? null);
+    // Fase I.3 — construcción gramatical "Artículos N (y siguientes) DEL
+    // <cuerpo>": el cuerpo que sigue conectado por del/de la/de los MANDA sobre
+    // cualquier norma nombrada antes. Caso real: "Competencia Desleal
+    // (Artículos 2314 y siguientes del Código Civil, en relación con la Ley
+    // 20.165)" emparejaba el 2314 a la Ley de Competencia Desleal por la regla
+    // prenominal, cuando el 2314 es del Código Civil.
+    if (despues) {
+      const entreDespues = textoLimpio.slice(refFin, despues.idx);
+      if (/^\s*(?:(?:y|,)\s*\w+\s+){0,3}(?:del|de\s+la|de\s+los|de)\s*$/i.test(entreDespues)) {
+        elegida = despues;
+      }
+    }
     const nk = normNum(a.n);
     if (elegida) {
       let setU = unicosPorNorma.get(elegida.key);
@@ -651,6 +682,48 @@ export async function verificarCitasBCN(textos: string[]): Promise<{ verificados
     }
   }
 
+  // ── Fase I.3: ley especial detectada SIN artículos citados ────────────────
+  // Si el caso invoca una ley de la semilla por su materia ("competencia
+  // desleal") pero sin artículos, se traen sus arts. semilla del XML oficial:
+  // el prompt recibe el texto base y el modelo puede auditar la cita (p. ej.
+  // una demanda que cita "Ley 20.165" cuando la de competencia desleal es la
+  // 20.169). Tope: una ley semilla por llamada.
+  let semillasTraidas = 0;
+  for (const n of normas) {
+    if (semillasTraidas >= 1) break;
+    const seed = NORMA_IDS[n.key]?.artsSemilla;
+    if (!seed || !seed.length || !n.idNorma) continue;
+    if (vistas.has(n.key)) continue; // el caso ya citó artículos de esta ley
+    if (!puedeConsultar()) continue;
+    semillasTraidas += 1;
+    try {
+      const norma = await getNorma(n.idNorma);
+      if (!norma) continue;
+      const partes = extraerPartes(norma.xml);
+      for (const num of seed) {
+        const parte = partes.find((p) => {
+          const nom = p.nombre ? normNum(p.nombre) : "";
+          if (nom === num) return true;
+          const head = p.texto.match(/^(?:Art(?:[íi]culo|\.)\s*)?(\d{1,4}(?:\s*[-–]\s*[A-Za-z])?)/i);
+          return Boolean(head) && normNum(head![1]) === num;
+        });
+        if (!parte || !parte.texto) continue;
+        verificados.push({
+          keyNorma: n.key,
+          nombreNorma: n.nombre || NORMA_IDS[n.key].nombre,
+          idNorma: n.idNorma,
+          articulo: num,
+          idParte: parte.idParte,
+          vigente: !norma.derogado,
+          fechaVersion: norma.fechaVersion,
+          texto: parte.texto.slice(0, 1600),
+          url: `https://www.bcn.cl/leychile/navegar?idNorma=${n.idNorma}${parte.idParte ? `&idParte=${parte.idParte}` : ""}`,
+          viaSemilla: true,
+        });
+      }
+    } catch { /* semilla best-effort: nunca rompe la verificación */ }
+  }
+
   verificados.sort((a, b) => a.nombreNorma.localeCompare(b.nombreNorma) || Number(a.articulo) - Number(b.articulo));
   return { verificados, pendientes };
 }
@@ -667,7 +740,14 @@ export function bloquePromptBCN(v: { verificados: BcnArticuloVerificado[]; pendi
     `Estos textos fueron extraidos del XML oficial de Ley Chile Y SON FUENTE MAS PRIORITARIA QUE CUALQUIER RESULTADO DE BUSQUEDA WEB. ` +
     `Usalos como VERDAD NORMATIVA al revisar articulos citados en el dictamen:\n`;
   for (const a of v.verificados.slice(0, 24)) {
-    s += `\n[ACTUAL ${a.fechaVersion || ""}] ${a.nombreNorma}, Art. ${a.articulo}:\n${a.texto}\n`;
+    if (a.viaSemilla) {
+      s += `\n[LEY INVOCADA EN EL CASO SIN ARTICULO CITADO — texto base oficial] ${a.nombreNorma}, Art. ${a.articulo}:\n${a.texto}\n`;
+    } else {
+      s += `\n[ACTUAL ${a.fechaVersion || ""}] ${a.nombreNorma}, Art. ${a.articulo}:\n${a.texto}\n`;
+    }
+  }
+  if (v.verificados.some((a) => a.viaSemilla)) {
+    s += `\nSi el caso o el dictamen cita esa ley con un NUMERO distinto al oficial de arriba (p. ej. cita "Ley 20.165" y el texto oficial es la Ley 20.169), senalalo expresamente: es un error de cita del documento. Si el contexto del caso corresponde a esa ley, usala como fuente normativa.\n`;
   }
   if (v.pendientes.length > 0) {
     s += `\nCuerpos citados que NO se pudieron validar por este canal (verificalos con la web como antes):\n`;

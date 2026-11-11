@@ -77,6 +77,7 @@ const ESPERADO: Record<string, Esperado> = {
   L21561: { titulo: "JORNADA", tipo: "Ley", numero: "21561", cita: "Ley 21.561" },
   L21643: { titulo: "ACOSO", tipo: "Ley", numero: "21643", cita: "Ley Karin" },
   L21719: { titulo: "DATOS PERSONALES", tipo: "Ley", numero: "21719", cita: "Ley 21.719" },
+  L20169: { titulo: "COMPETENCIA DESLEAL", tipo: "Ley", numero: "20169", cita: "Ley 20.169" },
 };
 
 // ── 1) detección offline (sin red) ───────────────────────────────────────────
@@ -104,6 +105,19 @@ chk("positivo: 'DFL 2 de 2003' resuelve CT", dfl2b.normas.some((n) => n.key === 
 const eadm = extraerCitadasPorNorma("El Estatuto Administrativo Municipal, art. 5.");
 chk("negativo: 'Estatuto Administrativo Municipal' NO resuelve L18834", !eadm.normas.some((n) => n.key === "L18834"), eadm.normas);
 chk("positivo: 'Estatuto Administrativo Municipal' resuelve L18883", eadm.normas.some((n) => n.key === "L18883" && n.resuelta), eadm.normas);
+
+// Fase I.3: detección por materia y corrección de cita errada (caso real
+// software/competencia desleal: la demanda citó "Ley 20.165" pero la ley es la
+// 20.169). El sistema debe (a) reconocer la materia aunque el número esté mal,
+// (b) resolver la ley correcta y (c) seguir detectando el número equivocado como
+// referencia no resuelta para que el informe pueda señalar el error.
+(() => {
+  const caso = extraerCitadasPorNorma("en relación con la Ley N° 20.165 sobre Competencia Desleal");
+  const oficial = caso.normas.find((n) => n.key === "L20169");
+  chk("materia: 'Competencia Desleal' (aunque citen 20.165) resuelve L20169", !!oficial && oficial.resuelta && oficial.idNorma === 258377, caso.normas);
+  const errada = caso.normas.find((n) => n.key === "LEY20165");
+  chk("materia: la cita errónea 'Ley 20.165' queda detectada (no resuelta)", !!errada && !errada.resuelta, caso.normas);
+})();
 
 // LEY_EXTRA por número: idNorma CORRECTO (no el número de ley — bug corregido)
 const aer = extraerCitadasPorNorma("Conforme a la Ley 18.916, art. 5.");

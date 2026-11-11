@@ -6,6 +6,11 @@
 import fs from "fs";
 import path from "path";
 import { corpusForzadoActivo } from "./src/server/corpusContext.js";
+// Fase I.3: NORMA_IDS resuelve los cuerpos de las normas de cada ficha contra
+// las citas del caso (boost por solapamiento) y extraerCitadasPorNorma saca
+// esas citas del propio texto del caso. Sin dependencia circular: bcnLeyChile
+// no importa nada de este módulo.
+import { NORMA_IDS, extraerCitadasPorNorma } from "./bcnLeyChile.js";
 
 export interface FalloRector { rol: string; fecha: string; extra: string; raw: string }
 export interface FichaJuris {
@@ -112,12 +117,20 @@ interface FichaIndexada {
 // Nunca aplica a fichas CON falloRector (las 103 citables quedan intactas).
 const INFINITIVO_START = /^(chequear|atender|ejercer|entregar|publicar|canalizar|supervisar|verificar|registrar|remitir|administrar|coordinar|llevar|mantener|cumplir|controlar|informar|emitir|confeccionar|otorgar|realizar|efectuar|preparar|archivar|enviar|recibir|custodiar|elaborar|implementar|difundir|garantizar|procurar|velar|fiscalizar|designar|nombrar|convocar|decretar|disponer|resolver|conocer|devenir)\b/i;
 const TRUNCADA_END = /(\s(y|o|u|e|de|del|la|el|los|las|un|una|su|sus|para|por|con|en|a|que|se|al|lo)\.?)$/i;
+// Fase I.3 (caso real software/competencia desleal): títulos-fragmento de
+// sentencia usados como "institución" por la ingesta del corpus ("En cuanto al
+// fondo", "Reconocimiento legal y noción", "Corte Suprema, 3 de marzo de
+// 2020, Rol Nº ..."). Son oraciones, no instituciones: se degradan como
+// relleno para que no ocupen cupos de fichas sustantivas.
+const FRAGMENTO_START = /^(en\s+(cuanto|este\s+caso|relaci[oó]n|consecuencia|t[eé]rminos|virtud)|reconocimiento\s+legal\s+y\s+noci[oó]n|corte\s+suprema,?\s+\d)/i;
 
 export function esFichaRelleno(ficha: { institucion?: string; falloRector?: { rol?: string } | null }): string | null {
   const inst = String(ficha.institucion || "").trim();
-  if (ficha.falloRector && ficha.falloRector.rol) return null; // citable: nunca relleno
   if (INFINITIVO_START.test(inst)) return "infinitivo_inicio";
+  if (FRAGMENTO_START.test(inst)) return "fragmento_sentencia";
+  if (ficha.falloRector && ficha.falloRector.rol) return null; // citable: nunca relleno
   if (TRUNCADA_END.test(inst) && inst.length > 20) return "truncada";
+  if (inst.length > 110) return "titulo_largo";
   return null;
 }
 
@@ -351,7 +364,7 @@ export async function buscarJurisprudencia(
   textos: string[],
   maxResultados = 6,
   slugArea?: string,
-  opts?: { recencyW?: number }
+  opts?: { recencyW?: number; citasCaso?: Map<string, Set<string>> },
 ): Promise<RecomendacionJuris[]> {
   try {
     // Fase D: si el área pedida tiene corpus propio (CORPUS_COMPLETO), ese
@@ -412,6 +425,30 @@ export async function buscarJurisprudencia(
       if (score < 1.2) continue;
       score += bonusFrase(queryTokens, [blobFrase]);
       score += bonusVentana(queryTokens, blobFrase, idf); // Fase 8b: ventana de proximidad
+      // Fase I.3 — boost por SOLAPAMIENTO DE NORMAS CITADAS: una ficha cuyas
+      // normas incluyen los mismos artículos que el caso cita es más relevante
+      // que otra que solo comparte palabras genéricas. Caso real: la ficha
+      // "Sociedad Conyugal..." empató con fichas de responsabilidad contractual
+      // puramente por léxico ("sociedad", "patrimonio") en una demanda de
+      // software SpA; sus arts. 1718/1725/1765 no tienen relación con los
+      // 1545/1556/1558/2314 citados por el caso.
+      if (opts?.citasCaso && opts.citasCaso.size > 0 && (ficha.normas || []).length) {
+        const claves = Array.from(opts.citasCaso.entries())
+          .map(([k, arts]) => ({ def: (NORMA_IDS as Record<string, { detect: RegExp }>)[k], arts }))
+          .filter((x) => !!x.def);
+        if (claves.length) {
+          let overlap = 0;
+          for (const ns of ficha.normas || []) {
+            const m = /^BCN\s*-\s*([^,]+?),\s*Art\.?\s*(\d+)/i.exec(String(ns));
+            if (!m) continue;
+            const num = String(parseInt(m[2], 10));
+            for (const c of claves) {
+              if (c.def.detect.test(m[1].trim()) && c.arts.has(num)) { overlap++; break; }
+            }
+          }
+          if (overlap > 0) score += 4 * Math.min(3, overlap);
+        }
+      }
       // Fase 6: recency boost del fallo rector. Fecha del corpus en "DD-MM-YYYY"
       // o año solo ("2023") — Fase 7 A/B: ambos parseados. Limitación real:
       // solo ~98/5.706 fichas traen falloRector; boost real pero de alcance
@@ -704,15 +741,23 @@ export async function buscarCasosJuris(textos: string[], maxResultados = 4, slug
       ? (t: TagAreaCaso) => t === null || t === slug
       : (t: TagAreaCaso) => t === null;
     const filtrados = slug ? resultados.filter((c) => filtroArea(tagAreaCaso(c))) : resultados;
-    // Fallback anti-hambre: si el filtro dejó <2 casos, se repone del pool
-    // completo con etiqueta fuenteFallback (visible, nunca silenciosa).
-    const finales = filtrados.length >= 2 ? filtrados : (() => {
-      const enFiltrados = new Set(filtrados.map((c) => c.rol));
-      const repuestos = resultados
-        .filter((c) => !enFiltrados.has(c.rol))
-        .map((c) => ({ ...c, fuenteFallback: true }));
-      return [...filtrados, ...repuestos];
-    })();
+    // Fase I.3 — fin del fallback CRUZADO: cuando se pidió un área concreta,
+    // los casos de OTRA área (p. ej. TC/constitucional en un caso civil) NO se
+    // reponen aunque el filtro deje <2 resultados. Un caso análogo de otra
+    // materia es ruido presentado como precedente (caso real: demanda civil de
+    // software que mostró 6 sentencias del TC sobre seguridad municipal y
+    // cotizaciones previsionales, empatadas por "intereses penales"). Sin
+    // casos suficientes del área: se entregan los que hay (aunque sean 0),
+    // que es lo honesto. El anti-hambre solo aplica sin área pedida.
+    const finales = !slug
+      ? (filtrados.length >= 2 ? filtrados : (() => {
+          const enFiltrados = new Set(filtrados.map((c) => c.rol));
+          const repuestos = resultados
+            .filter((c) => !enFiltrados.has(c.rol))
+            .map((c) => ({ ...c, fuenteFallback: true }));
+          return [...filtrados, ...repuestos];
+        })())
+      : filtrados;
     return finales
       .slice(0, maxResultados)
       .sort((a, b) => (b.tipo === "fallo_rector" ? 1 : 0) - (a.tipo === "fallo_rector" ? 1 : 0) || b.puntuacion - a.puntuacion);
@@ -783,8 +828,23 @@ async function fusionar(runs: { consulta: string; resultados: Array<Recomendacio
 export async function buscarJurisprudenciaMulti(consultas: ConsultaEtiquetada[], maxResultados = 6, slugArea?: string): Promise<RecomendacionJuris[]> {
   const validas = consultas.filter((c) => typeof c.texto === "string" && c.texto.trim().length >= 15);
   if (validas.length === 0) return [];
+  // Fase I.3: citas norma+artículo del propio caso (determinista) para el
+  // boost por solapamiento — una ficha que cita los mismos artículos del caso
+  // gana sobre otra que solo comparte vocabulario genérico.
+  const citasCaso = new Map<string, Set<string>>();
+  try {
+    for (const c of validas) {
+      const { pares } = extraerCitadasPorNorma(c.texto);
+      for (const p of pares) {
+        if (!p.norma) continue;
+        let s = citasCaso.get(p.norma.key);
+        if (!s) { s = new Set(); citasCaso.set(p.norma.key, s); }
+        s.add(p.num);
+      }
+    }
+  } catch { /* sin citas: boost desactivado, ranking léxico clásico */ }
   const runs = await Promise.all(
-    validas.map(async (c) => ({ consulta: c.etiqueta || "general", resultados: await buscarJurisprudencia([c.texto], 8, slugArea) }))
+    validas.map(async (c) => ({ consulta: c.etiqueta || "general", resultados: await buscarJurisprudencia([c.texto], 8, slugArea, { citasCaso }) }))
   );
   return fusionar(runs, maxResultados);
 }

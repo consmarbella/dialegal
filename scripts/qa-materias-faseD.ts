@@ -1,6 +1,7 @@
 // QA Fase D: registro único de materias (materias.ts) + recuperación gobernada
 // por área (jurisprudenciaChile.ts). Sin red. Reglas del dueño que se pican
 // aquí como regresión:
+process.env.CORPUS_COMPLETO = "true"; // Fase D: tests 14-17 asumen corpus de área activo
 //  - el área declarada MANDA (señales solo sugieren; conflicto = anotación);
 //  - sin señal = null (indeterminada) — NUNCA "laboral" por defecto;
 //  - transito existe como materia (sin corpus propio: capa transversal
@@ -81,10 +82,13 @@ chk("14 civil: sin fichas de base laboral sin etiqueta (y trae resultados)", idx
 const idxTra = await J.buscarJurisprudencia(["multa de tránsito TAG juzgado de policía local licencia de conducir"], 8, "transito");
 const sinEtiqueta = idxTra.filter(i => i.fuenteFallback || i.fuenteTransversal ? false : /\blaboral\b/i.test(`${i.materia} ${i.autor} ${i.obra}`));
 chk("15 transito: resultados solo de capa transversal etiquetada (o vacíos)", sinEtiqueta.length === 0, { total: idxTra.length, sinEtiqueta: sinEtiqueta.length });
-// 16. casos análogos civil: ningún caso tagged laboral sin fuenteFallback
+// 16. casos análogos civil: ningún caso tagged laboral sin fuenteFallback.
+// Fase I.3: ya NO se repone con casos de otras áreas (fallback cruzado
+// eliminado) — devolver 0 es honesto si no hay casos civiles que matcheen;
+// lo que está prohibido es colar un caso laboral sin etiqueta de fallback.
 const casosCiv = await J.buscarCasosJuris(["demanda de indemnización de perjuicios por incumplimiento de contrato de arriendo"], 8, "civil");
 const malos = casosCiv.filter(c => J.tagAreaCaso(c) === "laboral" && !c.fuenteFallback);
-chk("16 casos civil: sin '(LABORAL)' sin etiqueta de fallback", casosCiv.length > 0 && malos.length === 0, { total: casosCiv.length, malos: malos.length });
+chk("16 casos civil: sin '(LABORAL)' sin etiqueta de fallback", malos.length === 0, { total: casosCiv.length, malos: malos.length });
 // 17. casos laborales con slug laboral: los (LABORAL) quedan (sin degradar)
 const casosLab = await J.buscarCasosJuris(["despido injustificado, finiquito, cotizaciones impagas, tutela laboral"], 8, "laboral");
 chk("17 casos laboral: sigue recuperando casos laborales", casosLab.length > 0 && casosLab.filter(c => J.tagAreaCaso(c) === "laboral").length > 0, { total: casosLab.length });
