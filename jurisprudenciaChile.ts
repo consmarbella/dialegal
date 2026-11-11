@@ -122,12 +122,19 @@ const TRUNCADA_END = /(\s(y|o|u|e|de|del|la|el|los|las|un|una|su|sus|para|por|co
 // fondo", "Reconocimiento legal y noción", "Corte Suprema, 3 de marzo de
 // 2020, Rol Nº ..."). Son oraciones, no instituciones: se degradan como
 // relleno para que no ocupen cupos de fichas sustantivas.
-const FRAGMENTO_START = /^(en\s+(cuanto|este\s+caso|relaci[oó]n|consecuencia|t[eé]rminos|virtud)|reconocimiento\s+legal\s+y\s+noci[oó]n|corte\s+suprema,?\s+\d)/i;
+const FRAGMENTO_START = /^(en\s+(cuanto|este\s+caso|relaci[oó]n|consecuencia|t[eé]rminos|virtud|caso\s+de\s+tratarse)|caso\s+de\s+tratarse|reconocimiento\s+legal\s+y\s+noci[oó]n|corte\s+suprema,?\s+\d|la\s+secuencia\s+es)/i;
+// Fase I.4 (informe real pagaré): viñetas de ingesta como título ("B) pago
+// por consignación") y fragmentos que terminan en flecha de esquema
+// ("obligación de dar →obligación de conservar →").
+const BULLET_START = /^[a-z]\)\s/i;
+const ARROW_END = /→\s*$/;
 
 export function esFichaRelleno(ficha: { institucion?: string; falloRector?: { rol?: string } | null }): string | null {
   const inst = String(ficha.institucion || "").trim();
   if (INFINITIVO_START.test(inst)) return "infinitivo_inicio";
   if (FRAGMENTO_START.test(inst)) return "fragmento_sentencia";
+  if (BULLET_START.test(inst)) return "vineta_ingesta";
+  if (ARROW_END.test(inst)) return "fragmento_esquema";
   if (ficha.falloRector && ficha.falloRector.rol) return null; // citable: nunca relleno
   if (TRUNCADA_END.test(inst) && inst.length > 20) return "truncada";
   if (inst.length > 110) return "titulo_largo";
@@ -527,7 +534,10 @@ export function bloquePromptJuris(r: RecomendacionJuris[]): string {
     // llega un corte acotado (p50 del corpus = 2.500 chars) + la operativa
     // procesal cuando existe (solo 41 fichas la tienen). Cota máxima del bloque
     // con 6 fichas: ~9.7k chars — menor que el dictamen/documento que ya viajan.
-    if (i.operativaProcesal) s += `Operativa procesal: ${i.operativaProcesal.slice(0, 300)}\n`;
+    if (i.operativaProcesal) {
+      const limiteOp = i.operativaProcesal.includes("Vía Procesal") ? 900 : 300;
+      s += `Operativa procesal: ${i.operativaProcesal.slice(0, limiteOp)}\n`;
+    }
     if (i.contenido) s += `Contenido: ${i.contenido.slice(0, 900)}\n`;
   }
   s += `\nCon esto construyes la sección "Criterio Jurisprudencial Dominante y Estrategia": criterio dominante, su fallo rector, cómo lo usa el caso y riesgo si la Contraparte tiene criterio contrario.\n`;
@@ -819,9 +829,22 @@ async function fusionar(runs: { consulta: string; resultados: Array<Recomendacio
     }
   }
   const valores = Array.from(porInstitucion.values());
+  // Fase I.5 (corpus): si hay consulta via_decidida, las fichas con guía procesal
+  // real ("Vía Procesal") se ordenan primero dentro de cada grupo.
+  const viaDecidida = runs.some((r) => r.consulta === "via_decidida");
+  const tieneGuiaReal = (r: RecomendacionJuris) =>
+    !!r.operativaProcesal && r.operativaProcesal.includes("Vía Procesal");
+  const cmp = (a: RecomendacionJuris, b: RecomendacionJuris) => {
+    if (viaDecidida) {
+      const gA = tieneGuiaReal(a) ? 1 : 0;
+      const gB = tieneGuiaReal(b) ? 1 : 0;
+      if (gB !== gA) return gB - gA;
+    }
+    return b.puntuacion - a.puntuacion;
+  };
   // Fase 8: misma politica que el single — sustantivas primero, relleno al final.
-  const sust = valores.filter(r => !r.relleno).sort((a, b) => b.puntuacion - a.puntuacion);
-  const degr = valores.filter(r => r.relleno).sort((a, b) => b.puntuacion - a.puntuacion);
+  const sust = valores.filter(r => !r.relleno).sort(cmp);
+  const degr = valores.filter(r => r.relleno).sort(cmp);
   return sust.concat(degr).slice(0, max);
 }
 
