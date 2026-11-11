@@ -66,20 +66,20 @@ export const CasoSchema = z.object({
   materia: z.enum(MATERIAS),
   tipoEscrito: z.enum(TIPOS_ESCRITO).nullable(),   // null si el usuario no lo declaró
   postura: z.enum(POSTURAS),
-  partes: z.array(ParteSchema).max(10),
-  documentos: z.array(DocumentoSchema).max(30),
-  hechos: z.array(HechoSchema).max(40),
-  pretensiones: z.array(PretensionSchema).max(15),
+  partes: z.array(ParteSchema).max(5),
+  documentos: z.array(DocumentoSchema).max(10),
+  hechos: z.array(HechoSchema).max(20),
+  pretensiones: z.array(PretensionSchema).max(8),
   estadoProcesal: EstadoProcesalSchema,
   // Preguntas concretas para el usuario sobre datos que faltan (no inventar).
-  faltantes: z.array(z.string().max(200)).max(10),
+  faltantes: z.array(z.string().max(200)).max(5),
   // Fase I.5 (simplificada): vía procesal propuesta por el modelo (cuando no hay
   // catálogo para la materia). Null si el modelo no la determina.
   viaPropuesta: z.string().max(200).nullable(),
   // Normas (nombre o "Ley N° X") que el modelo sugiere revisar contra BCN.
-  normasARevisar: z.array(z.string().max(120)).max(20),
+  normasARevisar: z.array(z.string().max(120)).max(10),
   // Preguntas adicionales del modelo para el usuario (más allá de faltantes).
-  preguntas: z.array(z.string().max(200)).max(10),
+  preguntas: z.array(z.string().max(200)).max(5),
 });
 
 export type Caso = z.infer<typeof CasoSchema>;
