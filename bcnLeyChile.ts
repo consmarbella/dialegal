@@ -680,3 +680,35 @@ export function bloquePromptBCN(v: { verificados: BcnArticuloVerificado[]; pendi
 }
 
 export const ATRIBUCION_BCN = "Fuente: Ley Chile - Biblioteca del Congreso Nacional de Chile (BCN), consultado el {fecha}. Textos con licencia CC BY-NC-ND 4.0.";
+
+/** Fase I.2: pie de verificación para el diagnóstico GRATUITO. Cada cita del
+ *  análisis generado se contrastó contra el XML oficial de Ley Chile; el
+ *  resultado se agrega al final del propio análisis (✅ verificado con URL /
+ *  ⚠️ no confirmado con motivo). Solo nombres, artículos y URLs: no reproduce
+ *  textos de artículos (la atribución de licencia va igual, por corrección). */
+export function pieVerificacionBCN(
+  v: { verificados: BcnArticuloVerificado[]; pendientes: BcnNormaSinArticulo[] },
+  degradado: boolean,
+): string {
+  if (v.verificados.length === 0 && v.pendientes.length === 0) return "";
+  const fecha = fechaConsultaBCN(v.verificados.map((x) => x.fechaVersion).filter(Boolean) as string[]);
+  const lineas: string[] = [`## Verificación de citas — Ley Chile (BCN), consultado el ${fecha}`];
+  if (v.verificados.length > 0) {
+    lineas.push(`**Artículos verificados contra el texto oficial:**`);
+    for (const a of v.verificados.slice(0, 12)) {
+      lineas.push(`- ✅ ${a.nombreNorma}, Art. ${a.articulo}${a.vigente ? "" : " (⚠️ el texto traído NO está vigente)"} — [ver en Ley Chile](${a.url})`);
+    }
+  }
+  if (v.pendientes.length > 0) {
+    lineas.push(`**Citas no confirmadas por BCN (verifícalas antes de usarlas):**`);
+    for (const p of v.pendientes.slice(0, 8)) {
+      const arts = (p.articulosPedidos || []).length ? `, art. ${p.articulosPedidos.join(", ")}` : "";
+      lineas.push(`- ⚠️ ${p.nombreNorma}${arts} — no confirmado (${p.motivo})`);
+    }
+  }
+  if (degradado) {
+    lineas.push(`_Ley Chile no respondió en este request: la verificación quedó incompleta. Reintenta más tarde._`);
+  }
+  lineas.push(`Fuente: Ley Chile - Biblioteca del Congreso Nacional de Chile (BCN). Textos con licencia CC BY-NC-ND 4.0.`);
+  return lineas.join("\n");
+}

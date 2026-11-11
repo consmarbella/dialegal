@@ -16,7 +16,7 @@ import { resolvePseoRedirect } from "./src/data/redirects.js";
 import { ALL_SEO_PAGES as ALL_SEO_PAGES_SHARED, renderHomeContent } from "./src/lib/homeSsr.js";
 import { CALCULATOR_PAGES, getCalculatorPage } from "./src/data/calculators.js";
 import { COMUNAS_RM } from "./src/data/tribunales.js";
-import { verificarCitasBCN, bloquePromptBCN } from "./bcnLeyChile.js";
+import { verificarCitasBCN, bloquePromptBCN, pieVerificacionBCN } from "./bcnLeyChile.js";
 import { buscarJurisprudencia, bloquePromptJuris, resumenJuris, buscarCasosJuris, bloquePromptCasos, resumenCasos, buscarJurisprudenciaMulti, buscarCasosJurisMulti, type ConsultaEtiquetada } from "./jurisprudenciaChile.js";
 import { extraerChileno, planoBlindajePrompt } from "./extractorChile.js";
 import { validarInforme, notaBlindajeReporte, hallazgosBloqueantes } from "./validadorInforme.js";
@@ -447,6 +447,42 @@ app.post("/api/analyze", async (req, res) => {
     const materia = resolucionMateria.slug ? MATERIAS[resolucionMateria.slug].nombre : null;
     promptContent = `${lineaMateriaPrompt(resolucionMateria)}\n` + promptContent;
 
+    // Fase I.2 — BCN también en el diagnóstico GRATUITO: si el texto del caso
+    // trae citas (demanda pegada, escrito, sentencia), sus artículos se traen
+    // del XML oficial de Ley Chile y entran al prompt como verdad normativa
+    // (igual que hace el premium). Sin citas en el texto: no hay fetch y esto
+    // no cuesta nada; la verificación de lo que el modelo cite va al final.
+    let citasBCNFree: Awaited<ReturnType<typeof verificarCitasBCN>> = { verificados: [], pendientes: [] };
+    let bcnDegradadoFree = false;
+    {
+      try {
+        citasBCNFree = await verificarCitasBCN([combinedText]);
+      } catch (bcnErr: any) {
+        try {
+          citasBCNFree = await verificarCitasBCN([combinedText]);
+        } catch (bcnErr2: any) {
+          bcnDegradadoFree = true;
+          console.warn(`[analyze][bcn] pre-pase falló tras reintento (sigue sin BCN): ${String(bcnErr2?.message || bcnErr2).slice(0, 150)}`);
+        }
+      }
+      const bloqueBCNFree = bloquePromptBCN(citasBCNFree);
+      if (bloqueBCNFree) {
+        promptContent += bloqueBCNFree;
+        promptContent += `\nNORMAS CON TEXTO OFICIAL ARRIBA: ya fueron verificadas contra Ley Chile (BCN) — cítalas SIN marca [VERIFICAR]. Toda otra cita de artículo que no esté arriba lleva [VERIFICAR].\n`;
+      }
+    }
+    const resumenBcn = (v: Awaited<ReturnType<typeof verificarCitasBCN>>) => ({
+      citados: v.verificados.map((a) => ({
+        nombreNorma: a.nombreNorma,
+        articulo: a.articulo,
+        vigente: a.vigente,
+        fechaVersion: a.fechaVersion || "",
+        url: a.url,
+      })),
+      pendientes: v.pendientes.map((p) => ({ nombreNorma: p.nombreNorma, motivo: p.motivo })),
+      degradado: bcnDegradadoFree,
+    });
+
     parts.push({ text: promptContent });
 
     // Caché: mismo relato + mismo documento = análisis cacheado (ahorra cuota diaria)
@@ -463,6 +499,24 @@ app.post("/api/analyze", async (req, res) => {
       // que el relato no tiene y re-disparaba secundarias fantasma.
       const resolucionMateriaCache = await decidirMateriaHibrida(area, combinedText, getGeminiClients());
       const materiaCache = resolucionMateriaCache.slug ? MATERIAS[resolucionMateriaCache.slug].nombre : null;
+      // Fase I.2: la caché guarda el análisis CON su pie de verificación BCN;
+      // el resumen bcn se re-deriva (las normas ya consultadas salen de cache
+      // del módulo, coste marginal 0).
+      let bcnCache: ReturnType<typeof resumenBcn> | null = null;
+      try {
+        const vCache = await verificarCitasBCN([cachedAnalysis]);
+        const vistos = new Set(citasBCNFree.verificados.map((a: any) => `${a.keyNorma}:${a.articulo}`));
+        for (const a of vCache.verificados) {
+          const k = `${a.keyNorma}:${a.articulo}`;
+          if (!vistos.has(k)) { citasBCNFree.verificados.push(a); vistos.add(k); }
+        }
+        const pendVistos = new Set(citasBCNFree.pendientes.map((p: any) => `${p.keyNorma}:${(p.articulosPedidos || []).join(",")}`));
+        for (const p of vCache.pendientes) {
+          const k = `${p.keyNorma}:${(p.articulosPedidos || []).join(",")}`;
+          if (!pendVistos.has(k)) { citasBCNFree.pendientes.push(p); pendVistos.add(k); }
+        }
+        bcnCache = resumenBcn(citasBCNFree);
+      } catch { /* caché sin BCN: el pie ya está en el texto */ }
       return res.json({
         analysis: cachedAnalysis,
         cached: true,
@@ -472,6 +526,7 @@ app.post("/api/analyze", async (req, res) => {
         materiaOrigen: resolucionMateriaCache.origen,
         materiaAdvertencia: resolucionMateriaCache.advertencia,
         materiaSecundaria: resolucionMateriaCache.materiaSecundaria ? MATERIAS[resolucionMateriaCache.materiaSecundaria].nombre : null,
+        bcn: bcnCache ?? resumenBcn(citasBCNFree),
       });
     }
 
@@ -498,15 +553,38 @@ app.post("/api/analyze", async (req, res) => {
       : await decidirMateriaHibrida(area, `${combinedText}\n${analysis}`, getGeminiClients());
     const materiaFinal = resolucionFinal.slug ? MATERIAS[resolucionFinal.slug].nombre : null;
 
-    setCached(aKey, analysis);
+    // Fase I.2 — segunda pasada BCN sobre el ANÁLISIS GENERADO: cada artículo
+    // que el modelo citó se contrasta contra el XML oficial de Ley Chile y el
+    // resultado se agrega como pie del propio análisis (✅ verificado con URL /
+    // ⚠️ no confirmado). Las normas ya consultadas salen de cache del módulo.
+    try {
+      const bcnInforme = await verificarCitasBCN([analysis]);
+      const vistos = new Set(citasBCNFree.verificados.map((a: any) => `${a.keyNorma}:${a.articulo}`));
+      for (const a of bcnInforme.verificados) {
+        const k = `${a.keyNorma}:${a.articulo}`;
+        if (!vistos.has(k)) { citasBCNFree.verificados.push(a); vistos.add(k); }
+      }
+      const pendVistos = new Set(citasBCNFree.pendientes.map((p: any) => `${p.keyNorma}:${(p.articulosPedidos || []).join(",")}`));
+      for (const p of bcnInforme.pendientes) {
+        const k = `${p.keyNorma}:${(p.articulosPedidos || []).join(",")}`;
+        if (!pendVistos.has(k)) { citasBCNFree.pendientes.push(p); pendVistos.add(k); }
+      }
+    } catch (bcn2Err: any) {
+      console.warn(`[analyze][bcn] verificación del análisis falló (se entrega sin pie): ${String(bcn2Err?.message || bcn2Err).slice(0, 150)}`);
+    }
+    const pieBCN = pieVerificacionBCN(citasBCNFree, bcnDegradadoFree);
+    const analysisFinal = pieBCN ? `${analysis}\n\n${pieBCN}` : analysis;
+
+    setCached(aKey, analysisFinal);
     res.json({
-      analysis,
+      analysis: analysisFinal,
       audience,
       materiaSlug: resolucionFinal.slug ?? null,
       materia: materiaFinal,
       materiaOrigen: resolucionFinal.origen,
       materiaAdvertencia: resolucionFinal.advertencia,
       materiaSecundaria: resolucionFinal.materiaSecundaria ? MATERIAS[resolucionFinal.materiaSecundaria].nombre : null,
+      bcn: resumenBcn(citasBCNFree),
     });
   } catch (err: any) {
     console.error("Error en /api/analyze:", err);
