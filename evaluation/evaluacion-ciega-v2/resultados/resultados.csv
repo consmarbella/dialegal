@@ -1,0 +1,17 @@
+id,areaEsperada,areaObtenida,areaSecundariaObtenida,areaCorrecta,clasificacion,evalArt,normasCitadas,normasEsperadas,correctas,compatibles,incorrectas,senalesEquivocadas,tieneVerificar,analisisLargo
+A001,laboral,laboral,Civil,true,incorrecto,incorrecta,4,2,0,0,4,"",false,6899
+A002,laboral,laboral,Civil,true,correcto_con_ajustes,sin_verificar,0,3,0,0,0,"",false,4844
+A003,laboral,laboral,Constitucional,true,correcto_con_ajustes,sin_verificar,0,2,0,0,0,"",false,4318
+A004,laboral,laboral,Civil,true,incorrecto,incorrecta,4,1,0,0,4,"",false,8042
+A005,civil,civil,Tránsito y Juzgado de Policía Local,true,correcto_con_ajustes,sin_verificar,0,4,0,0,0,"materiaSecundaria=tránsito (¡caso civil!)",false,4800
+A006,civil,civil,Penal,true,incorrecto,incorrecta,1,3,0,0,1,"",false,4298
+A007,civil,civil,,true,incorrecto,incorrecta,2,2,0,0,2,"",false,4327
+A008,civil,civil,Penal,true,correcto_con_ajustes,sin_verificar,0,2,0,0,0,"",false,5523
+A009,civil,civil,Tránsito y Juzgado de Policía Local,true,incorrecto,incorrecta,4,3,0,0,4,"materiaSecundaria=tránsito (¡caso civil!)",false,4746
+A010,civil,civil,Tránsito y Juzgado de Policía Local,true,correcto_con_ajustes,sin_verificar,0,1,0,0,0,"materiaSecundaria=tránsito (¡caso civil!)",false,4700
+A011,civil,civil,Tránsito y Juzgado de Policía Local,true,incorrecto,incorrecta,1,2,0,0,1,"materiaSecundaria=tránsito (¡caso civil!)",false,5479
+A012,civil,civil,Tránsito y Juzgado de Policía Local,true,correcto_con_ajustes,sin_verificar,0,1,0,0,0,"materiaSecundaria=tránsito (¡caso civil!)",false,5048
+A013,transito,transito,Civil,true,incorrecto,incorrecta,6,2,0,0,6,"",false,4530
+A014,transito,transito,Laboral,true,incorrecto,incorrecta,2,2,0,0,2,"",false,4279
+A015,transito,transito,Constitucional,true,incorrecto,incorrecta,2,2,0,0,2,"",false,4153
+A016,transito,transito,Civil,true,incorrecto,incorrecta,1,2,0,0,1,"",false,3907

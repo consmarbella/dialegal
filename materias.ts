@@ -89,6 +89,228 @@ const a = (nombre: string, fuente: string, peso = 2): Senal => ({
 /** Tope de contribución de las anclas estructurales por materia. */
 const TOPE_ANCLAS = 3;
 
+// ── Fase I: términos ambiguos, desambiguados por ORACIÓN ────────────────────
+// Un término ambiguo ("multa", "pena", "conductor", "nulidad", "contratista"...)
+// NO puntúa por sí solo: puntúa SOLO si sus palabras vecinas —en la misma
+// oración— revelan de qué materia se trata. Sin vecinos: NEUTRO (0 puntos),
+// y la abstención queda como evidencia visible. Esto corrige el caso real:
+// "multa contractual de 50 UF por cada día de atraso" (cláusula penal civil)
+// ya no dispara Tránsito, y "rentas de arrendamiento no percibidas" (lucro
+// cesante) ya no dispara acciones de arrendamiento.
+//
+// Los átomos son PREFIJOS sin tildes (se comparan con borde de palabra sobre
+// el texto normalizado): "polic" cubre "policía/policia/policía local".
+
+export interface TerminoAmbiguo {
+  nombre: string;
+  /** patrón del término (sobre texto normalizado sin tildes) */
+  re: RegExp;
+  /** puntos que aporta a la materia cuando la oración la desambigua */
+  peso: number;
+  /** átomos vecinos que inclinan la mención hacia cada materia */
+  vecinos: Partial<Record<SlugMateria, string[]>>;
+  /** nota de neutralidad (evidencia visible para el prompt) */
+  nota: string;
+}
+
+export const TERMINOS_AMBIGUOS: TerminoAmbiguo[] = [
+  {
+    nombre: "multa",
+    re: /\bmult(?:a|as|o|aron|ando)\b/g,
+    peso: 2,
+    vecinos: {
+      civil: ["clausul", "contractual", "convencional", "contrat", "atras", "uf", "obra", "mora", "garanti", "incumpl", "obligac", "suma alzada", "penal por"],
+      transito: ["transit", "jpl", "polic", "licenc", "tag", "permiso de circulac", "circulac", "ebried", "alcohol", "veh[ií]cul", "autom[oó]vil", "automov", "conduc", "infracc", "peaje", "autopista", "velocidad", "pase diari", "conductor", "estacion"],
+      laboral: ["previsional", "afp", "cotiz", "inspecci[oó]n del trabajo", "inspeccion del trabajo", "trabaj", "remuner", "sueld", "faena", "empleador"],
+      administrativo: ["municipal", "alcald", "ordenanz", "sumario", "patente", "contralor", "decret", "clausura", "servicio p[uú]blico", "servicio public"],
+    },
+    nota: "multa sin contexto: puede ser cláusula penal (civil), multa de tránsito (JPL), previsional (laboral) o municipal (administrativo)",
+  },
+  {
+    nombre: "conducir/conductor",
+    re: /\bconduc\w*\b/g,
+    peso: 2,
+    vecinos: {
+      transito: ["veh[ií]cul", "autom[oó]vil", "automov", "licenc", "transit", "ebried", "alcohol", "infracc", "calle", "avenida", "autopista", "peaje", "choc", "atropell", "conductor"],
+    },
+    nota: "conducir/conductor sin vehículo en la oración: no es tránsito (p. ej. 'conducta', 'conducir un negocio')",
+  },
+  {
+    nombre: "pena/penal",
+    re: /\bpena(?:l|les)?\b/g,
+    peso: 2,
+    vecinos: {
+      civil: ["clausul", "contractual", "convencional", "mult", "uf", "obligac", "contrat", "atras"],
+      penal: ["c[aá]rcel", "carcel", "presid", "reclus", "delit", "conden", "crimen", "fiscal", "imput", "querell", "prisi[oó]n", "prision"],
+    },
+    nota: "pena/penal sin contexto: 'cláusula penal' es civil, 'pena de cárcel' es penal",
+  },
+  {
+    nombre: "nulidad",
+    re: /\bnulidad\w*\b/g,
+    peso: 2,
+    vecinos: {
+      laboral: ["despid", "trabaj", "empleador", "finiquit", "laboral", "cotiz"],
+      civil: ["contrat", "acto", "escritur", "matrimoni", "sociedad", "compravent", "testament", "t[ií]tulo", "titulo"],
+    },
+    nota: "nulidad sin contexto: del despido (laboral) o del contrato/acto (civil)",
+  },
+  {
+    nombre: "notificado/notificación",
+    re: /\bnotificad[oa]s?\b/g,
+    peso: 2,
+    vecinos: {
+      civil: ["demand", "juici", "escrit", "exhort", "providenci", "caus", "pagare", "ejecutiv"],
+      laboral: ["despid", "finiquit", "carta de aviso", "trabaj", "inspeccion"],
+    },
+    nota: "notificado sin contexto: de la demanda (civil) o del despido (laboral)",
+  },
+  {
+    nombre: "denuncia",
+    re: /\bdenunc\w*\b/g,
+    peso: 1,
+    vecinos: {
+      penal: ["delit", "fiscal", "polici", "carabin", "comisari", "hurt", "rob", "lesion", "querell", "ministerio p[uú]blico", "ministerio public"],
+      laboral: ["intern", "inspeccion", "sindicat", "trabaj", "supervisor"],
+      transito: ["accident", "transit", "veh[ií]cul", "conductor"],
+    },
+    nota: "denuncia sin contexto: penal (hurto/lesiones), laboral (interna) o de tránsito",
+  },
+  {
+    nombre: "derechos fundamentales",
+    re: /\bderechos fundamentales\b/g,
+    peso: 1,
+    vecinos: {
+      laboral: ["tutela", "trabaj", "empleador", "supervisor", "sindicat", "jornada", "remuner"],
+      constitucional: ["recurs", "garant", "constituc", "amparo", "protecci[oó]n", "proteccion"],
+    },
+    nota: "derechos fundamentales sin contexto: tutela laboral (CT 485) o garantía constitucional",
+  },
+  {
+    nombre: "contratista/subcontrata/mandante",
+    re: /\b(?:contratistas?|subcontrat\w+|mandantes?)\b/g,
+    peso: 1,
+    vecinos: {
+      laboral: ["trabaj", "sueld", "remuner", "faen", "cotiz", "inspeccion", "empleador", "sindicat", "jornada"],
+      civil: ["obra", "construccion", "constructo", "suma alzada", "nav", "casa", "proyect", "entrega", "edific", "departament", "inmueble", "plano"],
+    },
+    nota: "contratista sin contexto: relación laboral (art. 64 CT) o contrato de obra civil",
+  },
+];
+
+/** Corte de oración para vecinos: punto, cierre, salto. La coma NO corta
+ *  (una cláusula con la palabra y sus vecinos vive en la misma oración). */
+const RE_ORACION = /[.!?\n;]+/g;
+
+interface OracionRango { desde: number; hasta: number }
+
+function partirEnOraciones(t: string): OracionRango[] {
+  const cortes: number[] = [];
+  RE_ORACION.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = RE_ORACION.exec(t)) !== null) cortes.push(m.index + m[0].length);
+  cortes.push(t.length);
+  const out: OracionRango[] = [];
+  let inicio = 0;
+  for (const fin of cortes) {
+    if (fin > inicio) out.push({ desde: inicio, hasta: fin });
+    inicio = fin;
+  }
+  return out;
+}
+
+/** ¿La oración normalizada contiene el átomo (prefijo con borde de palabra)? */
+function contieneAtomo(oracionNorm: string, atomo: string): boolean {
+  try {
+    return new RegExp(`\\b${atomo}`, "i").test(oracionNorm);
+  } catch {
+    return oracionNorm.includes(atomo);
+  }
+}
+
+export interface DesambiguacionTerminos {
+  /** puntos aportados por materia */
+  puntos: Map<SlugMateria, number>;
+  /** evidencia legible por término (para prompt/UI) */
+  evidencia: string[];
+  /** términos sin vecinos (abstención visible, NO suman) */
+  neutrales: string[];
+  /** menciones por término y materia */
+  senales: Array<{ slug: SlugMateria; nombre: string; menciones: number }>;
+  /** menciones NEGADAS por la oración ("no existe multa municipal") cuya
+   *  materia estaba clara por los vecinos: se anotan como negación de ESA
+   *  materia (la señal no suma y queda como evidencia visible). */
+  negadas: Array<{ slug: SlugMateria; nombre: string; menciones: number }>;
+}
+
+/** Fase I: resuelve cada término ambiguo con sus vecinos de oración.
+ *  La materia con MÁS átomos vecinos distintos gana la mención; empate
+ *  exacto cuenta para ambas (honestidad ante oraciones realmente mixtas).
+ *  Las menciones cubiertas por una negación de existencia no suman, pero si
+ *  sus vecinos revelaban la materia, se registran como negación de ella. */
+export function desambiguarTerminos(t: string, rangosNegacion: RangoNegacion[]): DesambiguacionTerminos {
+  const puntos = new Map<SlugMateria, number>();
+  const evidencia: string[] = [];
+  const neutrales: string[] = [];
+  const senales: Array<{ slug: SlugMateria; nombre: string; menciones: number }> = [];
+  const negadas: Array<{ slug: SlugMateria; nombre: string; menciones: number }> = [];
+  if (!t || !t.trim()) return { puntos, evidencia, neutrales, senales, negadas };
+  const oraciones = partirEnOraciones(t);
+  const oracionDe = (pos: number): string => {
+    const o = oraciones.find((r) => pos >= r.desde && pos < r.hasta);
+    return o ? t.slice(o.desde, o.hasta) : t.slice(Math.max(0, pos - 120), pos + 120);
+  };
+  for (const term of TERMINOS_AMBIGUOS) {
+    const re = new RegExp(term.re.source, "gi");
+    const porMateria = new Map<SlugMateria, number>();
+    const negadasPorMateria = new Map<SlugMateria, number>();
+    let neutras = 0;
+    for (const mm of t.matchAll(re)) {
+      const pos = mm.index ?? 0;
+      const esNegada = estadoEn(rangosNegacion, pos) === "NEGADA";
+      const oracion = oracionDe(pos);
+      const oracionNorm = oracion.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      let mejor: SlugMateria | null = null;
+      let mejorHits = 0;
+      let empate = false;
+      for (const [slug, atomos] of Object.entries(term.vecinos) as Array<[SlugMateria, string[]]>) {
+        const hits = atomos.filter((at) => contieneAtomo(oracionNorm, at)).length;
+        if (hits > mejorHits) { mejor = slug; mejorHits = hits; empate = false; }
+        else if (hits === mejorHits && hits > 0 && slug !== mejor) { empate = true; }
+      }
+      if (!mejor || mejorHits === 0) { neutras++; continue; }
+      const acreditadas: SlugMateria[] = empate
+        ? (Object.entries(term.vecinos) as Array<[SlugMateria, string[]]>)
+            .filter(([slug, atomos]) => atomos.some((at) => contieneAtomo(oracionNorm, at)))
+            .map(([slug]) => slug)
+        : [mejor];
+      for (const slug of acreditadas) {
+        if (esNegada) {
+          // "No existe multa municipal": la mención no suma, pero queda como
+          // negación de la materia que los vecinos revelaban.
+          negadasPorMateria.set(slug, (negadasPorMateria.get(slug) ?? 0) + 1);
+        } else {
+          porMateria.set(slug, (porMateria.get(slug) ?? 0) + term.peso);
+        }
+      }
+    }
+    for (const [slug, pts] of porMateria) {
+      puntos.set(slug, (puntos.get(slug) ?? 0) + pts);
+      const menciones = pts / term.peso;
+      senales.push({ slug, nombre: `ambiguo:${term.nombre}→${slug}`, menciones });
+      evidencia.push(`"${term.nombre}" en oración(es) de ${MATERIAS[slug].nombre}: +${pts} (vecinos desambiguan)`);
+    }
+    for (const [slug, n] of negadasPorMateria) {
+      negadas.push({ slug, nombre: `ambiguo:${term.nombre}→${slug}`, menciones: n });
+      evidencia.push(`"${term.nombre}" NEGADO en oración de ${MATERIAS[slug].nombre}: no suma (negación de existencia)`);
+    }
+    if (neutras > 0) {
+      neutrales.push(`"${term.nombre}" x${neutras} SIN vecinos de materia (${term.nota}): 0 puntos, no dispara materia`);
+    }
+  }
+  return { puntos, evidencia, neutrales, senales, negadas };
+}
+
 export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
   laboral: {
     slug: "laboral",
@@ -141,9 +363,14 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
     slug: "civil",
     nombre: "Civil",
     senales: [
-      s("procedimiento civil", "notificaci[o]?n de la demanda|contestaci[o]?n de la demanda|notificado|notificada|c[eé]dula|exhorto|rebeld[i]?a|providencia|medida precautoria", 2),
+      // Fase I: "notificado|notificada" migró a TERMINOS_AMBIGUOS (una
+      // notificación puede ser de demanda civil O de despido laboral); las
+      // frases completas siguen aquí.
+      s("procedimiento civil", "notificaci[o]?n de la demanda|contestaci[o]?n de la demanda|c[eé]dula|exhorto|rebeld[i]?a|providencia|medida precautoria", 2),
       s("juzgado civil", "juzgado de letras en lo civil|juzgado civil|s\\.?j\\.?l\\b.*civil|rito c-", 2),
-      s("obligaciones/CC", "codigo civil|art. 1543|articulo 1543|art. 2314|articulo 2314|incumplimiento|resoluci[o]?n del contrato|nulidad|usurpaci[o]?n|prescripci[o]?n (adquisitiva|extintiva)", 2),
+      // Fase I: "nulidad" sola migró a TERMINOS_AMBIGUOS ("nulidad del despido"
+      // es laboral; "nulidad del contrato/acto" es civil).
+      s("obligaciones/CC", "codigo civil|art. 1543|articulo 1543|art. 2314|articulo 2314|incumplimiento|resoluci[o]?n del contrato|usurpaci[o]?n|prescripci[o]?n (adquisitiva|extintiva)", 2),
       s("otros civil", "demanda|perjuicios|da[nf]os y perjuicios|indemnizaci[o]?n|contrato|arrendamiento|arriendo|pagar[eé]|cheque|t[ií]tulo ejecutivo|cobro|ejecutivo|fianza|hipoteca|usufructo|servidumbre|comunidad|partici[o]?n", 1),
     ],
     contexto: [
@@ -209,7 +436,10 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
     nombre: "Penal",
     senales: [
       s("procesal penal", "fiscal[ií]a|formalizaci[o]?n de la investigaci[o]?n|imputado|querellante|prisi[o]?n preventiva|sobreseimiento|defensor penal p[uú]blico|tribunal de juicio oral|tribunal de garant[ií]a", 3),
-      s("otros penal", "delito|querella|denuncia|pena|condena|absoluci[o]?n|dolo|culpa penal|codigo penal|cpp\\b|ley 19.696|ley 20.000|ley 20.084", 1),
+      // Fase I: "pena" y "denuncia" migraron a TERMINOS_AMBIGUOS ("cláusula
+      // penal" es civil; "denuncia interna" es laboral; "denuncia de hurto"
+      // es penal). La frase completa "codigo penal" sigue aquí.
+      s("otros penal", "delito|querella|condena|absoluci[o]?n|dolo|culpa penal|codigo penal|cpp\\b|ley 19.696|ley 20.000|ley 20.084", 1),
     ],
     contexto: [
       c("fiscalia+imputado", ["fiscalia", "imputado"], 8, 4),
@@ -260,7 +490,10 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
     nombre: "Constitucional",
     senales: [
       s("TC/CPR", "tribunal constitucional|inaplicabilidad|inconstitucionalidad|requerimiento de inaplicabilidad|auto acordado", 3),
-      s("otros constitucional", "derechos fundamentales|garant[ií]as constitucionales|art. 19|articulo 19|cpr\\b|constituci[o]?n pol[ií]tica|habeas corpus|amparo|protecci[o]?n constitucional", 1),
+      // Fase I: "derechos fundamentales" migró a TERMINOS_AMBIGUOS (con
+      // "tutela/trabajador/empleador" en la oración es laboral —tutela CT
+      // 485—; con "recurso/garantía/constitución" es constitucional).
+      s("otros constitucional", "garant[ií]as constitucionales|art. 19|articulo 19|cpr\\b|constituci[o]?n pol[ií]tica|habeas corpus|amparo|protecci[o]?n constitucional", 1),
     ],
     contexto: [
       c("recurso+proteccion", ["recurso", "proteccion"], 4, 3),
@@ -286,8 +519,11 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
     nombre: "Tránsito y Juzgado de Policía Local",
     senales: [
       s("Ley 18.290/JPL", "ley 18\\.290|juzgado de polic[ií]a local|polic[ií]a local|jpl\\b", 3),
-      s("infracciones de tránsito", "infracci[o]?n de tr[aá]nsito|multa|tag\\b|permiso de circulaci[o]?n|licencia de conducir|alcoholemia|conducci[o]?n en estado de ebriedad|curso de educaci[o]?n vial|suspensi[o]?n de licencia|boleta de citaci[o]?n|denuncia por accidente de tr[aá]nsito", 2),
-      s("accidentes de tránsito", "colisi[o]?n|choque|atropello|veh[ií]culo|autom[oó]vil|conductor|conduc[a-z]*", 1),
+      s("infracciones de tránsito", "infracci[o]?n de tr[aá]nsito|tag\\b|permiso de circulaci[o]?n|licencia de conducir|alcoholemia|conducci[o]?n en estado de ebriedad|curso de educaci[o]?n vial|suspensi[o]?n de licencia|boleta de citaci[o]?n|denuncia por accidente de tr[aá]nsito", 2),
+      // Fase I: "multa" ya no es señal (caso real: cláusula penal de
+      // construcción la disparaba). "conductor|conduc[a-z]*" migró a
+      // TERMINOS_AMBIGUOS ("conducta", "conducir negocios" no son tránsito).
+      s("accidentes de tránsito", "colisi[o]?n|choque|atropello|veh[ií]culo|autom[oó]vil", 1),
     ],
     contexto: [
       c("juzgado+policia+local", ["juzgado", "policia", "local"], 8, 4),
@@ -300,7 +536,6 @@ export const MATERIAS: Record<SlugMateria, MateriaConfig> = {
       c("ley+18290", ["ley", "18290"], 3, 4),
       c("boleta+citacion", ["boleta", "citacion"], 4, 3),
       c("permiso+circulacion", ["permiso", "circulacion"], 4, 3),
-      c("multa+conduc", ["multa", "conduc"], 6, 2),
     ],
     anclas: [
       a("TAG", "\\btag\\b"),
@@ -351,10 +586,24 @@ export interface ClasificacionMateria {
   incumplimientos: string[];
   /** señales negadas y positivas de la misma materia en el mismo texto */
   conflictos: string[];
+  /** Fase I: materias con evidencia FUERTE (señal peso>=3, contexto peso>=3
+   *  o ancla). Una materia secundaria sin evidencia fuerte es ruido de
+   *  palabras genéricas repetidas y NO se reporta como secundaria. */
+  materiasFuertes: SlugMateria[];
+  /** Fase I: evidencia de la desambiguación por oración (visible en prompt) */
+  ambiguos: { evidencia: string[]; neutrales: string[] };
+  /** Fase I: empate de puntos roto por señales directas fuertes (una señal
+   *  nombrada —"despido", "alcoholemia"— pesa más que una co-ocurrencia de
+   *  contexto cuando los puntos empatan). false = empate real → se abstiene. */
+  desempateDirecto: boolean;
 }
 
 /** Umbral mínimo de puntos para no clasificar con una sola palabra débil. */
 const UMBRAL_PUNTOS = 2;
+
+/** Fase I: peso mínimo de una señal/contexto para contar como evidencia
+ *  FUERTE de una materia (habilita secundarias; ver ClasificacionMateria). */
+const PESO_SENAL_FUERTE = 3;
 
 // ── Negación por oración (Fase D.3, v2) ────────────────────────────────────
 // Dos tipos de negación con efectos distintos:
@@ -526,6 +775,7 @@ const PESO_DEBILITADA = 0.25;
 export function clasificarMateria(texto: string): ClasificacionMateria {
   const vacio: ClasificacionMateria = {
     slug: null, scores: [], senales: [], margen: 0, negaciones: [], incumplimientos: [], conflictos: [],
+    materiasFuertes: [], ambiguos: { evidencia: [], neutrales: [] }, desempateDirecto: false,
   };
   if (!texto || !texto.trim()) return vacio;
   // sin tildes y minúsculas para que las señales sean robustas
@@ -533,9 +783,17 @@ export function clasificarMateria(texto: string): ClasificacionMateria {
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const { rangos, incumplimientos } = analizarNegacion(t);
   const { tokens, pos } = atomizarConPosiciones(t);
-  const senales: SenalDetectada[] = [];
+  // Fase I: términos ambiguos resueltos con sus vecinos de oración.
+  const amb = desambiguarTerminos(t, rangos);
+  const senales: SenalDetectada[] = [
+    ...amb.senales.map((x) => ({ ...x, estado: "POSITIVA" as EstadoSenal })),
+    ...amb.negadas.map((x) => ({ ...x, estado: "NEGADA" as EstadoSenal })),
+  ];
   const negaciones: string[] = [];
   const conflictos: string[] = [];
+  const fuertes = new Set<SlugMateria>();
+  // Señales directas fuertes por materia (para el desempate de empates).
+  const fuertesDirectas = new Map<SlugMateria, number>();
   const puntosPorMateria = new Map<SlugMateria, number>();
 
   for (const cfg of Object.values(MATERIAS)) {
@@ -549,9 +807,22 @@ export function clasificarMateria(texto: string): ClasificacionMateria {
       for (const mm of t.matchAll(re)) {
         const est = estadoEn(rangos, mm.index ?? 0);
         if (est === "NEGADA") neg++;
-        else if (est === "DEBILITADA") { deb++; men++; puntos += sen.peso * PESO_DEBILITADA; }
-        else { men++; puntos += sen.peso; }
+        else if (est === "DEBILITADA") { deb++; men++; }
+        else men++;
       }
+      // Fase I — tope por familia: una señal NO crece lineal con las menciones
+      // ("demanda" x5 valía 5 puntos y fabricaba secundarias fantasma). La 1ª
+      // mención suma plena, las siguientes aportan 15% c/u con tope +1; una
+      // debilitada suma una sola vez al 25%.
+      const plenas = men - deb;
+      if (plenas > 0) {
+        puntos += sen.peso + Math.min(1, 0.15 * (plenas - 1));
+        if (sen.peso >= PESO_SENAL_FUERTE) {
+          fuertes.add(cfg.slug);
+          fuertesDirectas.set(cfg.slug, (fuertesDirectas.get(cfg.slug) ?? 0) + 1);
+        }
+      }
+      if (deb > 0) puntos += sen.peso * PESO_DEBILITADA;
       if (men > 0) {
         senales.push({ slug: cfg.slug, nombre: sen.nombre, menciones: men, estado: deb > 0 ? "DEBILITADA" : "POSITIVA" });
         positivas.push(`${sen.nombre} x${men}${deb > 0 ? " (debilitada)" : ""}`);
@@ -582,6 +853,7 @@ export function clasificarMateria(texto: string): ClasificacionMateria {
         positivas.push(`${nombre} (debilitada)`);
       } else {
         activas.push(regla.peso);
+        if (regla.peso >= PESO_SENAL_FUERTE) fuertes.add(cfg.slug);
         senales.push({ slug: cfg.slug, nombre, menciones: 1, estado: "POSITIVA" });
         positivas.push(nombre);
       }
@@ -608,6 +880,16 @@ export function clasificarMateria(texto: string): ClasificacionMateria {
       }
     }
     puntos += Math.min(puntosAnclas, TOPE_ANCLAS);
+    if (puntosAnclas > 0) fuertes.add(cfg.slug);
+    // Fase I: aporte de los términos ambiguos desambiguados por oración
+    // (multa→civil/transito/laboral/administrativo según vecinos, etc.).
+    puntos += amb.puntos.get(cfg.slug) ?? 0;
+    // Fase I: menciones ambiguas NEGADAS ("no existe multa municipal") cuentan
+    // como negación de la materia que sus vecinos revelaban: no suman y la
+    // materia no puede ganar por corpus con esa señal anulada.
+    for (const n of amb.negadas) {
+      if (n.slug === cfg.slug) negadas.push(`${n.nombre} x${n.menciones}`);
+    }
     if (negadas.length) {
       negaciones.push(`${MATERIAS[cfg.slug].nombre}: ${negadas.join(", ")} (negado en el texto: no suma)`);
       if (puntos > 0) {
@@ -616,14 +898,30 @@ export function clasificarMateria(texto: string): ClasificacionMateria {
     }
     if (puntos > 0) puntosPorMateria.set(cfg.slug, puntos);
   }
+  // Fase I: orden determinista — a puntos iguales, primero la materia con más
+  // señales DIRECTAS fuertes (una señal nombrada pesa más que co-ocurrencias).
+  const fd = (slug: SlugMateria) => fuertesDirectas.get(slug) ?? 0;
   const scores = Array.from(puntosPorMateria.entries())
     .map(([slug, puntos]) => ({ slug, puntos }))
-    .sort((a, b) => b.puntos - a.puntos);
+    .sort((a, b) => b.puntos - a.puntos || fd(b.slug) - fd(a.slug));
+  const desempateDirecto = !!(scores.length > 1
+    && scores[0].puntos === scores[1].puntos
+    && fd(scores[0].slug) > fd(scores[1].slug));
   if (!scores.length || scores[0].puntos < UMBRAL_PUNTOS) {
-    return { ...vacio, senales, scores, negaciones, incumplimientos, conflictos };
+    return {
+      ...vacio, senales, scores, negaciones, incumplimientos, conflictos,
+      materiasFuertes: Array.from(fuertes),
+      ambiguos: { evidencia: amb.evidencia, neutrales: amb.neutrales },
+      desempateDirecto,
+    };
   }
   const margen = scores.length > 1 ? scores[0].puntos - scores[1].puntos : scores[0].puntos;
-  return { slug: scores[0].slug, scores, senales, margen, negaciones, incumplimientos, conflictos };
+  return {
+    slug: scores[0].slug, scores, senales, margen, negaciones, incumplimientos, conflictos,
+    materiasFuertes: Array.from(fuertes),
+    ambiguos: { evidencia: amb.evidencia, neutrales: amb.neutrales },
+    desempateDirecto,
+  };
 }
 
 /** Puntos mínimos para que la detección imponga materia: una señal fuerte
@@ -649,8 +947,10 @@ export interface SoporteCorpusMateria {
  *  desempate. La discrepancia se anota como conflicto visible (nunca bloqueo). */
 export interface ResolucionMateria {
   slug: SlugMateria | null;      // materia que GOBIERNA la recuperación
-  /** "corpus" = el regex/ventana se abstuvo y desempató el corpus. */
-  origen: "declarada" | "senales" | "corpus" | "indeterminada";
+  /** "corpus" = el regex/ventana se abstuvo y desempató el corpus.
+   *  "llm" = Fase I: el determinista dudó y un LLM con salida JSON estructurada
+   *  clasificó el relato (confianza y razones visibles en advertencia). */
+  origen: "declarada" | "senales" | "corpus" | "indeterminada" | "llm";
   conflicto: string | null;      // anotación visible si declarada != señales
   /** [VERIFICAR] por señales débiles o empate de materias */
   advertencia: string | null;
@@ -685,18 +985,24 @@ export function resolverMateria(
     ? `${neg.length ? ` Negación detectada: ${neg.join("; ")}.${clas.conflictos.length ? ` ${clas.conflictos.join("; ")}` : ""}` : ""}${clas.incumplimientos.length ? ` Incumplimientos afirmados (el hecho existe, la señal se mantiene): ${clas.incumplimientos.join("; ")}.` : ""}`
     : "";
   const advertenciaNegacion = neg.length ? `negacion_detectada:${notaNegacion}` : null;
-  // Concluyente = hay una materia detectada, un primer lugar único (margen > 0)
-  // y al menos una señal fuerte. Un empate (margen 0) o solo señales débiles
+  // Concluyente = hay una materia detectada, un primer lugar único (margen > 0
+  // o empate roto por señales directas fuertes —Fase I) y al menos una señal
+  // fuerte. Un empate real (margen 0 sin desempate) o solo señales débiles
   // (< 3 puntos) no bastan para que la plataforma imponga materia.
-  const decidida = !!detectada && clas.margen > 0 && top >= PUNTOS_MIN_DECISION;
+  const decidida = !!detectada && (clas.margen > 0 || clas.desempateDirecto) && top >= PUNTOS_MIN_DECISION;
   const conteo = (slug: SlugMateria) =>
     clas.senales.filter(x => x.slug === slug).map(x => `${x.nombre} x${x.menciones}`).join(", ");
   const notaDebil = (slug: SlugMateria) =>
     `señales débiles de "${MATERIAS[slug].nombre}" (${conteo(slug)}; ${top} puntos, margen ${clas.margen})`;
   // Casos mixtos: segunda materia con señales reales. Se recupera su corpus
   // como apoyo y se anota; no gobierna ni el caso ni los plazos.
+  // Fase I: además de puntos, la secundaria exige evidencia FUERTE de esa
+  // materia (señal peso>=3, contexto peso>=3 o ancla). Sin ella, el segundo
+  // lugar es solo palabras genéricas repetidas ("demanda", "contrato") y NO
+  // se reporta: eso fabricaba secundarias Tránsito/Penal fantasma.
   const secundaria: SlugMateria | null =
     detectada && clas.scores[1] && clas.scores[1].puntos >= UMBRAL_PUNTOS
+      && clas.materiasFuertes.includes(clas.scores[1].slug)
       ? clas.scores[1].slug
       : null;
   const notaSecundaria = secundaria
@@ -719,10 +1025,12 @@ export function resolverMateria(
   const notaCorpus = (s: SoporteCorpusMateria) =>
     `soporte_corpus: el corpus de "${MATERIAS[s.slug].nombre}" cubre ${s.cobertura.toFixed(2)} del peso del relato (ficha: ${s.evidencia ?? "sin ficha"}). Es una sugerencia léxica, no una probabilidad: confirma la materia.`;
 
-  // Sin área declarada: decide la detección si hay una materia con margen > 0;
-  // si empata o no hay señales, desempata el corpus; si tampoco, indeterminada.
+  // Sin área declarada: decide la detección si hay una materia con margen > 0
+  // (o empate roto por evidencia directa); si empata de verdad, desempata el
+  // corpus; si tampoco, indeterminada (y el orquestador híbrido consulta el
+  // respaldo LLM).
   if (!declarada) {
-    if (detectada && clas.margen > 0) {
+    if (detectada && (clas.margen > 0 || clas.desempateDirecto)) {
       return {
         slug: detectada,
         origen: "senales",
@@ -828,7 +1136,9 @@ export function lineaMateriaPrompt(r: ResolucionMateria): string {
       ? "declarada por el usuario (la plataforma no encontró señales concluyentes de otra materia)"
       : r.origen === "corpus"
         ? "sugerida por el corpus (BM25 normalizado) tras abstenerse las señales: requiere confirmación"
-        : "indeterminada (señales insuficientes o empatadas)";
+        : r.origen === "llm"
+          ? "clasificada por el modelo de respaldo (JSON estructurado) tras abstenerse o empatar las señales deterministas"
+          : "indeterminada (señales insuficientes o empatadas)";
   const detalle = r.clasificacion.scores.length
     ? ` Señales crudas: ${r.clasificacion.scores.map(x => `${MATERIAS[x.slug].nombre}=${x.puntos}`).join(", ")}.`
     : " Sin señales de materia en el texto.";
@@ -844,5 +1154,8 @@ export function lineaMateriaPrompt(r: ResolucionMateria): string {
   const incumplimientos = r.clasificacion.incumplimientos.length
     ? `\n[HECHO AFIRMADO] ${r.clasificacion.incumplimientos.join("; ")}.`
     : "";
-  return `MATERIA QUE GOBIERNA ESTE CASO: ${goberna} (${origen}).${detalle}${r.conflicto ? `\n[ANOTACIÓN] ${r.conflicto}` : ""}${secundaria}${corpus}${negacion}${incumplimientos}${r.advertencia ? `\n[VERIFICAR] ${r.advertencia}` : ""}`;
+  const ambiguos = r.clasificacion.ambiguos.neutrales.length
+    ? `\n[TÉRMINOS NEUTROS] ${r.clasificacion.ambiguos.neutrales.join("; ")}. Esas palabras NO inclinan la materia por sí solas.`
+    : "";
+  return `MATERIA QUE GOBIERNA ESTE CASO: ${goberna} (${origen}).${detalle}${r.conflicto ? `\n[ANOTACIÓN] ${r.conflicto}` : ""}${secundaria}${corpus}${negacion}${incumplimientos}${ambiguos}${r.advertencia ? `\n[VERIFICAR] ${r.advertencia}` : ""}`;
 }

@@ -37,27 +37,132 @@ const NORMAS: Record<string, { nombre: string; re: RegExp }> = {
   L18290: { nombre: "Ley 18.290 (tránsito)", re: /Ley\s*18\.?\s?290/i },
 };
 
-const ACCIONES: Array<{ nombre: string; re: RegExp }> = [
+// ── Fase I: acciones con desambiguación por ORACIÓN ─────────────────────────
+// Una acción ya no se dispara por una palabra suelta: si el patrón es
+// ambiguo ("multa", "monitorio", "contratista", "tutela", "acoso"), exige
+// átomos vecinos en la misma oración (o en la inmediatamente anterior/
+// posterior) que confirmen de qué acción se trata, y puede vetarse si
+// aparecen átomos que revelan otro sentido ("lucro cesante" veta el
+// monitorio de arrendamiento: "rentas de arrendamiento NO PERCIBIDAS" es
+// lucro cesante de un caso de construcción, no un desalojo).
+// Corrige el caso real: la demanda de construcción activaba "monitorio de
+// arrendamiento" (por "rentas de arrendamiento") y "multa de tránsito"
+// (por la cláusula penal).
+
+interface AccionRule {
+  nombre: string;
+  re: RegExp;
+  /** átomos (prefijos sin tilde) que DEBEN aparecer en la oración del match
+   *  o en sus adyacentes (alguno basta). Sin ellos el match es NEUTRO. */
+  requiere?: string[];
+  /** si alguno aparece en la MISMA oración del match, NO es esta acción. */
+  veta?: string[];
+}
+
+const ACCIONES: AccionRule[] = [
+  // ── Inconfundibles: la frase completa solo existe en esa acción ──────────
   { nombre: "nulidad del despido", re: /nulidad del despido|art\.?\s*162|162 inciso/gi },
-  { nombre: "despido injustificado", re: /despido(?:\s+(?:injustificad|sin\s+caus)|\s*unilateral)|art\.?\s*16[1571]|constituye causa/gi },
-  { nombre: "tutela de derechos fundamentales", re: /tutela(?:\s+(?:laboral|de\s+derechos))?|art\.?\s*48[56]/gi },
-  { nombre: "Ley Karin", re: /karin|21\.?643|acoso (sexual|laboral)|hostigamiento/gi },
-  { nombre: "cobro de cotizaciones previsionales", re: /cotizaciones\s+previsionales|cobro\s+previsional|fondos de compensación/gi },
+  { nombre: "despido injustificado", re: /despido(?:\s+(?:injustificad|sin\s+caus)|\s*unilateral)|constituye causa/gi },
+  { nombre: "cobro de cotizaciones previsionales", re: /cotizaciones\s+previsionales|cobro\s+previsional|fondos de compensaci[oó]n/gi },
   { nombre: "indemnización por años de servicio", re: /indemnizaci[oó]n por a[ñn]os de servicio|30\s+d[íi]as\s+de\s+la\s+(?:[úu]ltima\s+)?remuneraci/gi },
-  { nombre: "daño moral laboral", re: /da[ñn]o moral|perjuicio moral/gi },
-  { nombre: "fuero maternal", re: /fuero (maternal|paternal)|desafuero|protecci[oó]n a la maternidad/gi },
-  { nombre: "contrata/mandante", re: /mandante|contratista|subcontrata|due[ñn]a de la obra/gi },
-  { nombre: "prácticas antisindicales", re: /pr[áa]cticas antisindicales|sindical/gi },
-  { nombre: "procedimiento monitorio de arrendamiento", re: /monitorio|18\.?\s?101|arrendamiento/gi },
-  { nombre: "excepción de contrato no cumplido", re: /contrato\s+no\s+cumplido|exceptio\s+non\s+adimpleti|art\.?\s*1552/gi },
+  { nombre: "fuero maternal", re: /fuero (?:maternal|paternal)|desafuero/gi },
+  { nombre: "prácticas antisindicales", re: /pr[áa]cticas antisindicales/gi },
   { nombre: "mandamiento de ejecución y embargo", re: /mandamiento\s+de\s+ejecuci[oó]n|desp[aá]chese\s+mandamiento|ejecuci[oó]n\s+y\s+embargo/gi },
   { nombre: "nulidad de lo obrado", re: /nulidad\s+de\s+lo\s+obrado/gi },
-  { nombre: "apelación", re: /apelaci/gi },
-  { nombre: "prescripción de la acción", re: /prescripci/gi },
-  { nombre: "multa / infracción de tránsito", re: /infracci[oó]n(?:es)?\s+(?:de|al)\s+tr[aá]nsito|juzgado\s+de\s+polic[ií]a\s+local|boleta\s+de\s+citaci|lem|multa\s+(?:de\s+)?tr[aá]nsito/gi },
   { nombre: "pensión de alimentos", re: /pensi[oó]n\s+de\s+alimentos|alimentos\s+provisorios/gi },
-  { nombre: "desahucio / precario", re: /desahucio|precario|desalojo/gi },
+  { nombre: "indemnización de daño moral", re: /da[ñn]o moral|perjuicio moral/gi },
+  { nombre: "Ley Karin", re: /karin|21\.?\s?643/gi },
+  // ── Ambiguas: exigen vecinos en la oración ────────────────────────────────
+  { nombre: "tutela de derechos fundamentales",
+    re: /tutela|art\.?\s*48[56]/gi,
+    requiere: ["laboral", "trabaj", "empleador", "remuner", "sueldo", "jornada", "sindicat", "485", "486"] },
+  { nombre: "acoso laboral / hostigamiento (Ley Karin)",
+    re: /acoso|hostigamiento/gi,
+    requiere: ["laboral", "trabaj", "empleador", "jefe", "jefa", "oficina", "empresa", "supervisor", "coleg"],
+    veta: ["escolar"] },
+  { nombre: "responsabilidad subsidiaria contratista/mandante (art. 64 CT)",
+    re: /contratistas?|subcontrat\w*|mandantes?|due[ñn]a de la obra/gi,
+    requiere: ["trabajador", "trabajador", "sueldo", "remuneraci", "faena", "cotizaci", "inspecci"] },
+  { nombre: "procedimiento monitorio de arrendamiento (Ley 18.101)",
+    re: /monitorio|18\.?\s?101|restituci[oó]n del (?:inmueble|local)|desahuci[oó]\s+de\s+arrendamiento/gi,
+    requiere: ["arrend", "inquilin", "renta"],
+    veta: ["lucro", "no percibid", "perdid", "cesante"] },
+  { nombre: "excepción de contrato no cumplido",
+    re: /contrato\s+no\s+cumplido|exceptio\s+non\s+adimpleti/gi,
+    requiere: ["contrat", "incumpl", "obligaci"] },
+  { nombre: "recurso de apelación",
+    re: /apelaci[oó]n|apelar/gi,
+    requiere: ["sentenci", "resoluci[oó]n", "medida", "juzgado", "tribunal", "condena", "multa", "transit", "jpl", "corte"] },
+  { nombre: "multa / infracción de tránsito (JPL)",
+    re: /infracci[oó]n(?:es)?|multa|boleta\s+de\s+citaci/gi,
+    requiere: ["transit", "jpl", "polic[ií]a local", "policia local", "licenc", "tag", "permiso de circulaci", "ebried", "alcohol", "veh[ií]cul", "conduc"] },
+  { nombre: "desahucio / restitución por precario",
+    re: /desahuci|desaloj|precario/gi,
+    requiere: ["arriend", "arrend", "inquilin", "local", "viviend", "casa", "restituci"] },
+  { nombre: "prescripción (defensa o excepción)",
+    re: /prescripci/gi },
 ];
+
+/** Oración con su rango en el texto crudo (para ubicar cada match). */
+interface OracionCruda { desde: number; hasta: number; norm: string }
+
+function partirTextoEnOraciones(texto: string): OracionCruda[] {
+  const out: OracionCruda[] = [];
+  const re = /[.!?\n;]+/g;
+  let inicio = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(texto)) !== null) {
+    const fin = m.index + m[0].length;
+    if (fin > inicio) {
+      const seg = texto.slice(inicio, fin);
+      if (seg.trim()) out.push({ desde: inicio, hasta: fin, norm: quitarAcentos(seg).toLowerCase() });
+    }
+    inicio = fin;
+  }
+  if (inicio < texto.length) {
+    const seg = texto.slice(inicio);
+    if (seg.trim()) out.push({ desde: inicio, hasta: texto.length, norm: quitarAcentos(seg).toLowerCase() });
+  }
+  return out;
+}
+
+/** ¿La oración (ya normalizada) contiene el átomo como prefijo de palabra? */
+function tieneAtomo(norm: string, atomo: string): boolean {
+  try { return new RegExp(`\\b${atomo}`, "i").test(norm); }
+  catch { return norm.includes(atomo); }
+}
+
+/** Evalúa las acciones con vecinos: cada match del patrón se confirma (o se
+ *  descarta) mirando su oración y las adyacentes. Devuelve hasta 3 acciones
+ *  confirmadas, ordenadas por matches confirmados. */
+function detectarAcciones(texto: string): string[] {
+  const oraciones = partirTextoEnOraciones(texto);
+  if (!oraciones.length) return [];
+  const idxOracion = (pos: number): number => {
+    for (let i = 0; i < oraciones.length; i++) {
+      if (pos >= oraciones[i].desde && pos < oraciones[i].hasta) return i;
+    }
+    return -1;
+  };
+  const resultados: Array<{ nombre: string; hits: number }> = [];
+  for (const acc of ACCIONES) {
+    const re = new RegExp(acc.re.source, "gi");
+    let hits = 0;
+    for (const mm of texto.matchAll(re)) {
+      const i = idxOracion(mm.index ?? 0);
+      if (i < 0) continue;
+      // Ámbito de vecinos: la oración del match ± las adyacentes inmediatas.
+      const ambito = [oraciones[i - 1], oraciones[i], oraciones[i + 1]]
+        .filter(Boolean).map((o) => o!.norm).join(" ");
+      const misma = oraciones[i].norm;
+      if (acc.veta && acc.veta.some((v) => tieneAtomo(misma, v))) continue; // otro sentido
+      if (acc.requiere && !acc.requiere.some((r) => tieneAtomo(ambito, r))) continue; // sin vecinos: neutro
+      hits++;
+    }
+    if (hits > 0) resultados.push({ nombre: acc.nombre, hits });
+  }
+  return resultados.sort((a, b) => b.hits - a.hits).slice(0, 3).map((r) => r.nombre);
+}
 
 // Encabezados reales de escritos chilenos. El emparejamiento es sobre texto
 // sin acentos y en mayusculas para tolerar ESCRITO/mixto.
@@ -201,15 +306,8 @@ export function extraerChileno(textoCrudo: string): ExtractoChileno {
     const jzM = texto.match(/\b(?:S\.?J\.?L\.?\s+(?:del\s+)?(?:Trabajo|Laboral)[^,\n]{0,40}|Juzgado\s+(?:de\s+)?(?:Letras\s+)?(?:del\s+)?(?:Trabajo|Laboral|de\s+Letras[^,\n]{0,40}))/i);
     const juzgado = jzM ? jzM[0].trim().replace(/\s+/g, " ") : "";
 
-    // ── Acciones detectadas (hasta 3, por frecuencia de matches) ───────────
-    const acciones = ACCIONES.map((a) => ({
-      nombre: a.nombre,
-      hits: (texto.match(new RegExp(a.re.source, "gi")) || []).length,
-    }))
-      .filter((a) => a.hits > 0)
-      .sort((x, y) => y.hits - x.hits)
-      .slice(0, 3)
-      .map((a) => a.nombre);
+    // ── Acciones detectadas (hasta 3, confirmadas por vecinos de oración) ──
+    const acciones = detectarAcciones(texto);
 
     return {
       secciones,

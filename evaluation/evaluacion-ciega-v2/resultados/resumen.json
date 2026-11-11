@@ -1,0 +1,49 @@
+{
+  "incorrecto": 10,
+  "correcto_con_ajustes": 6,
+  "total": 16,
+  "areaCorrecta": 16,
+  "areaIncorrecta": 0,
+  "conSenalesEquivocadas": 5,
+  "detalleSenalesEquivocadas": [
+    {
+      "id": "A005",
+      "areaEsperada": "civil",
+      "senales": [
+        "materiaSecundaria=tránsito (¡caso civil!)"
+      ]
+    },
+    {
+      "id": "A009",
+      "areaEsperada": "civil",
+      "senales": [
+        "materiaSecundaria=tránsito (¡caso civil!)"
+      ]
+    },
+    {
+      "id": "A010",
+      "areaEsperada": "civil",
+      "senales": [
+        "materiaSecundaria=tránsito (¡caso civil!)"
+      ]
+    },
+    {
+      "id": "A011",
+      "areaEsperada": "civil",
+      "senales": [
+        "materiaSecundaria=tránsito (¡caso civil!)"
+      ]
+    },
+    {
+      "id": "A012",
+      "areaEsperada": "civil",
+      "senales": [
+        "materiaSecundaria=tránsito (¡caso civil!)"
+      ]
+    }
+  ],
+  "conVerificar": 0,
+  "normasCorrectas": 0,
+  "normasCompatibles": 0,
+  "normasIncorrectas": 10
+}

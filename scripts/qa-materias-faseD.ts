@@ -110,13 +110,18 @@ chk("20 señales débiles: se mantiene la declarada + conflicto", r20.slug === "
 // 21. sin área + señal débil => detecta pero con advertencia [VERIFICAR].
 const r21 = M.resolverMateria(null, "Me pusieron una multa por estacionar mal.");
 chk("21 sin área + señales débiles => detecta con advertencia", r21.slug === "transito" && r21.origen === "senales" && !!r21.advertencia && r21.advertencia.includes("materia_sugerida"), r21);
-// 22. empate de señales sin área => indeterminada (no se inventa materia).
-//     "Despido" (3) vs "cédula"(2)+"demanda"(1): sin regla de contexto que desempate.
+// 22. Fase I: empate de PUNTOS con señal directa fuerte de un lado => gana la
+//     materia con la señal nombrada (desempateDirecto), no se abstiene.
+//     "Despido" (señal directa peso 3, laboral) vs "cédula"(2)+"demanda"(1)
+//     (civil, sin señal directa fuerte): laboral decide. Un empate REAL sin
+//     señales directas (solo anclas/co-ocurrencias, como el dorado X2) sigue
+//     absteniéndose — ese caso lo cubre X2-empate-estructural.
 const r22 = M.resolverMateria(null, "Despido. Cédula. Demanda.");
-chk("22 empate sin área => indeterminada con advertencia", r22.slug === null && r22.origen === "indeterminada" && !!r22.advertencia && r22.advertencia.includes("materia_ambigua"), r22);
-// 23. empate con área declarada => la declarada desempata (anotado).
+chk("22 empate roto por señal directa => laboral (desempateDirecto)", r22.slug === "laboral" && r22.origen === "senales" && r22.clasificacion.desempateDirecto === true, r22);
+// 23. Fase I: empate roto por señal directa + área declarada distinta =>
+//     la plataforma decide la del texto y lo anota (igual que caso 6).
 const r23 = M.resolverMateria("civil", "Despido. Cédula. Demanda.");
-chk("23 empate con declarada => desempata la declarada", r23.slug === "civil" && r23.origen === "declarada" && !!r23.conflicto, r23);
+chk("23 empate directo con declarada => plataforma decide la señal directa + conflicto", r23.slug === "laboral" && r23.origen === "senales" && !!r23.conflicto && r23.conflicto.includes("materia_decidida_por_plataforma"), r23);
 
 // ── Fase D.3: negación por oración (el "no" no suma materia) ────────────────
 // 24. "No hubo despido, sino un accidente": el despido NO suma laboral.

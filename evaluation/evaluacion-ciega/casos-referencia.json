@@ -1,0 +1,259 @@
+[
+  {
+    "id": "E001",
+    "areaEsperada": "laboral",
+    "institucion": "El Principio Protector y sus Tres Vertientes Dogmáticas",
+    "falloRector": "12450-2020",
+    "normasEsperadas": [
+      "Código del Trabajo, Art. 5",
+      "Código del Trabajo, Art. 7"
+    ],
+    "relato": "En mi trabajo mi supervisor me trata mal constantemente, me humilla delante de mis compañeros. Quiero saber si eso es legal y qué opciones tengo.",
+    "definicionOriginal": "Matriz tutelar orientada a compensar la asimetría sustantiva y económica inherente al vínculo entre el titular del capital (empleador) y el trabajador subordinado.",
+    "contenidoOriginal": "**Definición Canónica:**  \nMatriz tutelar orientada a compensar la asimetría sustantiva y económica inherente al vínculo entre el titular del capital (empleador) y el trabajador subordinado.\n\n**Las Tres Reglas Operativas (Gamonal Contreras):**\n1. **Regla de la Norma Más Favorable:** Ante la concurrencia de dos o más fuentes formales aplicables al mismo caso, el juez debe optar por aquella que reconozca mayores beneficios o protecciones al trabajador, con independencia de su jerarquía formal formalista.\n2. **Regla de la Condición Más Beneficiosa:** La entrada en vigencia de una nueva ley, reglamento o convención colectiva no puede suprimir válidamente beneficios ya devengados o incorporados de manera contractual expresa o tácita al patrimonio del dependiente.\n3. **Regla In Dubio Pro Operari",
+    "operativaProcesal": ""
+  },
+  {
+    "id": "E002",
+    "areaEsperada": "laboral",
+    "institucion": "Principio de Primacía de la Realidad",
+    "falloRector": "33102-2019",
+    "normasEsperadas": [
+      "Código del Trabajo, Art. 7",
+      "Código del Trabajo, Art. 8"
+    ],
+    "relato": "En mi contrato dice que soy independiente pero en la práctica mi jefe me controla horario, me da órdenes y me evalúa como a un empleado más.",
+    "definicionOriginal": "Directriz conforme a la cual, en caso de discordancia entre lo que ocurre en el plano de los hechos fácticos y lo que se encuentra consignado formalmente en documentos, contratos o boletas de honorarios civiles, prevalecen irrestrictamente los hechos verdaderos.",
+    "contenidoOriginal": "**Definición Canónica:**  \nDirectriz conforme a la cual, en caso de discordancia entre lo que ocurre en el plano de los hechos fácticos y lo que se encuentra consignado formalmente en documentos, contratos o boletas de honorarios civiles, prevalecen irrestrictamente los hechos verdaderos.\n\n**Efecto Desvirtuador de la Simulación:**\n* La suscripción formal de contratos civiles de prestación de servicios a honorarios no obsta a la declaración judicial de existencia de una relación laboral cuando se constatan indicios continuos de subordinación y dependencia (Art. 8 inc. 1 CT).\n\n**Concordancias Legales:** `[BCN - Código del Trabajo, Art. 7]` `[BCN - Código del Trabajo, Art. 8]`  \n**Criterio Jurisprudencial Rector:** `[CS - Rol N° 33.102-2019, Fecha: 14-04-2020]`",
+    "operativaProcesal": ""
+  },
+  {
+    "id": "E003",
+    "areaEsperada": "laboral",
+    "institucion": "Terminación por Necesidades de la Empresa (Art. 161 CT) y Descuento AFC",
+    "falloRector": "28321-2021",
+    "normasEsperadas": [
+      "Código del Trabajo, Art. 161",
+      "Código del Trabajo, Art. 168",
+      "Ley N° 19.728, Art. 13"
+    ],
+    "relato": "Mi empleador me despidió. Recibí una carta hace unos días pero no estoy de acuerdo con lo que dice. Trabajé ahí varios años y siento que no fue justo. ¿Qué puedo hacer?",
+    "definicionOriginal": "Mecanismo objetivo de desvinculación fundado en razones técnicas, económicas o estructurales insuperables que hacen forzoso prescindir del puesto de trabajo para asegurar la continuidad de la empresa.",
+    "contenidoOriginal": "**Definición Canónica:**  \nMecanismo objetivo de desvinculación fundado en razones técnicas, económicas o estructurales insuperables que hacen forzoso prescindir del puesto de trabajo para asegurar la continuidad de la empresa.\n\n**Requisitos Copulativos de Validez Dogmática:**\n1. **Objetividad:** Debe emanar de factores externos objetivos y verificables contablemente (no por el mero arbitrio subjetivo del empleador).\n2. **Gravedad y Permanencia:** No cabe fundar el despido en bajas temporales de producción ni en conveniencias contingentes; debe acreditarse un cambio sustantivo y duradero.\n3. **Ineludibilidad:** La desvinculación debe ser la última medida razonable (*última ratio*).\n\n**Doctrina Unificada sobre el Descuento AFC (Ley N° 19.728, Art. 13):**\n* Si el despido por el Art. 161 inc.",
+    "operativaProcesal": ""
+  },
+  {
+    "id": "E004",
+    "areaEsperada": "laboral",
+    "institucion": "Procedimiento de Tutela Laboral y Derechos Fundamentales (Art. 485 CT)",
+    "falloRector": "15892-2018",
+    "normasEsperadas": [
+      "Código del Trabajo, Art. 485",
+      "Código del Trabajo, Art. 486",
+      "Código del Trabajo, Art. 489",
+      "Código del Trabajo, Art. 493",
+      "CPR, Art. 19 N° 1",
+      "CPR, Art. 19 N° 4"
+    ],
+    "relato": "Mi empleador me despidió. Recibí una carta hace unos días pero no estoy de acuerdo con lo que dice. Trabajé ahí varios años y siento que no fue justo. ¿Qué puedo hacer?",
+    "definicionOriginal": "Mecanismo preferente, oral y sumario concebido para salvaguardar los derechos fundamentales del trabajador garantizados en la Constitución cuando son vulnerados con ocasión de la relación laboral o en el acto del despido (*eficacia horizontal o inter privatos de los derechos fundamentales / ciudadan",
+    "contenidoOriginal": "**Definición Canónica:**  \nMecanismo preferente, oral y sumario concebido para salvaguardar los derechos fundamentales del trabajador garantizados en la Constitución cuando son vulnerados con ocasión de la relación laboral o en el acto del despido (*eficacia horizontal o inter privatos de los derechos fundamentales / ciudadanía en la empresa*).\n\n**Garantías Constitucionales Protegidas (Art. 485 inc. 1 y 2 CT):**\n* Integridad física y psíquica (Art. 19 N° 1 CPR).\n* Vida privada y honra de la persona y de su familia (Art. 19 N° 4 CPR).\n* Inviolabilidad de las comunicaciones privadas (Art. 19 N° 5 CPR).\n* Libertad de conciencia y opinión (Art. 19 N° 6 y N° 12 CPR).\n* Libertad de trabajo y prohibición de actos discriminatorios graves (Art. 19 N° 16 CPR y Art. 2 CT).\n* Garantía de indemnidad: p",
+    "operativaProcesal": "* **Vía Procesal:** Procedimiento de Tutela Laboral (Arts. 485 al 495 del Código del Trabajo). Proceso oral, preferente y concentrado en dos audiencias: Audiencia Preparatoria y Audiencia de Juicio.\n* **Tribunal Competente:** Juzgado de Letras del Trabajo del domicilio del demandado o del lugar donde se prestaron los servicios, a elección del trabajador demandante (Art. 423 CT).\n* **Legitimación P"
+  },
+  {
+    "id": "E005",
+    "areaEsperada": "laboral",
+    "institucion": "El Alivio Probatorio de Indicios (Art. 493 CT)",
+    "falloRector": "23410-2020",
+    "normasEsperadas": [
+      "Código del Trabajo, Art. 493",
+      "Código de Procedimiento Civil, Art. 1698"
+    ],
+    "relato": "En mi trabajo mi supervisor me trata mal constantemente, me humilla delante de mis compañeros. Quiero saber si eso es legal y qué opciones tengo.",
+    "definicionOriginal": "Regla procesal probatoria específica de tutela laboral conforme a la cual el trabajador no está obligado a rendir plena prueba directa del acto lesivo, bastando aportar indicios razonables y concordantes que generen verosimilitud de la vulneración.",
+    "contenidoOriginal": "**Definición Canónica:**  \nRegla procesal probatoria específica de tutela laboral conforme a la cual el trabajador no está obligado a rendir plena prueba directa del acto lesivo, bastando aportar indicios razonables y concordantes que generen verosimilitud de la vulneración.\n\n**Inversión de la Carga de la Prueba:**\n* Acreditada la presencia de indicios suficientes por el actor, recae sobre el empleador el deber procesal de **probar que su actuación obedeció a motivos objetivos, legítimos y proporcionados**, completamente desvinculados de un móvil vulnerador o retaliatorio.\n\n**Concordancias Legales:** `[BCN - Código del Trabajo, Art. 493]` `[BCN - Código de Procedimiento Civil, Art. 1698]`  \n**Criterio Jurisprudencial Rector:** `[CS - Rol N° 23.410-2020, Fecha: 11-03-2021]`\n\n---",
+    "operativaProcesal": ""
+  },
+  {
+    "id": "E006",
+    "areaEsperada": "civil",
+    "institucion": "Concepto Dogmático y Estructura Trilateral de la Obligación",
+    "falloRector": "4821-2019",
+    "normasEsperadas": [
+      "Código Civil, Art. 578",
+      "Código Civil, Art. 1438",
+      "Código Civil, Art. 1460",
+      "Código Civil, Art. 2465"
+    ],
+    "relato": "Le presté plata a una persona con un documento firmado y no me quiere pagar. Ya pasó más de un año y nada. ¿Qué puedo hacer?",
+    "definicionOriginal": "Vínculo jurídico entre personas determinadas, en virtud del cual una de ellas (deudor) se encuentra en la necesidad jurídica de realizar una prestación (dar, hacer o no hacer algo) en favor de otra (acreedor), quien tiene la facultad de exigirla, garantizada con todo el patrimonio embargable del obl",
+    "contenidoOriginal": "**Definición Canónica:**  \nVínculo jurídico entre personas determinadas, en virtud del cual una de ellas (deudor) se encuentra en la necesidad jurídica de realizar una prestación (dar, hacer o no hacer algo) en favor de otra (acreedor), quien tiene la facultad de exigirla, garantizada con todo el patrimonio embargable del obligado.\n\n**Elementos Estructurales:**\n1. **Vínculo Jurídico:** Ligamen sancionado por el derecho objetivo que faculta al acreedor a solicitar la ejecución forzada sobre los bienes del deudor (Art. 2465 CC, derecho de prenda general).\n2. **Sujeto Activo (Acreedor):** Titular del derecho personal o crédito (Art. 578 CC).\n3. **Sujeto Pasivo (Deudor):** Sujeto gravado con el deber de prestación y responsabilidad patrimonial correlativa.\n4. **Objeto de la Obligación (Prestac",
+    "operativaProcesal": ""
+  },
+  {
+    "id": "E007",
+    "areaEsperada": "civil",
+    "institucion": "Obligaciones Naturales y Civiles (Art. 1470 CC)",
+    "falloRector": "11450-2020",
+    "normasEsperadas": [
+      "Código Civil, Art. 1470",
+      "Código Civil, Art. 1471",
+      "Código Civil, Art. 1472"
+    ],
+    "relato": "Le presté plata a una persona con un documento firmado y no me quiere pagar. Ya pasó más de un año y nada. ¿Qué puedo hacer?",
+    "definicionOriginal": "Obligaciones civiles son aquellas que dan derecho para exigir su cumplimiento. Obligaciones naturales son las que no confieren derecho para exigir su cumplimiento, pero que cumplidas, autorizan para retener lo que se ha dado o pagado en razón de ellas (*soluti retentio*).",
+    "contenidoOriginal": "**Definición Canónica:**  \nObligaciones civiles son aquellas que dan derecho para exigir su cumplimiento. Obligaciones naturales son las que no confieren derecho para exigir su cumplimiento, pero que cumplidas, autorizan para retener lo que se ha dado o pagado en razón de ellas (*soluti retentio*).\n\n**Casos Taxativos del Artículo 1470 CC:**\n1. *Obligaciones nulas o rescindibles:* Las contraídas por personas que teniendo suficiente juicio y discernimiento son incapaces de obligarse según las leyes (menores adultos).\n2. *Obligaciones civiles extinguidas por prescripción:* Aquellas cuya acción civil se ha extinguido por el transcurso del tiempo procesal.\n3. *Obligaciones que proceden de actos a que faltan solemnidades legales:* Ej. testamento otorgado sin las solemnidades necesarias.\n4. *Obli",
+    "operativaProcesal": ""
+  },
+  {
+    "id": "E008",
+    "areaEsperada": "civil",
+    "institucion": "Obligaciones con Pluralidad de Sujetos: Solidaridad Pasiva",
+    "falloRector": "39810-2020",
+    "normasEsperadas": [
+      "Código Civil, Art. 1511",
+      "Código Civil, Art. 1514",
+      "Código Civil, Art. 1522",
+      "Código Civil, Art. 1610 N° 3"
+    ],
+    "relato": "Le presté plata a una persona con un documento firmado y no me quiere pagar. Ya pasó más de un año y nada. ¿Qué puedo hacer?",
+    "definicionOriginal": "Obligación en que concurren varios deudores y a cada uno de ellos puede exigirse el total de la deuda por disposición de la convención, del testamento o de la ley, extinguiéndose la obligación respecto de todos mediante un solo pago.",
+    "contenidoOriginal": "**Definición Canónica (Art. 1511 CC):**  \nObligación en que concurren varios deudores y a cada uno de ellos puede exigirse el total de la deuda por disposición de la convención, del testamento o de la ley, extinguiéndose la obligación respecto de todos mediante un solo pago.\n\n**Estructura de la Solidaridad Pasiva:**\n1. **Relaciones Externas (Obligación a la Deuda):** El acreedor puede demandar a todos los codeudores conjuntamente o a cualquiera de ellos a su arbitrio por el total (Art. 1514 CC). Los deudores no gozan de beneficio de división.\n2. **Relaciones Internas (Contribución a la Deuda):** Extinguida la obligación por uno de los deudores por el pago o modo equivalente:\n   * Si todos los codeudores tenían interés en el negocio: quien pagó se subroga en el crédito del acreedor contra l",
+    "operativaProcesal": ""
+  },
+  {
+    "id": "E009",
+    "areaEsperada": "civil",
+    "institucion": "Cumplimiento Forzado de las Obligaciones (Ejecución en Naturaleza)",
+    "falloRector": "12430-2020",
+    "normasEsperadas": [
+      "Código Civil, Art. 1548",
+      "Código Civil, Art. 1553",
+      "Código Civil, Art. 1555",
+      "Código de Procedimiento Civil, Art. 434",
+      "Código de Procedimiento Civil, Art. 464",
+      "Código de Procedimiento Civil, Art. 530"
+    ],
+    "relato": "Le presté plata a una persona con un documento firmado y no me quiere pagar. Ya pasó más de un año y nada. ¿Qué puedo hacer?",
+    "definicionOriginal": "Derecho del acreedor para compeler al deudor judicialmente a realizar la prestación exacta a la que se obligó, empleando el auxilio de la fuerza pública y el derecho de prenda general sobre su patrimonio (Art. 2465 CC).",
+    "contenidoOriginal": "**Definición Canónica:**  \nDerecho del acreedor para compeler al deudor judicialmente a realizar la prestación exacta a la que se obligó, empleando el auxilio de la fuerza pública y el derecho de prenda general sobre su patrimonio (Art. 2465 CC).\n\n**Reglas por Tipo de Obligación:**\n* **Obligaciones de Dar (Art. 1548 CC):** Comprende la de entregar la cosa; si es especie o cuerpo cierto, impone el deber de conservarlo con la debida diligencia hasta la entrega efectiva (Art. 1547 CC).\n* **Obligaciones de Hacer (Art. 1553 CC):** Si el deudor se constituye en mora, el acreedor puede pedir a su elección:\n  1. Que se apremie al deudor para la ejecución del hecho convenido.\n  2. Que se le autorice a él mismo para hacerlo ejecutar por un tercero a expensas del deudor.\n  3. Que el deudor le indemni",
+    "operativaProcesal": "* **Vía Procesal:** Juicio Ejecutivo de Obligación de Dar (Art. 434 CPC) o de Hacer (Art. 530 CPC) si la obligación consta en título ejecutivo perfecto (escritura pública, pagaré/letra autorizados, sentencia ejecutoriada); en su defecto, Juicio Ordinario de Cumplimiento Contractual (Art. 1489 CC y Art. 254 CPC).\n* **Tribunal Competente:** Juez de Letras en lo Civil del lugar convenido para el cump"
+  },
+  {
+    "id": "E010",
+    "areaEsperada": "civil",
+    "institucion": "Concepto y Catálogo de los Derechos Auxiliares",
+    "falloRector": "19340-2018",
+    "normasEsperadas": [
+      "Código Civil, Art. 2465",
+      "Código Civil, Art. 2466",
+      "Código Civil, Art. 2468"
+    ],
+    "relato": "Tengo un problema civil con una persona sobre un tema de plata y contratos. No sé qué pasos seguir.",
+    "definicionOriginal": "Prerrogativas conferidas por la ley al acreedor dirigidas a mantener intacto o reconstituir el patrimonio embargable del deudor (derecho de prenda general, Art. 2465 CC), evitando su menoscabo por actos fraudulentos, negligencia o insolvencia sobreviniente.",
+    "contenidoOriginal": "**Definición Canónica:**  \nPrerrogativas conferidas por la ley al acreedor dirigidas a mantener intacto o reconstituir el patrimonio embargable del deudor (derecho de prenda general, Art. 2465 CC), evitando su menoscabo por actos fraudulentos, negligencia o insolvencia sobreviniente.\n\n**Catálogo Dogmático:**\n1. **Medidas Conservativas:** Medidas precautorias (Arts. 290 y ss. CPC), inventario solemne y aposición de sellos.\n2. **Acción Oblicua o Subrogatoria (Art. 2466 CC):** Ejercicio por el acreedor de derechos y acciones del deudor inactivo.\n3. **Acción Pauliana o Revocatoria (Art. 2468 CC):** Reincorporación de bienes distraídos dolosamente en perjuicio de los acreedores.\n4. **Beneficio de Separación (Arts. 1378 al 1385 CC):** Impide que los bienes del difunto se confundan con los del he",
+    "operativaProcesal": ""
+  },
+  {
+    "id": "E011",
+    "areaEsperada": "civil",
+    "institucion": "La Acción Pauliana o Revocatoria (Art. 2468 CC)",
+    "falloRector": "8410-2021",
+    "normasEsperadas": [
+      "Código Civil, Art. 2468",
+      "Código Civil, Art. 2469"
+    ],
+    "relato": "Le presté plata a una persona con un documento firmado y no me quiere pagar. Ya pasó más de un año y nada. ¿Qué puedo hacer?",
+    "definicionOriginal": "Acción que la ley otorga a los acreedores para dejar sin efecto los actos y contratos ejecutados por el deudor en fraude de sus derechos y en perjuicio de su derecho de prenda general.",
+    "contenidoOriginal": "**Definición Canónica:**  \nAcción que la ley otorga a los acreedores para dejar sin efecto los actos y contratos ejecutados por el deudor en fraude de sus derechos y en perjuicio de su derecho de prenda general.\n\n**Requisitos Copulativos de Procedencia:**\n1. **Perjuicio a los Acreedores (*Eventus Damni*):** El acto debe provocar o agravar la insolvencia del deudor.\n2. **Crédito Preexistente:** El crédito del acreedor debe ser anterior a la ejecución del acto impugnado.\n3. **Fraude Pauliano (*Consilium Fraudis*):** Conocimiento del mal estado de los negocios por parte del deudor.\n   * *Actos a Título Oneroso (Art. 2468 N° 1 CC):* Exige mala fe copulativa del deudor y del adquirente (ambos conociendo el mal estado de los negocios).\n   * *Actos a Título Gratuito (Art. 2468 N° 2 CC):* Basta la",
+    "operativaProcesal": ""
+  },
+  {
+    "id": "E012",
+    "areaEsperada": "civil",
+    "institucion": "Catálogo de Modos de Extinguir las Obligaciones (Art. 1567 CC)",
+    "falloRector": "14120-2019",
+    "normasEsperadas": [
+      "Código Civil, Art. 1567",
+      "Código Civil, Art. 1568",
+      "Código Civil, Art. 1628",
+      "Código Civil, Art. 1655"
+    ],
+    "relato": "Le presté plata a una persona con un documento firmado y no me quiere pagar. Ya pasó más de un año y nada. ¿Qué puedo hacer?",
+    "definicionOriginal": "Hechos o actos jurídicos a los que la ley les atribuye el efecto de liberar al deudor del deber de prestación, extinguiendo correlativamente el derecho de crédito del acreedor.",
+    "contenidoOriginal": "**Definición Canónica:**  \nHechos o actos jurídicos a los que la ley les atribuye el efecto de liberar al deudor del deber de prestación, extinguiendo correlativamente el derecho de crédito del acreedor.\n\n**Principales Modos Doctrinales:**\n1. **Solución o Pago Efectivo (Art. 1568 CC):** Prestación de lo que se debe. Principios: identidad (acreedor no puede ser obligado a recibir cosa distinta), integridad (pago total con intereses) e indivisibilidad.\n2. **Dación en Pago:** Convención innominada en que el acreedor acepta voluntariamente recibir una prestación diversa a la debida para cancelar la obligación.\n3. **Novación (Art. 1628 CC):** Sustitución de una nueva obligación a otra anterior que se extingue. Requiere obligación previa válida, nueva obligación válida, diferencia sustancial y *",
+    "operativaProcesal": ""
+  },
+  {
+    "id": "E013",
+    "areaEsperada": "civil",
+    "institucion": "Prescripción Extintiva o Liberatoria (Arts. 2514 al 2524 CC)",
+    "falloRector": "10950-2021",
+    "normasEsperadas": [
+      "Código Civil, Art. 2514",
+      "Código Civil, Art. 2515",
+      "Código Civil, Art. 2518",
+      "Código Civil, Art. 2520"
+    ],
+    "relato": "Tengo una deuda que no pago hace varios años y nadie me ha cobrado. ¿Sigue existiendo o ya no puedo ser demandado por eso?",
+    "definicionOriginal": "Modo de extinguir las acciones y derechos ajenos, por no haberse ejercido dichas acciones y derechos durante cierto lapso de tiempo, y concurriendo los demás requisitos legales.",
+    "contenidoOriginal": "**Definición Canónica:**  \nModo de extinguir las acciones y derechos ajenos, por no haberse ejercido dichas acciones y derechos durante cierto lapso de tiempo, y concurriendo los demás requisitos legales.\n\n**Plazos Fundamentales:**\n* **Acción Ejecutiva:** Prescribe en **3 años** contados desde que la obligación se hizo actualmente exigible (Art. 2515 CC). Convertida en ordinaria, subsiste por 2 años más.\n* **Acción Ordinaria:** Prescribe en **5 años** contados desde que la obligación se hizo exigible.\n* **Prescripciones de Corto Tiempo:** Honorarios profesionales (2 años, Art. 2521 CC), mercantiles (4 años, Art. 822 C.Com).\n\n**Interrupción y Suspensión:**\n* *Interrupción Civil (Art. 2518 CC):* Requiere demanda judicial legalmente notificada al deudor antes de expirar el plazo.\n* *Suspensió",
+    "operativaProcesal": ""
+  },
+  {
+    "id": "E014",
+    "areaEsperada": "transito",
+    "institucion": "INJERENCIA Y SOLIDARIDAD EN EL DELITO DE OMISIÓN DE AUXILIO EN CASO DE ACCIDENTE",
+    "falloRector": null,
+    "normasEsperadas": [
+      "Ley N° 18.290",
+      "Ley N° 18.287"
+    ],
+    "relato": "Me llegaron multas de tránsito de hace varios años que nunca pagué. Ahora me dicen que me van a embargar. ¿Hay alguna forma de resolver esto?",
+    "definicionOriginal": "RESUMEN: La Ley N° 20.770 de 2014 modificó la figura preexistente de omisión de auxilio en caso de accidente incrementando las penas y restringiendo la discrecionalidad en su aplicación. Con ello, el legislador desplazó uno de los posibles fundamentos de la figura, la infracción de un deber de solid",
+    "contenidoOriginal": "**Doctrina (Revista Chilena de Derecho (PUC) — van Weezel, Alex):**\nRESUMEN: La Ley N° 20.770 de 2014 modificó la figura preexistente de omisión de auxilio en caso de accidente incrementando las penas y restringiendo la discrecionalidad en su aplicación. Con ello, el legislador desplazó uno de los posibles fundamentos de la figura, la infracción de un deber de solidaridad. El trabajo propone una interpretación de la nueva figura conforme a la cual el tipo penal protege la vigencia de la prohibición de matar o lesionar a otro, de modo que debe existir una relación de imputación objetiva entre la conducción y los resultados de muerte o lesiones que hacen surgir el deber penal de auxilio. Tal relación existe también cuando el conductor se mantiene dentro del riesgo permitido, pues la conducci",
+    "operativaProcesal": "RESUMEN: La Ley N° 20.770 de 2014 modificó la figura preexistente de omisión de auxilio en caso de accidente incrementando las penas y restringiendo la discrecionalidad en su aplicación. Con ello, el legislador desplazó uno de los posibles fundamentos de la figura, la infracción de un deber de solidaridad. El trabajo propone una interpretación de la nueva figura conforme a la c"
+  },
+  {
+    "id": "E015",
+    "areaEsperada": "transito",
+    "institucion": "Los delitos de conducción bajo la ingesta de alcohol o sustancias estupefacientes como delitos de pe",
+    "falloRector": null,
+    "normasEsperadas": [
+      "Ley N° 18.290",
+      "Ley N° 18.287"
+    ],
+    "relato": "Tengo un problema con una multa de tránsito o un tema en el juzgado de policía local. No sé qué hacer.",
+    "definicionOriginal": "El presente trabajo tiene por objeto determinar si los delitos contemplados en los artículos 196 C y E de la Ley Nº 18.290 del Tránsito son, efectivamente, delitos de peligro abstracto o no, teniendo en consideración la aguda crítica que despiertan estas figuras en la doctrina en general. La posició",
+    "contenidoOriginal": "**Doctrina (Revista de Derecho PUCV — Cabezas Cabezas,Carlos):**\nEl presente trabajo tiene por objeto determinar si los delitos contemplados en los artículos 196 C y E de la Ley Nº 18.290 del Tránsito son, efectivamente, delitos de peligro abstracto o no, teniendo en consideración la aguda crítica que despiertan estas figuras en la doctrina en general. La posición del autor se orienta hacia una reinterpretación de estos delitos en clave de peligro concreto, única forma de respetar el principio de ofensividad.",
+    "operativaProcesal": "El presente trabajo tiene por objeto determinar si los delitos contemplados en los artículos 196 C y E de la Ley Nº 18.290 del Tránsito son, efectivamente, delitos de peligro abstracto o no, teniendo en consideración la aguda crítica que despiertan estas figuras en la doctrina en general. La posición del autor se orienta hacia una reinterpretación de estos delitos en clave de p"
+  },
+  {
+    "id": "E016",
+    "areaEsperada": "transito",
+    "institucion": "El delito de negativa injustificada de un conductor a someterse a los exámenes de detección de alcoh",
+    "falloRector": null,
+    "normasEsperadas": [
+      "Ley N° 18.290",
+      "Ley N° 18.287"
+    ],
+    "relato": "Tengo un problema con una multa de tránsito o un tema en el juzgado de policía local. No sé qué hacer.",
+    "definicionOriginal": "La reciente entrada en vigencia de la Ley N° 20.770 supuso varias modificaciones al derecho penal del Tránsito. Se aborda aquí el estudio del nuevo delito consistente en la negativa injustificada de un conductor a someterse a las pruebas o exámenes de detección de alcohol o sustancias estupefaciente",
+    "contenidoOriginal": "**Doctrina (Revista de Derecho PUCV — Falcone Salas,Diego):**\nLa reciente entrada en vigencia de la Ley N° 20.770 supuso varias modificaciones al derecho penal del Tránsito. Se aborda aquí el estudio del nuevo delito consistente en la negativa injustificada de un conductor a someterse a las pruebas o exámenes de detección de alcohol o sustancias estupefacientes o psicotrópicas, atendiendo fundamentalmente a su estructura típica objetiva y subjetiva.",
+    "operativaProcesal": "La reciente entrada en vigencia de la Ley N° 20.770 supuso varias modificaciones al derecho penal del Tránsito. Se aborda aquí el estudio del nuevo delito consistente en la negativa injustificada de un conductor a someterse a las pruebas o exámenes de detección de alcohol o sustancias estupefacientes o psicotrópicas, atendiendo fundamentalmente a su estructura típica objetiva y"
+  },
+  {
+    "id": "E017",
+    "areaEsperada": "transito",
+    "institucion": "Problemas de determinación de la pena en el delito de manejo en estado de ebriedad con resultado de ",
+    "falloRector": null,
+    "normasEsperadas": [
+      "Ley N° 18.290",
+      "Ley N° 18.287"
+    ],
+    "relato": "Me controlaron en un retén y me hicieron la prueba de alcohol. Ahora tengo una citación al juzgado de policía local. ¿Qué consecuencias tiene?",
+    "definicionOriginal": "El presente trabajo tiene por objeto examinar algunos problemas relativos a la determinaciónde la pena del delito de manejo en estado de ebriedad causando lesiones gravísimas o muerte,derivados de las reglas introducidas por la Ley Nº 20.770 (comúnmente denominada “LeyEmilia”) al artículo 196 bis de",
+    "contenidoOriginal": "**Doctrina (Revista de Derecho UACh — Guillermo Oliver Calderón; Laura Mayer Lux):**\nEl presente trabajo tiene por objeto examinar algunos problemas relativos a la determinaciónde la pena del delito de manejo en estado de ebriedad causando lesiones gravísimas o muerte,derivados de las reglas introducidas por la Ley Nº 20.770 (comúnmente denominada “LeyEmilia”) al artículo 196 bis de la Ley Nº 18.290 (también conocida como Ley de Tránsito).El texto se centra en tres cuestiones específicas: la (im)procedencia de aplicar el numeral 2º delartículo 196 bis al delito de manejo en estado de ebriedad que provoque lesiones gravísimas; la(im)procedencia de aplicar atenuantes o agravantes de eficacia extraordinaria en caso de manejoen estado de ebriedad que cause la muerte o lesiones gravísimas, y la",
+    "operativaProcesal": "El presente trabajo tiene por objeto examinar algunos problemas relativos a la determinaciónde la pena del delito de manejo en estado de ebriedad causando lesiones gravísimas o muerte,derivados de las reglas introducidas por la Ley Nº 20.770 (comúnmente denominada “LeyEmilia”) al artículo 196 bis de la Ley Nº 18.290 (también conocida como Ley de Tránsito).El texto se centra en "
+  }
+]

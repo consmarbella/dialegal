@@ -181,8 +181,8 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   const combinedText = [input.documentoCaso, input.hechos, ...input.pretensiones, ...(input.documentos || [])]
     .filter(Boolean)
     .join("\n");
-  // Pipeline ①②③⑤⑥: jerga → materia (regex+corpus) → slots → subsunción top normas.
-  const previo = ejecutarPipelinePrevio(combinedText, input.area);
+  // Pipeline ①②③⑤⑥: jerga → materia (regex+corpus+respaldo LLM Fase I) → slots → subsunción top normas.
+  const previo = await ejecutarPipelinePrevio(combinedText, input.area, getGeminiClients());
   const resolucionMateria = previo.resolucionMateria;
   const area = resolucionMateria.slug;
   const bloqueSubsuncion = previo.bloqueSubsuncion;

@@ -1,0 +1,263 @@
+{
+  "resumen": {
+    "total": 23,
+    "pass": 22,
+    "fail": 1,
+    "porOrigen": {
+      "senales": 15,
+      "llm": 7,
+      "corpus": 1
+    },
+    "materiasCorrectas": 22,
+    "secundariasTotal": 0,
+    "secundariasTransitoEnNoTransito": 0,
+    "accionesMonitorioFalso": 0,
+    "accionesTransitoFalso": 0
+  },
+  "resultados": [
+    {
+      "id": "REAL-construccion",
+      "esperado": "civil",
+      "obtenido": "civil",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": false
+    },
+    {
+      "id": "A001",
+      "esperado": "laboral",
+      "obtenido": "laboral",
+      "origen": "llm",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": true
+    },
+    {
+      "id": "A002",
+      "esperado": "laboral",
+      "obtenido": "laboral",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": false
+    },
+    {
+      "id": "A003",
+      "esperado": "laboral",
+      "obtenido": "laboral",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": false
+    },
+    {
+      "id": "A004",
+      "esperado": "laboral",
+      "obtenido": "laboral",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": false
+    },
+    {
+      "id": "A005",
+      "esperado": "civil",
+      "obtenido": "civil",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": false
+    },
+    {
+      "id": "A006",
+      "esperado": "civil",
+      "obtenido": "administrativo",
+      "origen": "corpus",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [
+        "materia: esperada \"civil\", obtenida \"administrativo\" (origen corpus; scores: ninguno)"
+      ],
+      "llm": false
+    },
+    {
+      "id": "A007",
+      "esperado": "civil",
+      "obtenido": "civil",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": false
+    },
+    {
+      "id": "A008",
+      "esperado": "civil",
+      "obtenido": "civil",
+      "origen": "llm",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": true
+    },
+    {
+      "id": "A009",
+      "esperado": "civil",
+      "obtenido": "civil",
+      "origen": "llm",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": true
+    },
+    {
+      "id": "A010",
+      "esperado": "civil",
+      "obtenido": "civil",
+      "origen": "llm",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": true
+    },
+    {
+      "id": "A011",
+      "esperado": "civil",
+      "obtenido": "civil",
+      "origen": "llm",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": true
+    },
+    {
+      "id": "A012",
+      "esperado": "civil",
+      "obtenido": "civil",
+      "origen": "llm",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": true
+    },
+    {
+      "id": "A013",
+      "esperado": "transito",
+      "obtenido": "transito",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [
+        "multa / infracción de tránsito (JPL)"
+      ],
+      "problemas": [],
+      "llm": false
+    },
+    {
+      "id": "A014",
+      "esperado": "transito",
+      "obtenido": "transito",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [
+        "recurso de apelación"
+      ],
+      "problemas": [],
+      "llm": false
+    },
+    {
+      "id": "A015",
+      "esperado": "transito",
+      "obtenido": "transito",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": false
+    },
+    {
+      "id": "A016",
+      "esperado": "transito",
+      "obtenido": "transito",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [
+        "multa / infracción de tránsito (JPL)"
+      ],
+      "problemas": [],
+      "llm": false
+    },
+    {
+      "id": "T1-choque-rotonda",
+      "esperado": "transito",
+      "obtenido": "transito",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": false
+    },
+    {
+      "id": "T2-multa-familia",
+      "esperado": "familia",
+      "obtenido": "familia",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [
+        "pensión de alimentos"
+      ],
+      "problemas": [],
+      "llm": false
+    },
+    {
+      "id": "T3-multa-construccion-coloquial",
+      "esperado": "civil",
+      "obtenido": "civil",
+      "origen": "llm",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": true
+    },
+    {
+      "id": "T4-sueldo-inspeccion",
+      "esperado": "laboral",
+      "obtenido": "laboral",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [],
+      "problemas": [],
+      "llm": false
+    },
+    {
+      "id": "T5-tag-municipalidad",
+      "esperado": "transito",
+      "obtenido": "transito",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [
+        "multa / infracción de tránsito (JPL)"
+      ],
+      "problemas": [],
+      "llm": false
+    },
+    {
+      "id": "T6-desahucio-local",
+      "esperado": "civil",
+      "obtenido": "civil",
+      "origen": "senales",
+      "secundaria": null,
+      "acciones": [
+        "desahucio / restitución por precario"
+      ],
+      "problemas": [],
+      "llm": false
+    }
+  ]
+}

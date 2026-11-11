@@ -8,7 +8,7 @@
 // ⑧ LLM                               (llmEngine / draft)
 // ⑨ Lint + validador                  (lintTactico / validador*)
 
-import { decidirMateria } from "./materiaDecision.js";
+import { decidirMateria, decidirMateriaHibrida } from "./materiaDecision.js";
 import { expandirJergaChile } from "./jergaChile.js";
 import {
   extraerHechosTipificados,
@@ -30,13 +30,21 @@ export interface ResultadoPipelinePrevio {
 /**
  * Capas ①②③⑤⑥ antes del LLM: jerga → materia (regex+corpus) → slots → hipótesis.
  * BCN (④) y juris (⑦) se resuelven async en los handlers existentes.
+ *
+ * Fase I: si se pasan clientes Gemini, la materia se decide HÍBRIDA — el
+ * determinista primero y, solo si se abstiene o empata, un respaldo LLM con
+ * salida JSON estructurada. Sin clientes (o si el respaldo falla) queda la
+ * decisión determinista pura.
  */
-export function ejecutarPipelinePrevio(
+export async function ejecutarPipelinePrevio(
   textoCrudo: string,
   areaDeclarada?: string | null,
-): ResultadoPipelinePrevio {
+  clients?: any | any[] | null,
+): Promise<ResultadoPipelinePrevio> {
   const textoParaClasificar = expandirJergaChile(textoCrudo || "");
-  const resolucionMateria = decidirMateria(areaDeclarada, textoParaClasificar);
+  const resolucionMateria = clients
+    ? await decidirMateriaHibrida(areaDeclarada, textoCrudo, clients)
+    : decidirMateria(areaDeclarada, textoParaClasificar);
   const hechos = extraerHechosTipificados(textoParaClasificar);
   const hipotesis = aplicarSubsuncion(hechos);
   const bloqueSubsuncion = bloquePromptSubsuncion(hipotesis, hechos);

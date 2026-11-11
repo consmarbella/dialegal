@@ -23,7 +23,7 @@ import { validarInforme, notaBlindajeReporte, hallazgosBloqueantes } from "./val
 import { handleLegalHelpDraft } from "./src/server/legalhelp-draft.js";
 import { detectAreaFromContext } from "./area-detector.js";
 import { lineaMateriaPrompt, MATERIAS } from "./materias.js";
-import { decidirMateria } from "./src/server/materiaDecision.js";
+import { decidirMateria, decidirMateriaHibrida } from "./src/server/materiaDecision.js";
 import { ejecutarPipelinePrevio } from "./src/server/pipelineLegalHelp.js";
 import { runWithCorpusForzado, runWithCorpusForzadoAsync } from "./src/server/corpusContext.js";
 import type { DraftInput } from "./src/types.js";
@@ -150,7 +150,8 @@ REGLAS:
 2. CERO falsas esperanzas. Si hay embargo, lanzamiento o plazo fatal, dilo en **negritas**.
 3. NO inventes montos exactos si el documento no los trae; da rangos o di "[dato no figura en el documento]".
 4. NO digas "contrata un abogado" como única respuesta: da 2-3 acciones concretas que puede hacer HOY (guardar documento, no firmar X, entrar a OJV con ClaveÚnica, anotar fecha de notificación).
-5. Descarga de responsabilidad al final (orientación IA, no reemplaza abogado).
+5. CITAS LEGALES SIN VERIFICACIÓN: este análisis NO verifica los artículos contra la Biblioteca del Congreso Nacional. Menciona solo las 2-3 normas CENTRALES del caso y márcalas con [VERIFICAR] (ej.: "Art. 1545 del Código Civil [VERIFICAR]"). Si no estás seguro del número de artículo, nombra solo la ley. NUNCA inventes números de artículo.
+6. Descarga de responsabilidad al final (orientación IA, no reemplaza abogado).
 
 ESTRUCTURA OBLIGATORIA (Markdown):
 
@@ -184,9 +185,10 @@ El usuario es un ABOGADO o profesional del derecho. Entrega análisis táctico, 
 
 REGLAS:
 1. CERO alucinaciones de plazos: cita artículo exacto y si son días hábiles o corridos. Si falta fecha de notificación, dilo.
-2. Neutralidad: si la posición es débil, dilo sin anestesia.
-3. Prioriza excepciones previas, carga probatoria, jurisprudencia CS (solo roles que puedas fundar) y petitorio medible.
-4. Descarga: orientación IA, no reemplaza criterio profesional del patrocinante.
+2. CITAS SIN VERIFICACIÓN: este análisis NO verifica los artículos contra la Biblioteca del Congreso Nacional (eso lo hace el informe premium). Cita ÚNICAMENTE los cuerpos legales y artículos centrales del caso (máximo 4-6) y agrega el sufijo [VERIFICAR] a cada uno (ej.: "Art. 1544 del Código Civil [VERIFICAR]") para que el lector sepa que la vigencia y el texto exacto deben confirmarse. Si no estás seguro del número de artículo, cita solo el cuerpo legal. NUNCA inventes números de artículo.
+3. Neutralidad: si la posición es débil, dilo sin anestesia.
+4. Prioriza excepciones previas, carga probatoria, jurisprudencia CS (solo roles que puedas fundar) y petitorio medible.
+5. Descarga: orientación IA, no reemplaza criterio profesional del patrocinante.
 
 ESTRUCTURA OBLIGATORIA (Markdown):
 
@@ -436,12 +438,12 @@ app.post("/api/analyze", async (req, res) => {
       }
     }
 
-    // Fase D.2: la plataforma decide la materia con el texto completo del caso
-    // (relato + documento + adjuntos de texto). El área declarada solo respalda
-    // o desempata; la discrepancia se anota en el prompt (nunca bloquea).
+    // Fase D.2 + Fase I: la plataforma decide la materia con el texto del caso
+    // (relato + documento + adjuntos de texto), HÍBRIDA: determinista primero
+    // (señales + contexto por oración + corpus) y respaldo LLM solo si duda.
+    // El área declarada solo respalda o desempata; la discrepancia se anota.
     const combinedText = [userStory, documentText, ...textosAdjuntos].filter(Boolean).join("\n");
-    // Fase D.3: decisión de materia con corpus (BM25 normalizado) además de las señales.
-    const resolucionMateria = decidirMateria(area, combinedText);
+    const resolucionMateria = await decidirMateriaHibrida(area, combinedText, getGeminiClients());
     const materia = resolucionMateria.slug ? MATERIAS[resolucionMateria.slug].nombre : null;
     promptContent = `${lineaMateriaPrompt(resolucionMateria)}\n` + promptContent;
 
@@ -455,9 +457,11 @@ app.post("/api/analyze", async (req, res) => {
     const cachedAnalysis = getCached(aKey);
     if (cachedAnalysis) {
       console.log("[cache] /api/analyze hit de caché");
-      // Reconstruir la materia con el texto del análisis para que el cliente reciba
-      // siempre materiaSlug/materia/... y la UI no quede en "indeterminada".
-      const resolucionMateriaCache = decidirMateria(area, `${combinedText}\n${cachedAnalysis}`);
+      // Fase I: la materia del cache-hit se re-deriva SOLO del texto del caso
+      // (relato/documento), NUNCA del análisis cacheado: el texto generado
+      // cita "cláusula penal", "prescripción penal", "multa" etc. de materias
+      // que el relato no tiene y re-disparaba secundarias fantasma.
+      const resolucionMateriaCache = await decidirMateriaHibrida(area, combinedText, getGeminiClients());
       const materiaCache = resolucionMateriaCache.slug ? MATERIAS[resolucionMateriaCache.slug].nombre : null;
       return res.json({
         analysis: cachedAnalysis,
@@ -482,9 +486,16 @@ app.post("/api/analyze", async (req, res) => {
 
     const analysis = response.text || "No se pudo generar el análisis legal. Por favor intenta nuevamente.";
 
-    // Recomputar materia con el texto generado (clave cuando el caso vino SOLO
-    // con PDFs/imágenes: combinedText estaba vacío y la materia salió null).
-    const resolucionFinal = decidirMateria(area, `${combinedText}\n${analysis}`);
+    // Fase I — fin de la circularidad: la materia final YA se decidió con el
+    // texto del caso ANTES de generar el análisis. Re-clasificar el texto
+    // GENERADO por el modelo era la raíz de las secundarias fantasma: el
+    // análisis de un caso civil cita "cláusula penal"/"prescripción" y
+    // re-disparaba Penal/Tránsito que el relato nunca mencionó. Solo se
+    // re-deriva si la decisión previa fue indeterminada (casos PDF-only
+    // donde el relato llegó por adjunto y aparece en el texto generado).
+    const resolucionFinal = resolucionMateria.slug
+      ? resolucionMateria
+      : await decidirMateriaHibrida(area, `${combinedText}\n${analysis}`, getGeminiClients());
     const materiaFinal = resolucionFinal.slug ? MATERIAS[resolucionFinal.slug].nombre : null;
 
     setCached(aKey, analysis);
@@ -666,9 +677,11 @@ app.post("/api/premium-report", async (req, res) => {
     // Caso PAGADO: forzar corpus completo (data/corpus-full) aunque
     // CORPUS_COMPLETO no esté en true a nivel de env. El análisis gratuito
     // sigue respetando el flag; el dictamen premium siempre usa el corpus.
-    // Fase D/D.2: la plataforma decide la materia (señales + corpus cuando el
-    // regex se abstiene); el área declarada es respaldo. Conflicto = anotación.
-    const previoPrem = runWithCorpusForzado(() => ejecutarPipelinePrevio(combinedText, area));
+    // Fase D/D.2+Fase I: la plataforma decide la materia (señales + corpus
+    // cuando el regex se abstiene + respaldo LLM si aún duda); el área
+    // declarada es respaldo. Conflicto = anotación.
+    const previoPrem = await runWithCorpusForzadoAsync(async () =>
+      ejecutarPipelinePrevio(combinedText, area, getGeminiClients()));
     const resolucionMateria = previoPrem.resolucionMateria;
     const bloqueSubsuncionPrem = previoPrem.bloqueSubsuncion;
     // Nombre legible para la UI (null = indeterminada: el chip se oculta).
