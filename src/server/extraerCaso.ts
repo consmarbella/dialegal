@@ -52,7 +52,6 @@ const RESPONSE_SCHEMA: any = {
     postura: { type: "STRING", enum: [...POSTURAS] },
     partes: {
       type: "ARRAY",
-      maxItems: 5,
       items: {
         type: "OBJECT",
         required: ["rol", "nombre", "rut", "tipoPersona", "domicilio", "representante"],
@@ -68,7 +67,7 @@ const RESPONSE_SCHEMA: any = {
     },
     documentos: {
       type: "ARRAY",
-      maxItems: 10,
+
       items: {
         type: "OBJECT",
         required: ["tipo", "numero", "fechaEmision", "fechaVencimiento", "montoClp", "reciboConformidad", "reclamada", "citaTextual"],
@@ -93,7 +92,7 @@ const RESPONSE_SCHEMA: any = {
     },
     hechos: {
       type: "ARRAY",
-      maxItems: 20,
+
       items: {
         type: "OBJECT",
         required: ["fecha", "descripcion", "citaTextual"],
@@ -106,7 +105,7 @@ const RESPONSE_SCHEMA: any = {
     },
     pretensiones: {
       type: "ARRAY",
-      maxItems: 8,
+
       items: {
         type: "OBJECT",
         required: ["tipo", "montoClp", "descripcion"],
@@ -136,18 +135,18 @@ const RESPONSE_SCHEMA: any = {
     },
     faltantes: {
       type: "ARRAY",
-      maxItems: 5,
+
       items: { type: "STRING" },
     },
     viaPropuesta: { type: "STRING", nullable: true },
     normasARevisar: {
       type: "ARRAY",
-      maxItems: 10,
+
       items: { type: "STRING" },
     },
     preguntas: {
       type: "ARRAY",
-      maxItems: 5,
+
       items: { type: "STRING" },
     },
   },
