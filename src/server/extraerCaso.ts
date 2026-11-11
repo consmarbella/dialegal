@@ -34,14 +34,17 @@ Reglas:
 3. En cada documento y hecho, "citaTextual" debe ser una frase copiada literalmente del texto.
 4. Si no hay causa judicial en curso, estadoProcesal.causaIniciada = "no" y rit = null. Un RIT/ROL que aparezca solo como cita de la contraparte o de un fallo NO es el rol de este caso.
 5. Si falta un dato necesario para decidir la vía (por ejemplo: si la factura fue reclamada o tiene recibo de conformidad), agrégalo como pregunta en "faltantes".
-6. Si no puedes determinar la materia, usa "indeterminada".`;
+6. Si no puedes determinar la materia, usa "indeterminada".
+7. viaPropuesta: propón una vía procesal chilena para el caso (ej. "Juicio ejecutivo por pagaré", "Juicio ordinario civil", "Contestación de demanda laboral"). Si no la determinas, usa null.
+8. normasARevisar: lista de normas (nombre o "Ley N° X" o "Código X art. Y") que el caso invoca y que deben verificarse contra BCN. Solo normas que aparezcan o se infieran del texto; no inventes.
+9. preguntas: preguntas adicionales para el usuario sobre datos que falten para decidir la vía. Puede coincidir con faltantes.`;
 
 /** responseSchema escrito a mano (estilo materiaLLM.ts). Coincide con CasoSchema. */
 const RESPONSE_SCHEMA: any = {
   type: "OBJECT",
-  required: ["materia", "tipoEscrito", "postura", "partes", "documentos", "hechos", "pretensiones", "estadoProcesal", "faltantes"],
+  required: ["materia", "tipoEscrito", "postura", "partes", "documentos", "hechos", "pretensiones", "estadoProcesal", "faltantes", "viaPropuesta", "normasARevisar", "preguntas"],
   propertyOrdering: [
-    "materia", "tipoEscrito", "postura", "partes", "documentos", "hechos", "pretensiones", "estadoProcesal", "faltantes",
+    "materia", "tipoEscrito", "postura", "partes", "documentos", "hechos", "pretensiones", "estadoProcesal", "faltantes", "viaPropuesta", "normasARevisar", "preguntas",
   ],
   properties: {
     materia: { type: "STRING", enum: [...MATERIAS] },
@@ -132,6 +135,17 @@ const RESPONSE_SCHEMA: any = {
       },
     },
     faltantes: {
+      type: "ARRAY",
+      maxItems: 10,
+      items: { type: "STRING" },
+    },
+    viaPropuesta: { type: "STRING", nullable: true },
+    normasARevisar: {
+      type: "ARRAY",
+      maxItems: 20,
+      items: { type: "STRING" },
+    },
+    preguntas: {
       type: "ARRAY",
       maxItems: 10,
       items: { type: "STRING" },

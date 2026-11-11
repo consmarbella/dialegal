@@ -15,6 +15,9 @@ function casoBase(overrides: Partial<Caso> = {}): Caso {
     pretensiones: [],
     estadoProcesal: { causaIniciada: "no", rit: null, tribunal: null, fechaNotificacion: null },
     faltantes: [],
+    viaPropuesta: null,
+    normasARevisar: [],
+    preguntas: [],
     ...overrides,
   };
 }

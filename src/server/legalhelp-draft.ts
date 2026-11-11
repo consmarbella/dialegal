@@ -187,6 +187,9 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   // ── Fase I.5: Núcleo tipado (LLM-primary) detrás de NUCLEO_TIPADO=true ──
   // Con el flag apagado no se importa ni se ejecuta este módulo (rollback instantáneo).
   const NUCLEO_TIPADO = process.env.NUCLEO_TIPADO === "true";
+  let vaciosPropuesta: VacioCritico[] = [];
+  let citasBCNPropuesta: Awaited<ReturnType<typeof verificarCitasBCN>> = { verificados: [], pendientes: [] };
+  let jurisPropuesta: Awaited<ReturnType<typeof buscarJurisprudenciaMulti>> = [];
   let caso: Caso | null = null;
   let decision: DecisionVia | null = null;
   let bloqueViaProcesal = "";
@@ -231,10 +234,56 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
           },
         } as DraftOutput;
       }
-      // Si no tiene catálogo (o sin_via sin preguntas): continuar con flujo actual.
-      // Asegurar que no se inyecte bloque de vía procesal en el prompt.
-      if (!tieneCatalogo) {
-        bloqueViaProcesal = "";
+      // Fase I.5 (simplificada): para materias sin catálogo, usar la vía propuesta
+      // por el modelo. Traer esas normas de la BCN y las fichas del corpus. NUNCA
+      // devolver un borrador vacío: continuar con el flujo actual.
+      if (!tieneCatalogo && caso) {
+        const viaProp = caso.viaPropuesta || "Vía propuesta por el modelo";
+        // Traer normas de la BCN
+        if (caso.normasARevisar.length > 0) {
+          try {
+            citasBCNPropuesta = await verificarCitasBCN([caso.normasARevisar.join(", ")]);
+          } catch (e: any) {
+            console.warn(`[draft][bcn-propuesta] verificacion fallo: ${String(e?.message || e).slice(0, 150)}`);
+          }
+        }
+        // Traer fichas del corpus
+        try {
+          const consultaPropuesta: ConsultaEtiquetada[] = [
+            { texto: `${caso.materia} ${viaProp} ${caso.normasARevisar.join(" ")}`.slice(0, 2500), etiqueta: "via_decidida" },
+          ];
+          jurisPropuesta = await buscarJurisprudenciaMulti(consultaPropuesta, 6, (caso.materia as any) ?? undefined);
+        } catch { /* silencioso */ }
+        // Construir bloque [VÍA PROPUESTA POR EL MODELO]
+        const normasBase = caso.normasARevisar.join(", ") || "(sin normas identificadas)";
+        const hechosResumen = [...caso.hechos.map((h) => h.descripcion), ...caso.pretensiones.map((p) => p.descripcion)].join("; ");
+        bloqueViaProcesal = `\\n\\n[VÍA PROPUESTA POR EL MODELO]\\nVía: ${viaProp}\\nNormas a revisar: ${normasBase}\\nHechos tipados: ${hechosResumen.slice(0, 2000)}\\n`;
+        // Si la BCN no devolvió una norma, agregar [VERIFICAR] al bloque
+        if (citasBCNPropuesta.pendientes.length > 0) {
+          bloqueViaProcesal += `Normas sin verificación BCN (usar [VERIFICAR]): ${citasBCNPropuesta.pendientes.map((p) => p.nombreNorma).join(", ")}\\n`;
+        }
+        // Los resultados BCN y corpus se fusionan más abajo, cuando citasBCN y
+        // juris ya estén declarados (evitar uso antes de declaración).
+        // Agregar preguntas del modelo a vacios (si las hay)
+        if (caso.preguntas.length > 0) {
+          const vaciosModelo: VacioCritico[] = caso.preguntas.map((p, i) => ({
+            campo: `via-propuesta-${i}`,
+            prioridad: "importante" as const,
+            pregunta: p,
+            fragmento: undefined,
+          }));
+          vaciosPropuesta.push(...vaciosModelo);
+        }
+        // También agregar faltantes
+        if (caso.faltantes.length > 0) {
+          const vaciosFaltantes: VacioCritico[] = caso.faltantes.map((p, i) => ({
+            campo: `faltante-${i}`,
+            prioridad: "importante" as const,
+            pregunta: p,
+            fragmento: undefined,
+          }));
+          vaciosPropuesta.push(...vaciosFaltantes);
+        }
       }
       // "decidida": bloque [VÍA PROCESAL DECIDIDA] reemplaza bloqueSubsuncion + planoExt.
       const viaDef = CATALOGO.find((v) => v.id === decision.via);
@@ -297,6 +346,29 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     juris = await buscarJurisprudenciaMulti(consultas, 6, area ?? undefined);
     casos = await buscarCasosJurisMulti(consultas, 4, area ?? undefined);
   } catch { /* silencioso */ }
+
+  // Fase I.5 (simplificada): fusionar resultados de normas/BCN y fichas del corpus
+  // propuestos por el modelo (solo cuando NUCLEO_TIPADO y materia sin catálogo).
+  if (NUCLEO_TIPADO && citasBCNPropuesta.verificados.length > 0) {
+    const vistosBCN = new Set(citasBCN.verificados.map((a) => `${a.keyNorma}:${a.articulo}`));
+    for (const a of citasBCNPropuesta.verificados) {
+      const k = `${a.keyNorma}:${a.articulo}`;
+      if (!vistosBCN.has(k)) { citasBCN.verificados.push(a); vistosBCN.add(k); }
+    }
+  }
+  if (NUCLEO_TIPADO && citasBCNPropuesta.pendientes.length > 0) {
+    const pendVistos = new Set(citasBCN.pendientes.map((p) => `${p.keyNorma}:${(p.articulosPedidos || []).join(",")}`));
+    for (const p of citasBCNPropuesta.pendientes) {
+      const k = `${p.keyNorma}:${(p.articulosPedidos || []).join(",")}`;
+      if (!pendVistos.has(k)) { citasBCN.pendientes.push(p); pendVistos.add(k); }
+    }
+  }
+  if (NUCLEO_TIPADO && jurisPropuesta.length > 0) {
+    const jurisVistos = new Set(juris.map((j) => j.institucion));
+    for (const j of jurisPropuesta) {
+      if (!jurisVistos.has(j.institucion)) { juris.push(j); jurisVistos.add(j.institucion); }
+    }
+  }
 
   // 6. Construir prompt dinámico
   const plantilla = getPlantilla(input.tipo);
@@ -459,6 +531,10 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   try {
     vacios = auditarVacios(draftCuerpo, input);
   } catch { /* silencioso */ }
+  // Fase I.5 (simplificada): fusionar preguntas del modelo con la auditoría.
+  if (NUCLEO_TIPADO && vaciosPropuesta.length > 0) {
+    vacios = [...vacios, ...vaciosPropuesta];
+  }
 
   // 10.55 Linting táctico procesal (Ley Bustos + feriado/HE): intercepta alucinaciones
   // del LLM antes de entregar el escrito. Solo aplica en laboral.

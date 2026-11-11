@@ -73,6 +73,13 @@ export const CasoSchema = z.object({
   estadoProcesal: EstadoProcesalSchema,
   // Preguntas concretas para el usuario sobre datos que faltan (no inventar).
   faltantes: z.array(z.string().max(200)).max(10),
+  // Fase I.5 (simplificada): vía procesal propuesta por el modelo (cuando no hay
+  // catálogo para la materia). Null si el modelo no la determina.
+  viaPropuesta: z.string().max(200).nullable(),
+  // Normas (nombre o "Ley N° X") que el modelo sugiere revisar contra BCN.
+  normasARevisar: z.array(z.string().max(120)).max(20),
+  // Preguntas adicionales del modelo para el usuario (más allá de faltantes).
+  preguntas: z.array(z.string().max(200)).max(10),
 });
 
 export type Caso = z.infer<typeof CasoSchema>;
