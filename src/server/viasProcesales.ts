@@ -79,6 +79,10 @@ const ORDINARIO_CUMPLIMIENTO: ViaDef = {
 
 export const CATALOGO: ViaDef[] = [EJECUTIVO_FACTURA, ORDINARIO_CUMPLIMIENTO];
 
+/** True si hay al menos una vía registrada para la materia dada. */
+export const materiaTieneCatalogo = (m: Caso["materia"]): boolean =>
+  CATALOGO.some((v) => v.materia === m);
+
 export type DecisionVia =
   | { estado: "decidida"; via: string; razones: string[] }
   | { estado: "requiere_datos"; via: string; preguntas: string[]; alternativa: string | null }

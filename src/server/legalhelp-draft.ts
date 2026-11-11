@@ -18,7 +18,7 @@ import { lintTacticoProcesal, sanitizarTactico } from "../../lintTacticoLegalHel
 import type { DraftInput, DraftOutput, VacioCritico, HallazgoTactico } from "../types.js";
 // Fase I.5: Núcleo tipado (LLM-primary) detrás de NUCLEO_TIPADO=true.
 import { extraerCaso, type Caso } from "./extraerCaso.js";
-import { decidirVia, type DecisionVia, CATALOGO } from "./viasProcesales.js";
+import { decidirVia, type DecisionVia, CATALOGO, materiaTieneCatalogo } from "./viasProcesales.js";
 // Fase 1: generateWithFallback consolidado en llmEngine.ts (versión completa:
 // cadena dinámica, pausa por cuota diaria, reintentos y fallback degradado).
 // Se importa aquí para eliminar la copia simplificada de este módulo.
@@ -195,9 +195,22 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     caso = c;
     if (caso) {
       decision = decidirVia(caso);
-      if (decision.estado === "requiere_datos" || decision.estado === "sin_via") {
+      // Fase I.5 (corrección de riesgo): CATALOGO solo tiene vías civiles. Si la
+      // materia no tiene catálogo, NO retornar: continuar con el flujo actual
+      // completo (como si el flag estuviera apagado para ese caso). Solo retornar
+      // preguntas cuando la materia sí tiene catálogo y el estado lo requiere.
+      const tieneCatalogo = materiaTieneCatalogo(caso.materia);
+      const preguntasDecision =
+        decision.estado === "requiere_datos" || decision.estado === "sin_via"
+          ? (decision as { preguntas: string[] }).preguntas
+          : [];
+      const debeRetornarPreguntas =
+        tieneCatalogo &&
+        (decision.estado === "requiere_datos" ||
+          (decision.estado === "sin_via" && preguntasDecision.length > 0));
+      if (debeRetornarPreguntas) {
         // Devolver preguntas al usuario como VacioCritico, sin generar borrador todavía.
-        const vacios: VacioCritico[] = decision.preguntas.map((p, i) => ({
+        const vacios: VacioCritico[] = preguntasDecision.map((p, i) => ({
           campo: `via-${i}`,
           prioridad: 'fatal',
           pregunta: p,
@@ -217,6 +230,11 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
             audience: input.audience || "abogado",
           },
         } as DraftOutput;
+      }
+      // Si no tiene catálogo (o sin_via sin preguntas): continuar con flujo actual.
+      // Asegurar que no se inyecte bloque de vía procesal en el prompt.
+      if (!tieneCatalogo) {
+        bloqueViaProcesal = "";
       }
       // "decidida": bloque [VÍA PROCESAL DECIDIDA] reemplaza bloqueSubsuncion + planoExt.
       const viaDef = CATALOGO.find((v) => v.id === decision.via);

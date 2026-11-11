@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ritEsExigible } from "./caso.schema.js";
-import { decidirVia } from "./viasProcesales.js";
+import { decidirVia, materiaTieneCatalogo } from "./viasProcesales.js";
 import type { Caso } from "./caso.schema.js";
 import { verificarContraTexto, rutValidoMod11 } from "./extraerCaso.js";
 
@@ -114,6 +114,18 @@ describe("verificarContraTexto", () => {
     expect(caso.pretensiones[0].montoClp).toBeNull();
     expect(adv.length).toBeGreaterThan(0);
   });
+
+describe("materiaTieneCatalogo", () => {
+  it("laboral: false", () => {
+    expect(materiaTieneCatalogo("laboral")).toBe(false);
+  });
+  it("civil: true", () => {
+    expect(materiaTieneCatalogo("civil")).toBe(true);
+  });
+  it("transito: false", () => {
+    expect(materiaTieneCatalogo("transito")).toBe(false);
+  });
+});
 
   it("conserva monto que aparece en el texto", () => {
     const caso = casoBase({
