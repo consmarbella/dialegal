@@ -16,6 +16,9 @@ import { getPlantilla, getArticulosClave } from "../../legalhelp-templates.js";
 import { lintTactico as lintTacticoBorrador, notaTactica } from "../../lintTactico.js";
 import { lintTacticoProcesal, sanitizarTactico } from "../../lintTacticoLegalHelp.js";
 import type { DraftInput, DraftOutput, VacioCritico, HallazgoTactico } from "../types.js";
+// Fase I.5: Núcleo tipado (LLM-primary) detrás de NUCLEO_TIPADO=true.
+import { extraerCaso, type Caso } from "./extraerCaso.js";
+import { decidirVia, type DecisionVia, CATALOGO } from "./viasProcesales.js";
 // Fase 1: generateWithFallback consolidado en llmEngine.ts (versión completa:
 // cadena dinámica, pausa por cuota diaria, reintentos y fallback degradado).
 // Se importa aquí para eliminar la copia simplificada de este módulo.
@@ -181,6 +184,49 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   const combinedText = [input.documentoCaso, input.hechos, ...input.pretensiones, ...(input.documentos || [])]
     .filter(Boolean)
     .join("\n");
+  // ── Fase I.5: Núcleo tipado (LLM-primary) detrás de NUCLEO_TIPADO=true ──
+  // Con el flag apagado no se importa ni se ejecuta este módulo (rollback instantáneo).
+  const NUCLEO_TIPADO = process.env.NUCLEO_TIPADO === "true";
+  let caso: Caso | null = null;
+  let decision: DecisionVia | null = null;
+  let bloqueViaProcesal = "";
+  if (NUCLEO_TIPADO) {
+    const { caso: c, advertencias } = await extraerCaso(getGeminiClients(), combinedText);
+    caso = c;
+    if (caso) {
+      decision = decidirVia(caso);
+      if (decision.estado === "requiere_datos" || decision.estado === "sin_via") {
+        // Devolver preguntas al usuario como VacioCritico, sin generar borrador todavía.
+        const vacios: VacioCritico[] = decision.preguntas.map((p, i) => ({
+          campo: `via-${i}`,
+          prioridad: 'fatal',
+          pregunta: p,
+          fragmento: undefined,
+        }));
+        const insumosVacios: InsumosValidacionLegalHelp = {
+          rolesCorpus: [], artsCubiertos: [], artsPendientes: [], montosDoc: [],
+          textoDoc: combinedText, area: null, tipo: input.tipo,
+        };
+        return {
+          draft: "",
+          validacion: validarLegalHelp("", insumosVacios),
+          vacios,
+          bcn: { citados: [], pendientes: [] },
+          metadatos: {
+            tipo: input.tipo, area: null, articulosClave: [], tokensEstimados: 0,
+            audience: input.audience || "abogado",
+          },
+        } as DraftOutput;
+      }
+      // "decidida": bloque [VÍA PROCESAL DECIDIDA] reemplaza bloqueSubsuncion + planoExt.
+      const viaDef = CATALOGO.find((v) => v.id === decision.via);
+      if (viaDef) {
+        const normasBase = viaDef.normasBase.join(", ");
+        const hechosResumen = [...caso.hechos.map((h) => h.descripcion), ...caso.pretensiones.map((p) => p.descripcion)].join("; ");
+        bloqueViaProcesal = `\n\n[VÍA PROCESAL DECIDIDA]\nVía: ${viaDef.nombre}\nNormas base: ${normasBase}\nHechos tipados: ${hechosResumen.slice(0, 2000)}\n`;
+      }
+    }
+  }
   // Pipeline ①②③⑤⑥: jerga → materia (regex+corpus+respaldo LLM Fase I) → slots → subsunción top normas.
   const previo = await ejecutarPipelinePrevio(combinedText, input.area, getGeminiClients());
   const resolucionMateria = previo.resolucionMateria;
@@ -201,19 +247,29 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     console.warn(`[draft][bcn-pre] verificacion fallo (sigue sin BCN): ${String(e?.message || e).slice(0, 150)}`);
   }
 
-  // 5. Multi-retrieval jurisprudencial adaptativo
+  // 5. Multi-retrieval jurisprudencial adaptativo.
+  // Fase I.5: con núcleo tipado y vía decidida, se consulta por materia +
+  // normasBase (no por el texto crudo completo).
   const consultas: ConsultaEtiquetada[] = [];
-  if (input.hechos) consultas.push({ texto: input.hechos.slice(0, 2500), etiqueta: "hechos" });
-  if (input.documentoCaso) consultas.push({ texto: input.documentoCaso.slice(0, 2500), etiqueta: "documento" });
-  if (dictamenUtil) consultas.push({ texto: dictamenUtil.slice(0, 2500), etiqueta: "dictamen" });
-  if (ext) {
-    if (ext.secciones.hechos) consultas.push({ texto: ext.secciones.hechos.slice(0, 2200), etiqueta: "hechos" });
-    if (ext.secciones.derecho) consultas.push({ texto: ext.secciones.derecho.slice(0, 2500), etiqueta: "derecho" });
-    if (ext.secciones.petitorio) consultas.push({ texto: ext.secciones.petitorio.slice(0, 1600), etiqueta: "petitorio" });
-    const invocados = [ext.acciones.join(" "), ext.juzgado, ext.articulosInvocados.slice(0, 20).join(" "), ext.normasDetectadas.map(n => n.nombre).join(" ")].filter(Boolean).join(" ");
-    if (invocados) consultas.push({ texto: invocados, etiqueta: "invocados" });
+  if (NUCLEO_TIPADO && decision?.estado === "decidida") {
+    const viaDefN = CATALOGO.find((v) => v.id === decision.via);
+    if (viaDefN) {
+      consultas.push({ texto: `${caso?.materia ?? ""} ${viaDefN.normasBase.join(" ")}`.slice(0, 2500), etiqueta: "via_decidida" });
+      consultas.push({ texto: [...(caso?.hechos.map((h) => h.descripcion) ?? []), ...(caso?.pretensiones.map((p) => p.descripcion) ?? [])].join("; ").slice(0, 2500), etiqueta: "hechos_tipados" });
+    }
+  } else {
+    if (input.hechos) consultas.push({ texto: input.hechos.slice(0, 2500), etiqueta: "hechos" });
+    if (input.documentoCaso) consultas.push({ texto: input.documentoCaso.slice(0, 2500), etiqueta: "documento" });
+    if (dictamenUtil) consultas.push({ texto: dictamenUtil.slice(0, 2500), etiqueta: "dictamen" });
+    if (ext) {
+      if (ext.secciones.hechos) consultas.push({ texto: ext.secciones.hechos.slice(0, 2200), etiqueta: "hechos" });
+      if (ext.secciones.derecho) consultas.push({ texto: ext.secciones.derecho.slice(0, 2500), etiqueta: "derecho" });
+      if (ext.secciones.petitorio) consultas.push({ texto: ext.secciones.petitorio.slice(0, 1600), etiqueta: "petitorio" });
+      const invocados = [ext.acciones.join(" "), ext.juzgado, ext.articulosInvocados.slice(0, 20).join(" "), ext.normasDetectadas.map(n => n.nombre).join(" ")].filter(Boolean).join(" ");
+      if (invocados) consultas.push({ texto: invocados, etiqueta: "invocados" });
+    }
+    if (!consultas.length) consultas.push({ texto: combinedText.slice(0, 4000), etiqueta: "documento" });
   }
-  if (!consultas.length) consultas.push({ texto: combinedText.slice(0, 4000), etiqueta: "documento" });
 
   let juris: Awaited<ReturnType<typeof buscarJurisprudenciaMulti>> = [];
   let casos: Awaited<ReturnType<typeof buscarCasosJurisMulti>> = [];
@@ -245,8 +301,12 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   if (input.tribunal) promptContent += `TRIBUNAL: ${input.tribunal}\n`;
   promptContent += `\nHECHOS:\n${input.hechos}\n\n`;
   promptContent += `PRETENSIONES:\n${input.pretensiones.map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\n`;
-  if (planoExt) promptContent += planoExt;
-  if (bloqueSubsuncion) promptContent += bloqueSubsuncion;
+  if (NUCLEO_TIPADO && bloqueViaProcesal) {
+    promptContent += bloqueViaProcesal;
+  } else {
+    if (planoExt) promptContent += planoExt;
+    if (bloqueSubsuncion) promptContent += bloqueSubsuncion;
+  }
   // Bloques de contexto heredado (Motor v2): documento real + dictamen del caso.
   // Van antes de la plantilla para que fijen hechos/estrategia y la plantilla solo dé forma.
   if (input.documentoCaso) {
@@ -334,7 +394,7 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   // 9. BCN POST: verificar artículos en el borrador generado
   let citasBCNFinal = citasBCN;
   try {
-    const bcnPost = await verificarCitasBCN([draft]);
+    const bcnPost = await verificarCitasBCN([draft], { permitirSemilla: false }); // texto GENERADO: sin semilla (Fase I.4)
     const vistos = new Set(citasBCN.verificados.map(a => `${a.keyNorma}:${a.articulo}`));
     for (const a of bcnPost.verificados) {
       const k = `${a.keyNorma}:${a.articulo}`;
@@ -429,6 +489,14 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
       draft = draft + notaTactica(tactico);
     }
   } catch { /* silencioso: el control táctico jamás rompe el borrador */ }
+
+  // Fase I.5: vía sin revisión de abogado => nota visible.
+  if (NUCLEO_TIPADO && decision?.estado === "decidida") {
+    const viaDefNota = CATALOGO.find((v) => v.id === decision.via);
+    if (viaDefNota && !viaDefNota.verificadaPorAbogado) {
+      draft = draft + "\n\n> **Nota:** Vía procesal sin revisión de abogado.\n";
+    }
+  }
 
   // 11. Output
   const output: DraftOutput = {

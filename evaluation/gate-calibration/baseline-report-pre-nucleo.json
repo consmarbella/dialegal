@@ -1,0 +1,92 @@
+{
+  "generado": "2026-11-11T21:29:40.402Z",
+  "casos_total": 35,
+  "distribucion_esperada": {
+    "pass": 13,
+    "warn": 17,
+    "fail": 5
+  },
+  "accuracy": 1,
+  "macro_f1": 1,
+  "por_clase": {
+    "pass": {
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "falsos_positivos": 0,
+      "falsos_negativos": 0
+    },
+    "warn": {
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "falsos_positivos": 0,
+      "falsos_negativos": 0
+    },
+    "fail": {
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "falsos_positivos": 0,
+      "falsos_negativos": 0
+    }
+  },
+  "confusion": {
+    "pass": {
+      "pass": 13,
+      "warn": 0,
+      "fail": 0
+    },
+    "warn": {
+      "pass": 0,
+      "warn": 17,
+      "fail": 0
+    },
+    "fail": {
+      "pass": 0,
+      "warn": 0,
+      "fail": 5
+    }
+  },
+  "por_materia": {
+    "civil": {
+      "total": 20,
+      "ok": 20,
+      "fallos": []
+    },
+    "laboral": {
+      "total": 8,
+      "ok": 8,
+      "fallos": []
+    },
+    "policia-local": {
+      "total": 4,
+      "ok": 4,
+      "fallos": []
+    },
+    "consumidor": {
+      "total": 2,
+      "ok": 2,
+      "fallos": []
+    },
+    "familia": {
+      "total": 1,
+      "ok": 1,
+      "fallos": []
+    }
+  },
+  "casos_fallidos": [],
+  "metodologia": {
+    "fail_semantica": "hallazgosBloqueantes() > 0 (gate premium 422: RIT heredado en encabezado / marcador XX crudo)",
+    "warn_semantica": "anotaciones real: validador (rol fuera de corpus / art. sin cobertura BCN proxy / monto no corroborado) + anotaciones plazos (ambigua, vencido, no consignada, sin fecha)",
+    "proxy_bcn": "artsCubiertos del eval = articulos citados en el documento fuente (mismo regex de producción). Production BCN coverage may differ for pendientes flakiness.",
+    "entregables": [
+      "cases.jsonl 35 casos >= 30 exigidos",
+      "sin mocks: corre el sistema real (validadorInforme.ts + plazosChile.ts), no huérfanos"
+    ]
+  },
+  "limitaciones": [
+    "artsCubiertos es proxy (documento fuente) para hacer el eval determinista sin red",
+    "casos polícia-local/consumidor sin plazo registrado en el motor: la capa plazos no aplica (pecho no plateau pas)"
+  ]
+}

@@ -95,7 +95,7 @@ export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: Reg
   L18695: { id: 30077, nombre: "Ley 18.695 (LOC de municipalidades)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?695\b|\bLey\s+Org[aá]nica\s+Constitucional\s+de\s+Municipalidades\b/i },
   L18834: { id: 30210, nombre: "Ley 18.834 (estatuto administrativo)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?834\b|\bEstatuto\s+Administrativo(?!\s+(?:Municipal|para\s+Funcionarios\s+Municipales))\b/i },
   L18883: { id: 30256, nombre: "Ley 18.883 (estatuto administrativo municipal)", detect: /\bLey\s*n?[°º.\s]*18\.?\s?883\b|\bEstatuto\s+Administrativo\s+(?:Municipal|para\s+Funcionarios\s+Municipales)\b/i },
-  L19039: { id: 30406, nombre: "Ley 19.039 (propiedad industrial)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?039\b|\bLey\s+de\s+Propiedad\s+Industrial\b|\bpropiedad\s+industrial\b|\bpatentes?\b|\bmodelo\s+de\s+utilidad\b|\bsecreto(?:s)?\s+(?:industrial|empresarial)\b|\bregistro\s+de\s+(?:la\s+)?marca\b|\bmarcas?\s+(?:registrada|comercial|colectiva|de\s+f[aá]brica)\b/i, artsSemilla: ["1", "2", "3", "4"] },
+  L19039: { id: 30406, nombre: "Ley 19.039 (propiedad industrial)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?039\b|\bLey\s+de\s+Propiedad\s+Industrial\b|\bpropiedad\s+industrial\b|\bINAPI\b|\bmodelo\s+de\s+utilidad\b|\bregistro\s+de\s+(?:la\s+)?marca\b|\bmarcas?\s+(?:registrada|comercial|colectiva|de\s+f[aá]brica)\b/i, artsSemilla: ["1", "2", "3", "4"] },
   L19300: { id: 30667, nombre: "Ley 19.300 (bases del medio ambiente)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?300\b|\bLey\s+de\s+Bases\s+(?:Generales\s+)?del\s+Medio\s+Ambiente\b/i },
   L19496: { id: 61438, nombre: "Ley 19.496 (proteccion del consumidor)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?496\b|\bLey\s+del\s+Consumidor\b|\bprotecci[oó]n\s+(?:de\s+los\s+)?(?:derechos\s+de\s+los\s+)?consumidores?\b|\bSERNAC\b|\bderechos?\s+del\s+consumidor\b/i, artsSemilla: ["1", "2", "3", "23"] },
   L19628: { id: 141599, nombre: "Ley 19.628 (proteccion de la vida privada)", detect: /\bLey\s*n?[°º.\s]*19\.?\s?628\b|\bprotecci[oó]n\s+de\s+(?:la\s+)?vida\s+privada\b|\bdatos?\s+personales\b|\btratamiento\s+de\s+datos\b/i, artsSemilla: ["1", "2", "4"] },
@@ -109,7 +109,7 @@ export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: Reg
   L20009: { id: 236736, nombre: "Ley 20.009 (fraudes tarjetas de pago)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?009\b/i },
   L20066: { id: 242648, nombre: "Ley 20.066 (violencia intrafamiliar)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?066\b|\bLey\s+de\s+Violencia\s+Intrafamiliar\b/i },
   L20084: { id: 244803, nombre: "Ley 20.084 (responsabilidad penal adolescente)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?084\b/i },
-  L20720: { id: 1058072, nombre: "Ley 20.720 (reorganizacion y liquidacion)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?720\b|\breorganizaci[oó]n\s+(?:judicial|concursal|empresarial)\b|\bliquidaci[oó]n\s+(?:judicial|concursal|forzosa)\b|\bprocedimiento\s+concursal\b|\bquiebra\b|\binsolvencia\b/i, artsSemilla: ["1", "2", "4"] },
+  L20720: { id: 1058072, nombre: "Ley 20.720 (reorganizacion y liquidacion)", detect: /\bLey\s*n?[°º.\s]*20\.?\s?720\b|\breorganizaci[oó]n\s+(?:judicial|concursal|empresarial)\b|\bliquidaci[oó]n\s+(?:judicial|concursal|forzosa)\b|\bprocedimiento\s+concursal\b|\bquiebra\b/i, artsSemilla: ["1", "2", "4"] },
   L21325: { id: 1158549, nombre: "Ley 21.325 (migracion y extranjeria)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?325\b|\bLey\s+de\s+Migraci[oó]n\b/i },
   L21430: { id: 1173643, nombre: "Ley 21.430 (garantias y proteccion de la ninez)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?430\b/i },
   L21561: { id: 1191554, nombre: "Ley 21.561 (reduccion de jornada, 40 horas)", detect: /\bLey\s*n?[°º.\s]*21\.?\s?561\b|\bLey\s+de\s+40\s+Horas\b/i },
@@ -291,11 +291,19 @@ async function getNorma(id: number, byLey = false): Promise<NormaCacheEntry | nu
     const xml = await fetchXML(id, byLey);
     const enc = xml.slice(0, 4000);
     const fvM = enc.match(/fechaVersion="([0-9-]{8,10})"/);
+    // Fase I.4 — guardia de sanidad: el XML del Código Civil (DFL 1, 2000)
+    // trae fechaVersion="2222-02-02" (dato del BCN, verificado contra el
+    // XML real). Una fecha fuera de [1990, año actual+1] no se publica como
+    // versión: se omite (queda vigente+URL, que es lo verificable). Nunca se
+    // inventa una fecha de reemplazo.
+    const fvBruta = fvM ? decodeXml(fvM[1]) : "";
+    const fvAnio = fvBruta ? parseInt(fvBruta.slice(0, 4), 10) : NaN;
+    const fvValida = !Number.isNaN(fvAnio) && fvAnio >= 1990 && fvAnio <= new Date().getFullYear() + 1;
     const derM = enc.match(/derogado="([^"]+)"/);
     const niM = xml.match(/normaId="(\d+)"/);
     const entry: NormaCacheEntry = {
       xml,
-      fechaVersion: fvM ? decodeXml(fvM[1]) : "",
+      fechaVersion: fvValida ? fvBruta : "",
       derogado: derM ? decodeXml(derM[1]).startsWith("derogado") : false,
       // El normaId canónico vive más allá del encabezado (en normas grandes
       // queda fuera de los primeros 4000 chars): se busca en TODO el cuerpo.
@@ -596,7 +604,10 @@ export function extraerCitadasPorNorma(texto: string): { pares: CitaPareada[]; s
   return { pares, sinNorma: sinNorma.slice(0, 20), normas };
 }
 
-export async function verificarCitasBCN(textos: string[]): Promise<{ verificados: BcnArticuloVerificado[]; pendientes: BcnNormaSinArticulo[] }> {
+export async function verificarCitasBCN(
+  textos: string[],
+  opts?: { permitirSemilla?: boolean },
+): Promise<{ verificados: BcnArticuloVerificado[]; pendientes: BcnNormaSinArticulo[] }> {
   const texto = textos.filter(Boolean).join("\n");
   if (!texto) return { verificados: [], pendientes: [] };
 
@@ -688,9 +699,15 @@ export async function verificarCitasBCN(textos: string[]): Promise<{ verificados
   // el prompt recibe el texto base y el modelo puede auditar la cita (p. ej.
   // una demanda que cita "Ley 20.165" cuando la de competencia desleal es la
   // 20.169). Tope: una ley semilla por llamada.
+  // Fase I.4 — SOLO en el pase sobre el TEXTO DEL CASO (pre-pase, default):
+  // sobre texto GENERADO por el modelo la semilla inyecta leyes que el relato
+  // nunca invocó (caso real: el informe mencionó "insolvencia punible" —un
+  // delito penal— y el pie llenó arts. 1/2/4 de la Ley 20.720 en un cobro de
+  // pagaré). Los post-pases pasan { permitirSemilla: false }.
   let semillasTraidas = 0;
+  const semillaHabilitada = opts?.permitirSemilla !== false;
   for (const n of normas) {
-    if (semillasTraidas >= 1) break;
+    if (!semillaHabilitada || semillasTraidas >= 1) break;
     const seed = NORMA_IDS[n.key]?.artsSemilla;
     if (!seed || !seed.length || !n.idNorma) continue;
     if (vistas.has(n.key)) continue; // el caso ya citó artículos de esta ley
@@ -728,9 +745,15 @@ export async function verificarCitasBCN(textos: string[]): Promise<{ verificados
   return { verificados, pendientes };
 }
 
-export function fechaConsultaBCN(fechas: string[]): string {
-  if (fechas.length === 0) return new Date().toISOString().slice(0, 10);
-  return fechas.sort().reverse()[0];
+/**
+ * Fecha de CONSULTA del canal BCN: es HOY (cuándo consultamos Ley Chile), no
+ * la fecha de versión de la norma. Fase I.4: antes devolvía max(fechaVersion)
+ * y el pie decía "consultado el 2222-02-02" — un dato de versionamiento de
+ * DFL del BCN presentado como fecha de consulta. La versión de cada norma se
+ * muestra por artículo ("versión vigente ..."), no aquí.
+ */
+export function fechaConsultaBCN(_fechas: string[]): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 export function bloquePromptBCN(v: { verificados: BcnArticuloVerificado[]; pendientes: BcnNormaSinArticulo[] }): string {

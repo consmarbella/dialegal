@@ -4,7 +4,7 @@
 export const PLANTILLAS_TIPO: Record<string, string> = {
   demanda: `
 ESTRUCTURA OBLIGATORIA PARA DEMANDA:
-- Encabezado: S.J.L. [TRIBUNAL] / RIT [ROL] / CARÁTULA (demandante vs demandado)
+- Encabezado: S.J.L. [TRIBUNAL] / RIT: por asignar / CARÁTULA (demandante vs demandado)
 - EN LO PRINCIPAL: [TIPO DE DEMANDA - ej: DEMANDA DE DESPIDO INJUSTIFICADO, NULIDAD Y TUTELA]
 - ANTECEDENTES DE HECHO (numerados: PRIMERO:, SEGUNDO:, TERCERO:...)
 - FUNDAMENTOS DE DERECHO (artículos, jurisprudencia, doctrina por institución)

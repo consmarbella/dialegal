@@ -1,4 +1,5 @@
 import type { DraftInput, VacioCritico } from './src/types';
+import { ritEsExigible } from './src/server/caso.schema.js';
 
 /**
  * Auditoría determinista de vacíos críticos (Fase 2).
@@ -35,9 +36,12 @@ export function auditarVacios(draft: string, input: DraftInput): VacioCritico[] 
 
   // 1. RIT de la causa (fatal). Solo cuenta el formato real de carátula (RIT/RUC
   //    con código de materia), NO roles de fallos jurisprudenciales citados (61.313-2024).
-  const ritRealEnDraft = /\b(?:RUC|RIT)\b[\s:.,]*([CMIE]+)-?(\d{1,6})-(\d{2,4})\b/.test(draftNorm);
+  //    El RIT solo es exigible cuando la causa ya existe (contestación/otrosí/minuta).
+  //    En una demanda inicial NUNCA genera vacío fatal (ritEsExigible).
+  const ritExigible = ritEsExigible(input.tipo);
+  const ritRealEnDraft = ritExigible && /\b(?:RUC|RIT)\b[\s:.,]*([CMIE]+)-?(\d{1,6})-(\d{2,4})\b/.test(draftNorm);
   const rolPropioEnInput = /\b(?:R[UI][CT])?\s*[:.]?\s*[CMIE]{1,4}-?\d{1,6}-\d{2,4}\b|\b\d{1,6}-\d{4}\b/.test(input.rol || '');
-  if (!rolPropioEnInput && !ritRealEnDraft) {
+  if (ritExigible && !rolPropioEnInput && !ritRealEnDraft) {
     push('rit', 'fatal', 'RIT (rol interno) de la causa: escribe el rol exacto de la carátula del expediente, con formato como "RIT C-1234-2026". Lo encuentra en la OJV o en la carátula de la demanda notificada.');
   }
 
