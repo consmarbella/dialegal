@@ -67,8 +67,8 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
     return [{ title: lines[0]?.replace(/^#+\s*/, '') || 'Escrito', body: lines.slice(1).join('\n').trim() || markdown }];
   };
 
-  const sections = parseSections(output.draft);
-  const validacion = output.validacion;
+  const sections = parseSections(output.draft || '');
+  const validacion = output.validacion || {} as any;
 
   const getValidationIcon = (key: keyof ValidacionLegalHelp) => {
     const val = validacion[key];
@@ -89,19 +89,19 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
             <h2 className="text-lg font-bold text-slate-900">Borrador Generado</h2>
             <div className="flex items-center gap-2 mt-1 text-xs">
               <span className={`px-2 py-0.5 rounded font-bold uppercase border ${
-                output.metadatos.area === 'laboral' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                output.metadatos.area === 'civil' ? 'bg-green-100 text-green-800 border-green-200' :
-                output.metadatos.area === 'familia' ? 'bg-purple-100 text-purple-800 border-purple-200' :
-                output.metadatos.area === 'penal' ? 'bg-red-100 text-red-800 border-red-200' :
-                output.metadatos.area === 'administrativo' ? 'bg-amber-100 text-amber-800 border-amber-200' :
-                output.metadatos.area === 'transito' ? 'bg-orange-100 text-orange-800 border-orange-200' :
-                output.metadatos.area === 'constitucional' ? 'bg-indigo-100 text-indigo-800 border-indigo-200' :
+                output.metadatos?.area === 'laboral' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                output.metadatos?.area === 'civil' ? 'bg-green-100 text-green-800 border-green-200' :
+                output.metadatos?.area === 'familia' ? 'bg-purple-100 text-purple-800 border-purple-200' :
+                output.metadatos?.area === 'penal' ? 'bg-red-100 text-red-800 border-red-200' :
+                output.metadatos?.area === 'administrativo' ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                output.metadatos?.area === 'transito' ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                output.metadatos?.area === 'constitucional' ? 'bg-indigo-100 text-indigo-800 border-indigo-200' :
                 'bg-slate-100 text-slate-600 border-slate-200'
               }`}>
-                {output.metadatos.area || 'indeterminada'}
+                {output.metadatos?.area || 'indeterminada'}
               </span>
               <span className="px-2 py-0.5 rounded font-bold uppercase border bg-slate-100 text-slate-700 border-slate-200">
-                {output.metadatos.tipo}
+                {output.metadatos?.tipo || 'borrador'}
               </span>
               <span className="px-2 py-0.5 rounded font-bold uppercase border bg-emerald-100 text-emerald-800 border-emerald-200 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3" /> QA OK
@@ -192,7 +192,7 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
       </div>
 
       {/* Panel de Auditoría de Vacíos Críticos (Fase 2 — Regla de Oro) */}
-      {(output.metadatos.tipo === 'contestacion' || output.metadatos.tipo === 'demanda') && (
+      {(output.metadatos?.tipo === 'contestacion' || output.metadatos?.tipo === 'demanda') && (
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-start gap-2.5 mb-4">
             <Search className="w-5 h-5 text-rose-600 mt-0.5 shrink-0" />
@@ -313,7 +313,7 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
             <div className="p-2.5 rounded border border-slate-200 bg-white">
               <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Estructura</div>
               <div className="font-bold text-slate-900 flex items-center gap-1">
-                {validacion.estructuraJudicial ? (
+                {(validacion.estructuraJudicial ?? false) ? (
                   <>
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     <span>COMPLETA</span>
@@ -329,7 +329,7 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
             <div className="p-2.5 rounded border border-slate-200 bg-white">
               <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Numeración</div>
               <div className="font-bold text-slate-900 flex items-center gap-1">
-                {validacion.numeracionHechosValida ? (
+                {(validacion.numeracionHechosValida ?? false) ? (
                   <>
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     <span>VÁLIDA</span>
@@ -345,7 +345,7 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
             <div className="p-2.5 rounded border border-slate-200 bg-white">
               <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Petitorio</div>
               <div className="font-bold text-slate-900 flex items-center gap-1">
-                {validacion.petitorioValido ? (
+                {(validacion.petitorioValido ?? false) ? (
                   <>
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     <span>VÁLIDO</span>
@@ -361,7 +361,7 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
             <div className="p-2.5 rounded border border-slate-200 bg-white">
               <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Art. clave</div>
               <div className="font-bold text-slate-900 flex items-center gap-1">
-                {validacion.articulosClaveFaltantes.length === 0 ? (
+                {(validacion.articulosClaveFaltantes?.length ?? 0) === 0 ? (
                   <>
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     <span>OK</span>
@@ -369,7 +369,7 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
                 ) : (
                   <>
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                    <span>{validacion.articulosClaveFaltantes.length} faltantes</span>
+                    <span>{(validacion.articulosClaveFaltantes?.length ?? 0)} faltantes</span>
                   </>
                 )}
               </div>
@@ -384,9 +384,9 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
                 <span className="text-[10px] uppercase font-bold text-slate-500">Roles</span>
               </div>
               <div className="font-bold text-slate-900">
-                {validacion.rolesEnCorpus.length} verificados
-                {validacion.rolesNoEnCorpus.length > 0 && (
-                  <span className="text-red-700"> · {validacion.rolesNoEnCorpus.length} fuera</span>
+                {(validacion.rolesEnCorpus?.length ?? 0)} verificados
+                {(validacion.rolesNoEnCorpus?.length ?? 0) > 0 && (
+                  <span className="text-red-700"> · {(validacion.rolesNoEnCorpus?.length ?? 0)} fuera</span>
                 )}
               </div>
             </div>
@@ -396,9 +396,9 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
                 <span className="text-[10px] uppercase font-bold text-slate-500">Artículos BCN</span>
               </div>
               <div className="font-bold text-slate-900">
-                {validacion.artsCubiertos.length} con texto
-                {validacion.artsSinCobertura.length > 0 && (
-                  <span className="text-amber-700"> · {validacion.artsSinCobertura.length} sin cobertura</span>
+                {(validacion.artsCubiertos?.length ?? 0)} con texto
+                {(validacion.artsSinCobertura?.length ?? 0) > 0 && (
+                  <span className="text-amber-700"> · {(validacion.artsSinCobertura?.length ?? 0)} sin cobertura</span>
                 )}
               </div>
             </div>
@@ -408,9 +408,9 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
                 <span className="text-[10px] uppercase font-bold text-slate-500">Montos</span>
               </div>
               <div className="font-bold text-slate-900">
-                {validacion.montosInforme} citados
-                {validacion.montosNoCorroborados.length > 0 && (
-                  <span className="text-amber-700"> · {validacion.montosNoCorroborados.length} no corroborados</span>
+                {(validacion.montosInforme ?? 0)} citados
+                {(validacion.montosNoCorroborados?.length ?? 0) > 0 && (
+                  <span className="text-amber-700"> · {(validacion.montosNoCorroborados?.length ?? 0)} no corroborados</span>
                 )}
               </div>
             </div>
@@ -420,28 +420,28 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
           </p>
 
           {/* Alertas específicas */}
-          {validacion.rolesNoEnCorpus.length > 0 && (
+          {(validacion.rolesNoEnCorpus?.length ?? 0) > 0 && (
             <div className="mb-3 text-[11px] text-red-800 bg-red-50 border border-red-200 rounded p-2">
-              <span className="font-bold">Roles NO VERIFICADOS:</span> {validacion.rolesNoEnCorpus.slice(0, 4).join(', ')}
-              {validacion.rolesNoEnCorpus.length > 4 && ` +${validacion.rolesNoEnCorpus.length - 4} más`}
+              <span className="font-bold">Roles NO VERIFICADOS:</span> {(validacion.rolesNoEnCorpus ?? []).slice(0, 4).join(', ')}
+              {(validacion.rolesNoEnCorpus?.length ?? 0) > 4 && ` +${(validacion.rolesNoEnCorpus?.length ?? 0) - 4} más`}
               — Confírmalos en el buscador del PJUD antes de citarlos.
             </div>
           )}
-          {validacion.artsSinCobertura.length > 0 && (
+          {(validacion.artsSinCobertura?.length ?? 0) > 0 && (
             <div className="mb-3 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded p-2">
-              <span className="font-bold">Artículos sin texto BCN:</span> {validacion.artsSinCobertura.slice(0, 4).join(', ')}
+              <span className="font-bold">Artículos sin texto BCN:</span> {(validacion.artsSinCobertura ?? []).slice(0, 4).join(', ')}
               — Verifícalos en www.leychile.cl.
             </div>
           )}
-          {validacion.articulosClaveFaltantes.length > 0 && (
+          {(validacion.articulosClaveFaltantes?.length ?? 0) > 0 && (
             <div className="mb-3 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded p-2">
-              <span className="font-bold">Artículos clave del área no detectados:</span> {validacion.articulosClaveFaltantes.join(', ')}
+              <span className="font-bold">Artículos clave del área no detectados:</span> {(validacion.articulosClaveFaltantes ?? []).join(', ')}
               — Considera incluirlos si son aplicables al caso.
             </div>
           )}
-          {validacion.montosNoCorroborados.length > 0 && (
+          {(validacion.montosNoCorroborados?.length ?? 0) > 0 && (
             <div className="mb-3 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded p-2">
-              <span className="font-bold">Montos no corroborados:</span> {validacion.montosNoCorroborados.slice(0, 3).map(m => `$${m}`).join(', ')}
+              <span className="font-bold">Montos no corroborados:</span> {(validacion.montosNoCorroborados ?? []).slice(0, 3).map(m => `$${m}`).join(', ')}
               — Revisa los cálculos contra el documento original.
             </div>
           )}
@@ -453,17 +453,17 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
       )}
 
       {/* BCN Verificados */}
-      {output.bcn.citados.length > 0 && (
+      {(output.bcn?.citados?.length ?? 0) > 0 && (
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
             <CheckCircle2 className="w-5 h-5 text-indigo-700" />
             <h3 className="text-lg font-bold tracking-tight text-indigo-950">Textos oficiales verificados (Ley Chile — BCN)</h3>
             <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded border border-indigo-200">
-              {output.bcn.citados.length} artículos
+              {(output.bcn?.citados?.length ?? 0)} artículos
             </span>
           </div>
           <ul className="space-y-2 text-xs">
-            {output.bcn.citados.slice(0, 10).map((a, i) => (
+            {(output.bcn?.citados ?? []).slice(0, 10).map((a, i) => (
               <li key={i} className="flex items-start gap-2">
                 <span className="mt-0.5 shrink-0 text-indigo-600"><CheckCircle2 className="w-3.5 h-3.5" /></span>
                 <span className="flex-1">
@@ -483,25 +483,25 @@ export const DraftResult: React.FC<DraftResultProps> = ({ output, onRegenerate, 
                 )}
               </li>
             ))}
-            {output.bcn.citados.length > 10 && (
-              <li className="text-slate-500 text-center py-2">+{output.bcn.citados.length - 10} artículos más...</li>
+            {(output.bcn?.citados?.length ?? 0) > 10 && (
+              <li className="text-slate-500 text-center py-2">+{(output.bcn?.citados?.length ?? 0) - 10} artículos más...</li>
             )}
           </ul>
         </div>
       )}
 
       {/* Jurisprudencia / Casos referenciados (del metadatos) */}
-      {(output.bcn.pendientes.length > 0) && (
+      {((output.bcn?.pendientes?.length ?? 0) > 0) && (
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-3">
             <AlertTriangle className="w-5 h-5 text-amber-700" />
             <h3 className="text-lg font-bold tracking-tight text-amber-950">Cuerpos normativos sin verificación BCN</h3>
           </div>
           <ul className="space-y-1 text-xs text-amber-800">
-            {output.bcn.pendientes.slice(0, 6).map((p, i) => (
+            {(output.bcn?.pendientes ?? []).slice(0, 6).map((p, i) => (
               <li key={i} className="flex items-center gap-1">
                 <AlertTriangle className="w-3.5 h-3.5" />
-                <span className="font-bold">{p.nombreNorma}</span> (arts. {p.articulosPedidos.join(', ')}) — {p.motivo}
+                <span className="font-bold">{p.nombreNorma}</span> (arts. {(p.articulosPedidos ?? []).join(', ')}) - {p.motivo}
               </li>
             ))}
           </ul>

@@ -694,7 +694,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                               </>
                             )}
                             {j.normas && j.normas.length > 0 && (
-                              <div className="text-[10px] text-slate-500 mt-0.5">{j.normas.join(' · ')}</div>
+                              <div className="text-[10px] text-slate-500 mt-0.5">{(j.normas ?? []).join(" � ")}</div>
                             )}
                           </span>
                         </li>
@@ -815,10 +815,10 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                     {premium.documentos && (premium.documentos.acciones.length > 0 || premium.documentos.articulosInvocados.length > 0) && (
                       <div className="mt-3 text-[11px] text-slate-600">
                         {premium.documentos.acciones.length > 0 && (
-                          <div><span className="font-bold">Acciones detectadas:</span> {premium.documentos.acciones.join(' · ')}</div>
+                          <div><span className="font-bold">Acciones detectadas:</span> {(premium.documentos?.acciones ?? []).join(' · ')}</div>
                         )}
                         {premium.documentos.articulosInvocados.length > 0 && (
-                          <div className="mt-0.5"><span className="font-bold">Artículos invocados en tu documento:</span> {premium.documentos.articulosInvocados.join(', ')}</div>
+                          <div className="mt-0.5"><span className="font-bold">Artículos invocados en tu documento:</span> {(premium.documentos?.articulosInvocados ?? []).join(', ')}</div>
                         )}
                       </div>
                     )}
@@ -1146,3 +1146,4 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
     </div>
   );
 };
+
