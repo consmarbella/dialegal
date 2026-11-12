@@ -197,100 +197,89 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     const { caso: c, advertencias } = await extraerCaso(getGeminiClients(), combinedText);
     caso = c;
     if (caso) {
-      decision = decidirVia(caso);
-      // Fase I.5 (corrección de riesgo): CATALOGO solo tiene vías civiles. Si la
-      // materia no tiene catálogo, NO retornar: continuar con el flujo actual
-      // completo (como si el flag estuviera apagado para ese caso). Solo retornar
-      // preguntas cuando la materia sí tiene catálogo y el estado lo requiere.
-      const tieneCatalogo = materiaTieneCatalogo(caso.materia);
-      const preguntasDecision =
-        decision.estado === "requiere_datos" || decision.estado === "sin_via"
-          ? (decision as { preguntas: string[] }).preguntas
-          : [];
-      const debeRetornarPreguntas =
-        tieneCatalogo &&
-        (decision.estado === "requiere_datos" ||
-          (decision.estado === "sin_via" && preguntasDecision.length > 0));
-      if (debeRetornarPreguntas) {
-        // Devolver preguntas al usuario como VacioCritico, sin generar borrador todavía.
-        const vacios: VacioCritico[] = preguntasDecision.map((p, i) => ({
-          campo: `via-${i}`,
-          prioridad: 'fatal',
-          pregunta: p,
-          fragmento: undefined,
-        }));
-        const insumosVacios: InsumosValidacionLegalHelp = {
-          rolesCorpus: [], artsCubiertos: [], artsPendientes: [], montosDoc: [],
-          textoDoc: combinedText, area: null, tipo: input.tipo,
-        };
-        return {
-          draft: "",
-          validacion: validarLegalHelp("", insumosVacios),
-          vacios,
-          bcn: { citados: [], pendientes: [] },
-          metadatos: {
-            tipo: input.tipo, area: null, articulosClave: [], tokensEstimados: 0,
-            audience: input.audience || "abogado",
-          },
-        } as DraftOutput;
-      }
-      // Fase I.5 (simplificada): para materias sin catálogo, usar la vía propuesta
-      // por el modelo. Traer esas normas de la BCN y las fichas del corpus. NUNCA
-      // devolver un borrador vacío: continuar con el flujo actual.
-      if (!tieneCatalogo && caso) {
-        const viaProp = caso.viaPropuesta || "Vía propuesta por el modelo";
-        // Traer normas de la BCN
-        if (caso.normasARevisar.length > 0) {
+      // Fase I.5 (simplificada): solo decidir vía para demandas. Para otros tipos
+      // de escrito (contestación, otrosí, minuta, contrato, correo) saltar la
+      // decisión de vía y continuar con el flujo normal.
+      const esDemanda = input.tipo === "demanda";
+      if (esDemanda) {
+        decision = decidirVia(caso);
+        const tieneCatalogo = materiaTieneCatalogo(caso.materia);
+        const preguntasDecision =
+          decision.estado === "requiere_datos" || decision.estado === "sin_via"
+            ? (decision as { preguntas: string[] }).preguntas
+            : [];
+
+        // Si hay catálogo y hay preguntas, agregarlas a vaciosPropuesta (pero NO
+        // retornar temprano: generar el borrador de todas formas con [DATO FALTANTE]).
+        if (tieneCatalogo && preguntasDecision.length > 0) {
+          const vaciosPreg: VacioCritico[] = preguntasDecision.map((p, i) => ({
+            campo: `via-${i}`,
+            prioridad: "importante" as const,
+            pregunta: p,
+            fragmento: undefined,
+          }));
+          vaciosPropuesta.push(...vaciosPreg);
+        }
+
+        // Fase I.5 (simplificada): para materias sin catálogo, usar la vía propuesta
+        // por el modelo. Traer esas normas de la BCN y las fichas del corpus. NUNCA
+        // devolver un borrador vacío: continuar con el flujo actual.
+        if (!tieneCatalogo && caso) {
+          const viaProp = caso.viaPropuesta || "Vía propuesta por el modelo";
+          // Traer normas de la BCN
+          if (caso.normasARevisar.length > 0) {
+            try {
+              citasBCNPropuesta = await verificarCitasBCN([caso.normasARevisar.join(", ")]);
+            } catch (e: any) {
+              console.warn(`[draft][bcn-propuesta] verificacion fallo: ${String(e?.message || e).slice(0, 150)}`);
+            }
+          }
+          // Traer fichas del corpus
           try {
-            citasBCNPropuesta = await verificarCitasBCN([caso.normasARevisar.join(", ")]);
-          } catch (e: any) {
-            console.warn(`[draft][bcn-propuesta] verificacion fallo: ${String(e?.message || e).slice(0, 150)}`);
+            const consultaPropuesta: ConsultaEtiquetada[] = [
+              { texto: `${caso.materia} ${viaProp} ${caso.normasARevisar.join(" ")}`.slice(0, 2500), etiqueta: "via_decidida" },
+            ];
+            jurisPropuesta = await buscarJurisprudenciaMulti(consultaPropuesta, 6, (caso.materia as any) ?? undefined);
+          } catch { /* silencioso */ }
+          // Construir bloque [VÍA PROPUESTA POR EL MODELO]
+          const normasBase = caso.normasARevisar.join(", ") || "(sin normas identificadas)";
+          const hechosResumen = [...caso.hechos.map((h) => h.descripcion), ...caso.pretensiones.map((p) => p.descripcion)].join("; ");
+          bloqueViaProcesal = `\n\n[VÍA PROPUESTA POR EL MODELO]\nVía: ${viaProp}\nNormas a revisar: ${normasBase}\nHechos tipados: ${hechosResumen.slice(0, 2000)}\n`;
+          // Si la BCN no devolvió una norma, agregar [VERIFICAR] al bloque
+          if (citasBCNPropuesta.pendientes.length > 0) {
+            bloqueViaProcesal += `Normas sin verificación BCN (usar [VERIFICAR]): ${citasBCNPropuesta.pendientes.map((p) => p.nombreNorma).join(", ")}\n`;
+          }
+          // Agregar preguntas del modelo a vacios (si las hay)
+          if (caso.preguntas.length > 0) {
+            const vaciosModelo: VacioCritico[] = caso.preguntas.map((p, i) => ({
+              campo: `via-propuesta-${i}`,
+              prioridad: "importante" as const,
+              pregunta: p,
+              fragmento: undefined,
+            }));
+            vaciosPropuesta.push(...vaciosModelo);
+          }
+          // También agregar faltantes
+          if (caso.faltantes.length > 0) {
+            const vaciosFaltantes: VacioCritico[] = caso.faltantes.map((p, i) => ({
+              campo: `faltante-${i}`,
+              prioridad: "importante" as const,
+              pregunta: p,
+              fragmento: undefined,
+            }));
+            vaciosPropuesta.push(...vaciosFaltantes);
           }
         }
-        // Traer fichas del corpus
-        try {
-          const consultaPropuesta: ConsultaEtiquetada[] = [
-            { texto: `${caso.materia} ${viaProp} ${caso.normasARevisar.join(" ")}`.slice(0, 2500), etiqueta: "via_decidida" },
-          ];
-          jurisPropuesta = await buscarJurisprudenciaMulti(consultaPropuesta, 6, (caso.materia as any) ?? undefined);
-        } catch { /* silencioso */ }
-        // Construir bloque [VÍA PROPUESTA POR EL MODELO]
-        const normasBase = caso.normasARevisar.join(", ") || "(sin normas identificadas)";
-        const hechosResumen = [...caso.hechos.map((h) => h.descripcion), ...caso.pretensiones.map((p) => p.descripcion)].join("; ");
-        bloqueViaProcesal = `\\n\\n[VÍA PROPUESTA POR EL MODELO]\\nVía: ${viaProp}\\nNormas a revisar: ${normasBase}\\nHechos tipados: ${hechosResumen.slice(0, 2000)}\\n`;
-        // Si la BCN no devolvió una norma, agregar [VERIFICAR] al bloque
-        if (citasBCNPropuesta.pendientes.length > 0) {
-          bloqueViaProcesal += `Normas sin verificación BCN (usar [VERIFICAR]): ${citasBCNPropuesta.pendientes.map((p) => p.nombreNorma).join(", ")}\\n`;
+
+        // "decidida": bloque [VÍA PROCESAL DECIDIDA] reemplaza bloqueSubsuncion + planoExt.
+        if (decision.estado === "decidida") {
+          const viaDef = CATALOGO.find((v) => v.id === decision.via);
+          if (viaDef) {
+            const normasBase = viaDef.normasBase.join(", ");
+            const hechosResumen = [...caso.hechos.map((h) => h.descripcion), ...caso.pretensiones.map((p) => p.descripcion)].join("; ");
+            bloqueViaProcesal = `\n\n[VÍA PROCESAL DECIDIDA]\nVía: ${viaDef.nombre}\nNormas base: ${normasBase}\nHechos tipados: ${hechosResumen.slice(0, 2000)}\n`;
+          }
         }
-        // Los resultados BCN y corpus se fusionan más abajo, cuando citasBCN y
-        // juris ya estén declarados (evitar uso antes de declaración).
-        // Agregar preguntas del modelo a vacios (si las hay)
-        if (caso.preguntas.length > 0) {
-          const vaciosModelo: VacioCritico[] = caso.preguntas.map((p, i) => ({
-            campo: `via-propuesta-${i}`,
-            prioridad: "importante" as const,
-            pregunta: p,
-            fragmento: undefined,
-          }));
-          vaciosPropuesta.push(...vaciosModelo);
-        }
-        // También agregar faltantes
-        if (caso.faltantes.length > 0) {
-          const vaciosFaltantes: VacioCritico[] = caso.faltantes.map((p, i) => ({
-            campo: `faltante-${i}`,
-            prioridad: "importante" as const,
-            pregunta: p,
-            fragmento: undefined,
-          }));
-          vaciosPropuesta.push(...vaciosFaltantes);
-        }
-      }
-      // "decidida": bloque [VÍA PROCESAL DECIDIDA] reemplaza bloqueSubsuncion + planoExt.
-      const viaDef = CATALOGO.find((v) => v.id === decision.via);
-      if (viaDef) {
-        const normasBase = viaDef.normasBase.join(", ");
-        const hechosResumen = [...caso.hechos.map((h) => h.descripcion), ...caso.pretensiones.map((p) => p.descripcion)].join("; ");
-        bloqueViaProcesal = `\n\n[VÍA PROCESAL DECIDIDA]\nVía: ${viaDef.nombre}\nNormas base: ${normasBase}\nHechos tipados: ${hechosResumen.slice(0, 2000)}\n`;
       }
     }
   }
