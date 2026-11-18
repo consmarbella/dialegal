@@ -22,6 +22,8 @@ import {
   TIPOS_ESCRITO,
   POSTURAS,
   TRI,
+  ROL_PROCESAL,
+  ETAPA_PROCESAL,
 } from "./caso.schema.js";
 
 // Timeout propio: la extracción no puede frenar el flujo principal.
@@ -37,14 +39,20 @@ Reglas:
 6. Si no puedes determinar la materia, usa "indeterminada".
 7. viaPropuesta: propón una vía procesal chilena para el caso (ej. "Juicio ejecutivo por pagaré", "Juicio ordinario civil", "Contestación de demanda laboral"). Si no la determinas, usa null.
 8. normasARevisar: lista de normas (nombre o "Ley N° X" o "Código X art. Y") que el caso invoca y que deben verificarse contra BCN. Solo normas que aparezcan o se infieran del texto; no inventes.
-9. preguntas: preguntas adicionales para el usuario sobre datos que falten para decidir la vía. Puede coincidir con faltantes.`;
+9. preguntas: preguntas adicionales para el usuario sobre datos que falten para decidir la vía. Puede coincidir con faltantes.
+
+ENRUTADOR PROCESAL (4 ejes) — decide siempre, es la clave para elegir el playbook procesal:
+- materia: competencia del caso (civil, laboral, familia, penal, administrativo, constitucional, transito, indeterminada).
+- rol: quién es el cliente — demandante/querellante/requirente (inicia acción), demandado/imputado/requerido (se defiende), tercero.
+- etapa: inicio (demanda/querella/solicitud), defensa (contestación, excepciones, oposición), prueba, impugnacion (reposición, apelación, nulidad, casación), ejecucion (cumplimiento/ejecución).
+- alertas (yes/no simultáneos): plazoFatal (¿hay plazo fatal corriendo?), medidasCautelares (¿hay medidas cautelares/apremios vigentes?), requierePatrocinio (¿requiere abogado patrocinante?), viciosFormales (¿hay vicios formales evidentes?).`;
 
 /** responseSchema escrito a mano (estilo materiaLLM.ts). Coincide con CasoSchema. */
 const RESPONSE_SCHEMA: any = {
   type: "OBJECT",
-  required: ["materia", "tipoEscrito", "postura", "partes", "documentos", "hechos", "pretensiones", "estadoProcesal", "faltantes", "viaPropuesta", "normasARevisar", "preguntas"],
+  required: ["materia", "tipoEscrito", "postura", "partes", "documentos", "hechos", "pretensiones", "estadoProcesal", "faltantes", "viaPropuesta", "normasARevisar", "preguntas", "enrutador"],
   propertyOrdering: [
-    "materia", "tipoEscrito", "postura", "partes", "documentos", "hechos", "pretensiones", "estadoProcesal", "faltantes", "viaPropuesta", "normasARevisar", "preguntas",
+    "materia", "tipoEscrito", "postura", "partes", "documentos", "hechos", "pretensiones", "estadoProcesal", "faltantes", "viaPropuesta", "normasARevisar", "preguntas", "enrutador",
   ],
   properties: {
     materia: { type: "STRING", enum: [...MATERIAS] },
@@ -146,8 +154,26 @@ const RESPONSE_SCHEMA: any = {
     },
     preguntas: {
       type: "ARRAY",
-
       items: { type: "STRING" },
+    },
+    enrutador: {
+      type: "OBJECT",
+      required: ["materia", "rol", "etapa", "alertas"],
+      properties: {
+        materia: { type: "STRING", enum: [...MATERIAS] },
+        rol: { type: "STRING", enum: [...ROL_PROCESAL] },
+        etapa: { type: "STRING", enum: [...ETAPA_PROCESAL] },
+        alertas: {
+          type: "OBJECT",
+          required: ["plazoFatal", "medidasCautelares", "requierePatrocinio", "viciosFormales"],
+          properties: {
+            plazoFatal: { type: "BOOLEAN" },
+            medidasCautelares: { type: "BOOLEAN" },
+            requierePatrocinio: { type: "BOOLEAN" },
+            viciosFormales: { type: "BOOLEAN" },
+          },
+        },
+      },
     },
   },
 };

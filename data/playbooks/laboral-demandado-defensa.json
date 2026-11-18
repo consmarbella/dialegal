@@ -1,0 +1,31 @@
+{
+  "id": "laboral-demandado-defensa",
+  "materia": "laboral",
+  "rol": "demandado",
+  "etapa": "defensa",
+  "verificadaPorAbogado": false,
+  "estructura": [
+    "EN LO PRINCIPAL: CONTESTACIÓN DE DEMANDA LABORAL. Encabezado S.J.L. DE LETRAS DEL TRABAJO.",
+    "EXCEPCIONES: las que procedan (prescripción, incompetencia, etc.).",
+    "NEGATIVA DE HECHOS: por numerales, respondiendo cada hecho de la demanda.",
+    "DEFENSAS DE FONDO conLOAD de la prueba según materia.",
+    "PETITORIO: rechazo de la demanda, con costas.",
+    "OTROSÍES: documentos, prueba (testimonial, pericial, confesional), patrocinio y poder."
+  ],
+  "tactica": [
+    "Plazo: contestar dentro de 5 días hábiles antes de la audiencia preparatoria (Art. 452 CT). Verificar fecha de notificación en OJV.",
+    "Carga de la prueba en despido (Art. 454 N°1 CT): el empleador solo puede probar los hechos invocados en la carta de despido. Si la carta no menciona la causal que ahora se alega, NO se puede alegar en juicio.",
+    "LEY BUSTOS / Art. 162 CT: NUNCA prometer pago o regularización futura de cotizaciones. Si consta pago+notificación antes del término, alegar convalidación con fecha exacta y prueba; si no, negar el presupuesto y exigir acreditación con certificados AFP.",
+    "NO allanarse 'por si acaso' ni ofrecer pagar sumas que pudieren corresponder. Reconocer solo sumas líquidas, ciertas e indiscutidas.",
+    "Feriado y horas extraordinarias: negar categóricamente saldo pendiente salvo reconocimiento documentado; trasladar carga probatoria al demandante (existencia, liquidación, no pago).",
+    "Si hay reclamo de tutela laboral (Art. 485 CT) o acoso (Ley 21.643), defensa separada con antecedentes concretos."
+  ],
+  "noAlegar": [
+    "No prometer pago/regularización futura de cotizaciones.",
+    "No allanarse en condicional ('si existiere saldo', 'lo que corresponda').",
+    "No alegar causales de despido no invocadas en la carta."
+  ],
+  "normasBase": ["CT art. 162", "CT art. 168", "CT art. 452", "CT art. 454", "CT art. 485", "Ley 21.643"],
+  "plazoId": "laboral_contestacion",
+  "alertas": { "plazoFatal": "Contestar dentro de 5 días hábiles antes de la audiencia preparatoria (Art. 452 CT).", "requierePatrocinio": true }
+}

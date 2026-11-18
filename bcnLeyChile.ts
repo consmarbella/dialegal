@@ -156,6 +156,9 @@ export const NORMA_IDS: Record<string, { id: number; nombre: string; detect: Reg
 // esa etiqueta falsa se elimino; el Codigo de Justicia Militar (Decreto 2226,
 // idNorma 18914) vive ahora en NORMA_IDS detectado por su nombre.
 const LEY_EXTRA: Record<string, { nombre: string; idNorma: number }> = {
+  // Ley 19.983 (mérito ejecutivo de la factura) — norma central en cobros por
+  // factura. idNorma verificado contra obtxml 2026-11-18 (Numero=19983).
+  "19983": { nombre: "Ley 19.983 (merito ejecutivo de la factura)", idNorma: 233421 },
   "18916": { nombre: "Codigo Aeronautico (Ley 18.916)", idNorma: 30287 },
   "18248": { nombre: "Codigo de Mineria (Ley 18.248)", idNorma: 29668 },
   "20886": { nombre: "Ley 20.886 (tramitacion electronica)", idNorma: 1085545 },

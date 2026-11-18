@@ -1,0 +1,28 @@
+{
+  "id": "penal-imputado-defensa",
+  "materia": "penal",
+  "rol": "imputado",
+  "etapa": "defensa",
+  "verificadaPorAbogado": false,
+  "estructura": [
+    "ESCRITO DE DEFENSA ante el Ministerio Público / Tribunal según etapa. Sin 'S.J.L.' — el sistema penal usa 'S.S.' ante juez de garantía.",
+    "IDENTIFICACIÓN del imputado y de la causa (RIT/RUC).",
+    "EN LO PRINCIPAL: solicitud concreta (diligencias, cautela de garantías, sobreseimiento, revisión de medida cautelar).",
+    "HECHOS y FUNDAMENTOS jurídicos (CPP).",
+    "PETITORIO NUMERADO.",
+    "OTROSÍES según corresponda."
+  ],
+  "tactica": [
+    "Etapa investigación: solicitar diligencias al Ministerio Público (Art. 183 CPP) — entrevistas, peritajes, exhibiciones — para reunir prueba de descargo.",
+    "Cautela de garantías (Art. 10 CPP): si se vulneran derechos fundamentales en la investigación, pedir cautela al juez de garantía.",
+    "Sobreseimiento: evaluar sobreseimiento definitivo (Art. 250 letra a CPP, falta de antecedentes para estimar participación) o temporal.",
+    "Medidas cautelares: pedir revisión/sustitución (Art. 144 CPP) si la prisión preventiva o medida impuesta es desproporcionada; overtime argumentar peligro de fuga/obstrucción según el caso.",
+    "Presunción de inocencia (Art. 1 CPP) y carga de la prueba fiscal: exigir estándar de 'fundamentos plausibles' para任何 medida restrictiva."
+  ],
+  "noAlegar": [
+    "No reconocer hechos sin revisar la carpeta de investigación.",
+    "No declarar sin asesoría: el imputado tiene derecho a silencio (Art. 7 letra d CPP)."
+  ],
+  "normasBase": ["CPP art. 1", "CPP art. 7", "CPP art. 10", "CPP art. 144", "CPP art. 183", "CPP art. 250"],
+  "alertas": { "medidasCautelares": true, "requierePatrocinio": true }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "transito-demandado-defensa",
+  "materia": "transito",
+  "rol": "demandado",
+  "etapa": "defensa",
+  "verificadaPorAbogado": false,
+  "estructura": [
+    "ESCRITO DE DESCARGOS / CONTESTACIÓN ante el Juzgado de Policía Local.",
+    "EN LO PRINCIPAL: descargos a la denuncia / oposición a la sanción. Encabezado S.J.L. DE POLICÍA LOCAL con РУТ/ROL.",
+    "HECHOS: versión del conductor, fecha, lugar, dominio del vehículo.",
+    "DERECHO: Ley 18.290 (Tránsito), Ley 18.287 (procedimiento JPL), normativa municipal si es patente/permiso.",
+    "PETITORIO NUMERADO: se absuelva / se aplique la sanción mínima / se declare prescripción.",
+    "OTROSÍES: documentos, patrocinio si aplica."
+  ],
+  "tactica": [
+    "Plazo para descargos: breve (often 5 días hábiles desde la notificación, Art. 13 Ley 18.287) — verificar fecha real.",
+    "Prescripción de multas: verificar plazo de la acción para cobrar (regex de prescripción en el motor). Si la infracción es antigua, oponer prescripción.",
+    "Revisar notificación de la boleta: si hubo vicio en la notificación, la sanción puede impugnarse.",
+    "Si hay accidente con lesiones o daños, evaluar responsabilidad civil ante el juzgado civil competente (la JPL es solo infraccional).",
+    "En apelación de sentencia JPL: plazo de 5 días hábiles (Art. 32 Ley 18.287)."
+  ],
+  "noAlegar": [
+    "No dejar vencer el plazo de descargos (es breve).",
+    "No confundir la vía infraccional JPL con la civil por daños."
+  ],
+  "normasBase": ["Ley 18.287 art. 13", "Ley 18.287 art. 32", "Ley 18.290"],
+  "alertas": { "plazoFatal": true }
+}

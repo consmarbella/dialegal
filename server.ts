@@ -28,6 +28,7 @@ import { ejecutarPipelinePrevio } from "./src/server/pipelineLegalHelp.js";
 import { runWithCorpusForzado, runWithCorpusForzadoAsync } from "./src/server/corpusContext.js";
 import type { DraftInput } from "./src/types.js";
 import { auditarUrlDatos } from "./src/server/datosScanner.js";
+import { derivarPlazoWidget } from "./src/server/plazoWidget.js";
 
 // Combinación de TODAS las páginas SEO: 21 originales + 45 + 20 = 86 páginas (+home = 87 URLs)
 const ALL_SEO_PAGES = ALL_SEO_PAGES_SHARED;
@@ -160,7 +161,9 @@ ESTRUCTURA OBLIGATORIA (Markdown):
 
 ## 2. Semáforo de urgencia
 - 🔴 / 🟡 / 🟢 + una línea del porqué.
-- **Plazo fatal (si existe):** fecha o "corre desde el día siguiente a la notificación" + artículo.
+- **Plazo fatal:** SOLO si la posición del usuario tiene un emplazamiento real (demandado notificado / requerido de pago). Escribe el plazo exacto del procedimiento (p. ej. ejecutivo: 8 días hábiles desde el requerimiento, Art. 459/462 CPC; monitorio: 10 días corridos, Ley 18.101; ordinario: 18 días hábiles, Art. 258 CPC) o "corre desde el día siguiente a la notificación".
+- Si el usuario es la parte DEMANDANTE o no hay notificación para su posición: escribe "**Sin plazo fatal para tu posición hoy**" y explica (el plazo de contestación corre para la contraparte). NO inventes urgencia.
+- La PRESCRIPCIÓN de una acción es un LÍMITE, no un plazo fatal: nómbrala como tal (p. ej. "acción cambiaria del pagaré: 1 año desde el vencimiento, Ley 18.092 Art. 98").
 
 ## 3. Cuánta plata está en juego
 [Montos del documento o rango orientativo. Si no hay cifra: dilo.]
@@ -504,7 +507,7 @@ app.post("/api/analyze", async (req, res) => {
       // del módulo, coste marginal 0).
       let bcnCache: ReturnType<typeof resumenBcn> | null = null;
       try {
-        const vCache = await verificarCitasBCN([cachedAnalysis]);
+        const vCache = await verificarCitasBCN([cachedAnalysis], { permitirSemilla: false }); // texto GENERADO: sin semilla (Fase I.4)
         const vistos = new Set(citasBCNFree.verificados.map((a: any) => `${a.keyNorma}:${a.articulo}`));
         for (const a of vCache.verificados) {
           const k = `${a.keyNorma}:${a.articulo}`;
@@ -526,6 +529,7 @@ app.post("/api/analyze", async (req, res) => {
         materiaOrigen: resolucionMateriaCache.origen,
         materiaAdvertencia: resolucionMateriaCache.advertencia,
         materiaSecundaria: resolucionMateriaCache.materiaSecundaria ? MATERIAS[resolucionMateriaCache.materiaSecundaria].nombre : null,
+        plazoWidget: derivarPlazoWidget(combinedText, notificationDate),
         bcn: bcnCache ?? resumenBcn(citasBCNFree),
       });
     }
@@ -558,7 +562,7 @@ app.post("/api/analyze", async (req, res) => {
     // resultado se agrega como pie del propio análisis (✅ verificado con URL /
     // ⚠️ no confirmado). Las normas ya consultadas salen de cache del módulo.
     try {
-      const bcnInforme = await verificarCitasBCN([analysis]);
+      const bcnInforme = await verificarCitasBCN([analysis], { permitirSemilla: false }); // texto GENERADO: sin semilla (Fase I.4)
       const vistos = new Set(citasBCNFree.verificados.map((a: any) => `${a.keyNorma}:${a.articulo}`));
       for (const a of bcnInforme.verificados) {
         const k = `${a.keyNorma}:${a.articulo}`;
@@ -585,6 +589,7 @@ app.post("/api/analyze", async (req, res) => {
       materiaAdvertencia: resolucionFinal.advertencia,
       materiaSecundaria: resolucionFinal.materiaSecundaria ? MATERIAS[resolucionFinal.materiaSecundaria].nombre : null,
       bcn: resumenBcn(citasBCNFree),
+      plazoWidget: derivarPlazoWidget(combinedText, notificationDate),
     });
   } catch (err: any) {
     console.error("Error en /api/analyze:", err);
@@ -846,7 +851,15 @@ app.post("/api/premium-report", async (req, res) => {
         }
         casos = await buscarCasosJurisMulti(consultas, 4, slugCorpus);
       });
-      const bloqueJuris = bloquePromptJuris(juris);
+      // Fase I.4 — el PROMPT premium solo recibe fichas SUSTANTIVAS: el relleno
+      // administrativo (fragmentos de sentencia, viñetas de ingesta, títulos
+      // truncados) no entra al modelo — así no puede citarlo ni mostrarlo como
+      // "jurisprudencia análoga" (caso real: "CASO DE TRATARSE DE UNA PERSONA
+      // JURÍDICA: don/doña" y "B) pago por consignación" listadas como fichas
+      // dogmáticas en el informe del pagaré). Quedan en el ranking interno de
+      // respaldo, no en pantalla.
+      const jurisSustantivas = juris.filter((j) => !j.relleno);
+      const bloqueJuris = bloquePromptJuris(jurisSustantivas);
       if (bloqueJuris) promptContent += bloqueJuris;
       const bloqueCasos = bloquePromptCasos(casos);
       if (bloqueCasos) promptContent += bloqueCasos;
@@ -977,7 +990,7 @@ app.post("/api/premium-report", async (req, res) => {
     // haya citado (aunque no estuviera en el dictamen) se contrasta contra el texto
     // oficial. Las normas ya consultadas salen de cache (coste marginal = 0).
     try {
-      const bcnInforme = await verificarCitasBCN([report]);
+      const bcnInforme = await verificarCitasBCN([report], { permitirSemilla: false }); // texto GENERADO: sin semilla (Fase I.4)
       const vistos = new Set(citasBCN.verificados.map((a) => `${a.keyNorma}:${a.articulo}`));
       for (const a of bcnInforme.verificados) {
         const k = `${a.keyNorma}:${a.articulo}`;
@@ -1080,7 +1093,7 @@ app.post("/api/premium-report", async (req, res) => {
       });
     }
     setCached(pKey, JSON.stringify(result));
-    res.json({ ...result, usosRestantes: consumed.usos == null ? null : Math.max(0, 3 - consumed.usos) });
+    res.json({ ...result, usosRestantes: consumed.usos == null ? null : Math.max(0, 3 - consumed.usos), plazoWidget: derivarPlazoWidget(combinedText, notificationDate) });
   } catch (err: any) {
     console.error("Error en /api/premium-report:", err);
     if (sendQuotaExhausted(res, err)) return;
@@ -1333,6 +1346,13 @@ app.post("/api/chat", async (req, res) => {
           // indeterminada (el área declarada del formulario manda después).
           area: area ?? undefined,
           pretensiones,
+          postura: suggestedTipo === "contestacion" ? "demandado" : "demandante",
+          enrutador: {
+            materia: area || "indeterminada",
+            rol: suggestedTipo === "contestacion" ? "demandado" : "demandante",
+            etapa: ({ demanda: "inicio", contestacion: "defensa", otrosi: "defensa", minuta: "prueba", contrato: "inicio", correo: "defensa" } as Record<string,string>)[suggestedTipo] || "inicio",
+            alertas: { plazoFatal: suggestedTipo === "contestacion", medidasCautelares: false, requierePatrocinio: true, viciosFormales: false },
+          },
           ...(rol ? { rol } : {}),
           ...(tribunal ? { tribunal } : {}),
         },
@@ -1342,9 +1362,33 @@ app.post("/api/chat", async (req, res) => {
     };
 
     if (wantsDraft) {
-      // NO cachear respuestas de draftAction; la intención intercepta todo flujo conversacional
-      console.log(`[draft] Tier 1: intención detectada ("${userMessage.slice(0, 60)}")`);
-      return res.json(buildDraftSuggestion(userMessage, currentCaseContext));
+      // NUEVO: generar el borrador DIRECTAMENTE (antes solo se preparaba el
+      // formulario y el usuario recibía un memo). El generador usa el Playbook
+      // Procesal del cruce [materia+rol+etapa] para redactar un escrito judicial.
+      console.log(`[draft] Tier 1: intención detectada — generando borrador directo`);
+      const suggestion = buildDraftSuggestion(userMessage, currentCaseContext);
+      try {
+        const draftInput = {
+          ...(suggestion.suggestedInput as any),
+          documentoCaso: typeof currentCaseContext === "string" ? currentCaseContext : undefined,
+          audience: "abogado" as const,
+        };
+        const output = await runWithCorpusForzadoAsync(() => handleLegalHelpDraft(draftInput));
+        return res.json({
+          draftAction: true,
+          directDraft: true,
+          draft: output.draft,
+          validacion: output.validacion,
+          vacios: output.vacios,
+          bcn: output.bcn,
+          metadatos: output.metadatos,
+          reply: "Borrador generado con la estrategia del diagnóstico. Revísalo y completa los datos marcados antes de presentar.",
+          cached: false,
+        });
+      } catch (err: any) {
+        console.warn(`[draft] generación directa falló, se devuelve el formulario: ${String(err?.message || err).slice(0, 200)}`);
+        return res.json(suggestion);
+      }
     }
 
     // ───── Tier 2: intercepción de negativa ética ─────

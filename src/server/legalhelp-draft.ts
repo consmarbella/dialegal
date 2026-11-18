@@ -19,6 +19,8 @@ import type { DraftInput, DraftOutput, VacioCritico, HallazgoTactico } from "../
 // Fase I.5: Núcleo tipado (LLM-primary) detrás de NUCLEO_TIPADO=true.
 import { extraerCaso, type Caso } from "./extraerCaso.js";
 import { decidirVia, type DecisionVia, CATALOGO, materiaTieneCatalogo } from "./viasProcesales.js";
+import { ensamblarDesdeEnrutador } from "./ensambladorPrompt.js";
+import type { EnrutadorProcesal } from "./caso.schema.js";
 // Fase 1: generateWithFallback consolidado en llmEngine.ts (versión completa:
 // cadena dinámica, pausa por cuota diaria, reintentos y fallback degradado).
 // Se importa aquí para eliminar la copia simplificada de este módulo.
@@ -48,6 +50,8 @@ FUENTES PRIORITARIAS (orden):
 2. Fallos rectores Corte Suprema (rol + doctrina) — CRITERIO DOMINANTE
 3. Casos análogos recientes — ORIENTATIVO
 4. Búsqueda web — SOLO si BCN/jurisprudencia no cubren
+
+MARCADORES [VERIFICAR]: úsalos con MODERACIÓN. Si un bloque de normas no tiene cobertura BCN, escribe [VERIFICAR] UNA SOLA VEZ al inicio de ese bloque, no en cada artículo. No repitas [VERIFICAR] en cada cita del escrito: si citas un artículo que SÍ está en la verificación BCN, usa la cita directamente sin marcador. El ruido de marcadores repetidos no agrega valor operativo.
 
 NUNCA INVENTES: artículos, roles, montos, fechas NI IDENTIDADES de las partes. Los nombres de demandante, representantes y apoderados deben provenir del [DOCUMENTO DEL CASO] o del [DICTAMEN TÉCNICO PREVIO]. Si un nombre no figura en ellos, redáctalo de forma neutra ("el actor", "la demandada") o usa el marcador "[NOMBRE DEL ACTOR]"; jamás un apellido supuesto.
 MARCADOR ÚNICO DE DATOS OPERATIVOS FALTANTES: si un dato indispensable (RIT/RUC, fecha de notificación, nombre o patente de abogado, RUN de testigo, escritura de poder, etc.) NO figura en ninguna fuente, escribe en el lugar exacto del escrito el marcador "[DATO FALTANTE: descripción corta]" (p. ej. "RIT C-[DATO FALTANTE: rol de la causa]-2026", "notificada el [DATO FALTANTE: fecha de notificación de la demanda]"). Nunca dejes espacios en blanco vacíos ni "XX"; cada marcador se convierte en una pregunta para el usuario. "[VERIFICAR]" queda reservado SOLO para citas normativas sin cobertura BCN.
@@ -295,10 +299,61 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
     planoExt = planoBlindajePrompt(ext);
   } catch { /* silencioso */ }
 
+  // ── Ensamblador de prompt (bloques desacoplados) ────────────────────────
+  // Cruce [Materia + Rol + Etapa] del enrutador (viene del formulario; si no,
+  // se infiere de caso/tipo/área). Selecciona el Playbook Procesal que inyecta
+  // estructura + táctica en el prompt y declara normas base para verificar BCN.
+  const enrutadorEfectivo: EnrutadorProcesal | null = (() => {
+    if (input.enrutador) {
+      return {
+        materia: (input.enrutador.materia || area || "indeterminada") as EnrutadorProcesal["materia"],
+        rol: (input.enrutador.rol || input.postura || "demandado") as EnrutadorProcesal["rol"],
+        etapa: (input.enrutador.etapa || "inicio") as EnrutadorProcesal["etapa"],
+        alertas: {
+          plazoFatal: !!input.enrutador.alertas?.plazoFatal,
+          medidasCautelares: !!input.enrutador.alertas?.medidasCautelares,
+          requierePatrocinio: input.enrutador.alertas?.requierePatrocinio !== false,
+          viciosFormales: !!input.enrutador.alertas?.viciosFormales,
+        },
+      };
+    }
+    if (NUCLEO_TIPADO && caso?.enrutador) return caso.enrutador;
+    if (NUCLEO_TIPADO && (area || input.postura)) {
+      return {
+        materia: (area || caso?.materia || "indeterminada") as EnrutadorProcesal["materia"],
+        rol: (input.postura || "demandado") as EnrutadorProcesal["rol"],
+        etapa: (input.tipo === "contestacion" ? "defensa" : input.tipo === "demanda" ? "inicio" : "defensa") as EnrutadorProcesal["etapa"],
+        alertas: { plazoFatal: input.tipo === "contestacion", medidasCautelares: false, requierePatrocinio: true, viciosFormales: false },
+      };
+    }
+    return null;
+  })();
+  const ensamblaje = ensamblarDesdeEnrutador(enrutadorEfectivo);
+  let bloquePlaybook = ensamblaje.bloquePlaybook;
+  const normasPlaybook = ensamblaje.normasBase;
+
   // 4. BCN PRE: verificar artículos citados en input (siempre en borradores)
   let citasBCN: Awaited<ReturnType<typeof verificarCitasBCN>> = { verificados: [], pendientes: [] };
   try {
     citasBCN = await verificarCitasBCN([combinedText]);
+    // Verificar también las normas base declaradas por el playbook (ej. Ley 19.983,
+    // arts. 303/262 CPC) aunque el input no las haya citado literalmente.
+    if (normasPlaybook.length) {
+      let citasPlaybook: Awaited<ReturnType<typeof verificarCitasBCN>> = { verificados: [], pendientes: [] };
+      try {
+        citasPlaybook = await verificarCitasBCN([normasPlaybook.join(", ")]);
+      } catch { /* best-effort */ }
+      const vistos = new Set(citasBCN.verificados.map((a) => `${a.keyNorma}:${a.articulo}`));
+      for (const a of citasPlaybook.verificados) {
+        const k = `${a.keyNorma}:${a.articulo}`;
+        if (!vistos.has(k)) { citasBCN.verificados.push(a); vistos.add(k); }
+      }
+      const pvistos = new Set(citasBCN.pendientes.map((p) => `${p.keyNorma}:${(p.articulosPedidos || []).join(",")}`));
+      for (const p of citasPlaybook.pendientes) {
+        const k = `${p.keyNorma}:${(p.articulosPedidos || []).join(",")}`;
+        if (!pvistos.has(k)) { citasBCN.pendientes.push(p); pvistos.add(k); }
+      }
+    }
   } catch (e: any) {
     console.warn(`[draft][bcn-pre] verificacion fallo (sigue sin BCN): ${String(e?.message || e).slice(0, 150)}`);
   }
@@ -380,7 +435,12 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   if (input.tribunal) promptContent += `TRIBUNAL: ${input.tribunal}\n`;
   promptContent += `\nHECHOS:\n${input.hechos}\n\n`;
   promptContent += `PRETENSIONES:\n${input.pretensiones.map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\n`;
-  if (NUCLEO_TIPADO && bloqueViaProcesal) {
+  if (bloquePlaybook) {
+    // Bloque 1 del ensamblador: el Playbook Procesal (estructura + táctica del
+    // cruce [Materia+Rol+Etapa]) REEMPLAZA a la subsunción genérica y al plano
+    // regex — es la fuente autoritativa de cómo redactar este escrito.
+    promptContent += bloquePlaybook;
+  } else if (NUCLEO_TIPADO && bloqueViaProcesal) {
     promptContent += bloqueViaProcesal;
   } else {
     if (planoExt) promptContent += planoExt;
@@ -468,6 +528,24 @@ export async function handleLegalHelpDraft(input: DraftInput): Promise<DraftOutp
   const saneamientoPlazo = sanitizarAfirmacionPlazoVencido(draft, plazosMotor);
   if (saneamientoPlazo.corregidos > 0) {
     draft = saneamientoPlazo.texto + `\n\n## ⚠️ Corrección automática de plazo\n\nSe reemplazó una afirmación de oportunidad procesal porque el motor calculó vencimiento el ${saneamientoPlazo.fechas[0]}. Confirma la fecha del receptor y el estado de la causa en OJV antes de presentar.\n`;
+  }
+
+  // 8.6 Alerta de plazo fatal / cautelares ARRIBA del borrador (antes de cualquier
+  // texto), para que no quede solo como nota al pie. Señal visible, no bloqueo.
+  const alertasEns = ensamblaje.alertas || {};
+  const avisosCriticos: string[] = [];
+  if (plazosMotor.some((p) => p.vencido === true) || alertasEns.plazoFatal) {
+    const fv = plazosMotor.find((p) => p.vencido)?.fechaLimite;
+    avisosCriticos.push(
+      `⛔ **PLAZO FATAL** — ${fv ? `el motor calculó vencimiento el ${fv}` : "hay un plazo corriendo"}. ` +
+      `Verifica la fecha real de notificación y el estado de la causa en la OJV ANTES de presentar.`
+    );
+  }
+  if (alertasEns.medidasCautelares) {
+    avisosCriticos.push(`⛔ **MEDIDAS CAUTELARES / APREMIOS VIGENTES** — revisar antes de presentar.`);
+  }
+  if (avisosCriticos.length) {
+    draft = `> ## 🚨 ALERTA PROCESAL CRÍTICA\n> ${avisosCriticos.join("\n> \n> ")}\n\n---\n\n` + draft;
   }
 
   // 9. BCN POST: verificar artículos en el borrador generado

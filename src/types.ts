@@ -204,6 +204,13 @@ export interface DraftInput {
   respuestasAuditoria?: string;
   /** Quién usa el producto: cambia tono y profundidad del output. Default abogado. */
   audience?: Audience;
+  /** Enrutador Procesal Universal (4 ejes). Si no viene, se infiere del tipo/área/postura. */
+  enrutador?: {
+    materia: string;
+    rol: string;
+    etapa: string;
+    alertas?: { plazoFatal?: boolean; medidasCautelares?: boolean; requierePatrocinio?: boolean; viciosFormales?: boolean };
+  };
 }
 
 // Auditoría determinista de vacíos críticos (Fase 2)

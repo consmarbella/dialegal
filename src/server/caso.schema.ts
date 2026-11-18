@@ -9,6 +9,28 @@ export const TIPOS_ESCRITO = ["demanda", "contestacion", "otrosi", "minuta"] as 
 export const POSTURAS = ["demandante", "demandado", "indeterminada"] as const;
 export const TRI = ["si", "no", "desconocido"] as const;
 
+// ── Enrutador Procesal Universal (4 ejes) ──────────────────────────────────
+// Decide la combinación [Materia + Rol + Etapa] + alertas críticas. Es la
+// entrada al Playbook Procesal (data/playbooks/*.json). Opcional en CasoSchema
+// para mantener retrocompatibilidad con los evals existentes.
+export const ROL_PROCESAL = ["demandante", "querellante", "requirente", "demandado", "imputado", "requerido", "tercero"] as const;
+export const ETAPA_PROCESAL = ["inicio", "defensa", "prueba", "impugnacion", "ejecucion"] as const;
+
+export const AlertasSchema = z.object({
+  plazoFatal: z.boolean(),
+  medidasCautelares: z.boolean(),
+  requierePatrocinio: z.boolean(),
+  viciosFormales: z.boolean(),
+});
+
+export const EnrutadorSchema = z.object({
+  materia: z.enum(MATERIAS),
+  rol: z.enum(ROL_PROCESAL),
+  etapa: z.enum(ETAPA_PROCESAL),
+  alertas: AlertasSchema,
+});
+export type EnrutadorProcesal = z.infer<typeof EnrutadorSchema>;
+
 // Fechas siempre ISO (YYYY-MM-DD) o null. Montos siempre CLP enteros o null.
 const Fecha = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable();
 const MontoClp = z.number().int().nonnegative().nullable();
@@ -80,6 +102,8 @@ export const CasoSchema = z.object({
   normasARevisar: z.array(z.string().max(120)).max(10),
   // Preguntas adicionales del modelo para el usuario (más allá de faltantes).
   preguntas: z.array(z.string().max(200)).max(5),
+  // Enrutador Procesal Universal (4 ejes). Opcional = retrocompatible.
+  enrutador: EnrutadorSchema.optional(),
 });
 
 export type Caso = z.infer<typeof CasoSchema>;

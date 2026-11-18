@@ -1,0 +1,27 @@
+{
+  "id": "administrativo-demandado-defensa",
+  "materia": "administrativo",
+  "rol": "demandado",
+  "etapa": "defensa",
+  "verificadaPorAbogado": false,
+  "estructura": [
+    "ESCRITO DE DEFENSA / RECLAMO ante el órgano administrativo o tribunal competente.",
+    "EN LO PRINCIPAL: tipo de impugnación (reposición, apelación administrativa, reclamación ilegalidad, demanda administrativa).",
+    "HECHOS y FUNDAMENTOS con normativa de la materia (Ley 19.880, ley sectorial).",
+    "PETITORIO NUMERADO.",
+    "OTROSÍES: documentos, patrocinio."
+  ],
+  "tactica": [
+    "Identificar la vía correcta: reclamación de ilegalidad (Ley 19.880 Art. 52 y ss.) vs. juicio administrativo ante Tribunal de Letras por competencia.",
+    "Agotar la vía administrativa previa (reposición/jerárquica) antes de recurrir a tribunales, salvo que la ley disponga lo contrario.",
+    "Plazos: la reclamación administrativa y la acción judicial tienen plazos breves y distintos según la ley sectorial — verificar fecha de la resolución impugnada.",
+    "Vicios del acto administrativo: incompetencia, falta de motivación (Art. 41 Ley 19.880), vicios de procedimiento, desviación de poder.",
+    "Suspensión del acto: evaluar pedir suspensión de la ejecución si el acto causa daño grave y urgente."
+  ],
+  "noAlegar": [
+    "No omitir el agotamiento de la vía administrativa previa.",
+    "No dejar vencer el plazo de reclamación."
+  ],
+  "normasBase": ["Ley 19.880 art. 41", "Ley 19.880 art. 52"],
+  "alertas": { "plazoFatal": true, "requierePatrocinio": true }
+}

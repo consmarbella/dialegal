@@ -3,6 +3,9 @@ import { ritEsExigible } from "./caso.schema.js";
 import { decidirVia, materiaTieneCatalogo } from "./viasProcesales.js";
 import type { Caso } from "./caso.schema.js";
 import { verificarContraTexto, rutValidoMod11 } from "./extraerCaso.js";
+import { EnrutadorSchema } from "./caso.schema.js";
+import { cargarPlaybook, bloquePromptPlaybook } from "./playbookLoader.js";
+import { ensamblarDesdeEnrutador } from "./ensambladorPrompt.js";
 
 function casoBase(overrides: Partial<Caso> = {}): Caso {
   return {
@@ -145,3 +148,79 @@ describe("materiaTieneCatalogo", () => {
     expect(adv.filter(a => a.includes("monto de documento")).length).toBe(0);
   });
 });
+
+describe("Enrutador Procesal (4 ejes)", () => {
+  it("valida un enrutador completo", () => {
+    const e = EnrutadorSchema.parse({
+      materia: "civil", rol: "demandado", etapa: "defensa",
+      alertas: { plazoFatal: true, medidasCautelares: false, requierePatrocinio: true, viciosFormales: false },
+    });
+    expect(e.materia).toBe("civil");
+    expect(e.alertas.plazoFatal).toBe(true);
+  });
+
+  it("mapea roles ricos (querellante/imputado/requirente)", () => {
+    expect(cargarPlaybook({ materia: "penal", rol: "imputado", etapa: "defensa" })?.id).toBe("penal-imputado-defensa");
+    expect(cargarPlaybook({ materia: "constitucional", rol: "requirente", etapa: "inicio" })?.id).toBe("constitucional-demandante-inicio");
+  });
+});
+
+describe("Playbooks Procesales", () => {
+  it("carga el playbook civil demandado defensa", () => {
+    const pb = cargarPlaybook({ materia: "civil", rol: "demandado", etapa: "defensa" });
+    expect(pb).not.toBeNull();
+    expect(pb!.id).toBe("civil-demandado-defensa");
+    expect(pb!.estructura.length).toBeGreaterThan(3);
+    expect(pb!.tactica.join(" ").toLowerCase()).toContain("303");
+    expect(pb!.normasBase).toContain("Ley 19.983 art. 3");
+  });
+
+  it("tiene playbook para las 7 materias principales", () => {
+    const cruces = [
+      { materia: "civil", rol: "demandado", etapa: "defensa", id: "civil-demandado-defensa" },
+      { materia: "laboral", rol: "demandado", etapa: "defensa", id: "laboral-demandado-defensa" },
+      { materia: "familia", rol: "demandado", etapa: "defensa", id: "familia-demandado-defensa" },
+      { materia: "penal", rol: "imputado", etapa: "defensa", id: "penal-imputado-defensa" },
+      { materia: "administrativo", rol: "demandado", etapa: "defensa", id: "administrativo-demandado-defensa" },
+      { materia: "constitucional", rol: "requirente", etapa: "inicio", id: "constitucional-demandante-inicio" },
+      { materia: "transito", rol: "demandado", etapa: "defensa", id: "transito-demandado-defensa" },
+    ] as const;
+    for (const c of cruces) {
+      const pb = cargarPlaybook(c);
+      expect(pb, `playbook ${c.id} debe existir`).not.toBeNull();
+      expect(pb!.id).toBe(c.id);
+    }
+  });
+
+  it("devuelve null para materia indeterminada", () => {
+    expect(cargarPlaybook({ materia: "indeterminada", rol: "demandado", etapa: "defensa" })).toBeNull();
+  });
+
+  it("el bloque de prompt incluye estructura y t�ctica", () => {
+    const pb = cargarPlaybook({ materia: "civil", rol: "demandado", etapa: "defensa" });
+    const bloque = bloquePromptPlaybook(pb);
+    const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    expect(norm(bloque)).toContain("[PLAYBOOK PROCESAL");
+    expect(norm(bloque)).toContain("TACTICA PROCESAL");
+    expect(norm(bloque)).toContain("QUE NO ALEGAR");
+  });
+});
+
+describe("Ensamblador de prompt", () => {
+  it("ensambla desde enrutador con playbook", () => {
+    const r = ensamblarDesdeEnrutador({
+      materia: "civil", rol: "demandado", etapa: "defensa",
+      alertas: { plazoFatal: false, medidasCautelares: false, requierePatrocinio: true, viciosFormales: false },
+    });
+    expect(r.playbook?.id).toBe("civil-demandado-defensa");
+    expect(r.normasBase.length).toBeGreaterThan(3);
+    expect(r.bloquePlaybook).toContain("PLAYBOOK PROCESAL");
+  });
+
+  it("sin enrutador devuelve bloque vac�o", () => {
+    const r = ensamblarDesdeEnrutador(null);
+    expect(r.bloquePlaybook).toBe("");
+    expect(r.playbook).toBeNull();
+  });
+});
+

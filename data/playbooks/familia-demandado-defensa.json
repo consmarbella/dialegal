@@ -1,0 +1,27 @@
+{
+  "id": "familia-demandado-defensa",
+  "materia": "familia",
+  "rol": "demandado",
+  "etapa": "defensa",
+  "verificadaPorAbogado": false,
+  "estructura": [
+    "EN LO PRINCIPAL: CONTESTACION DE DEMANDA DE FAMILIA. Encabezado S.J.L. DE FAMILIA.",
+    "CONTESTACION de demanda + EVENTUAL DEMANDA RECONVENCIONAL (ej. rebaja/cese de alimentos, relacion directa y regular, cuidado personal).",
+    "OFRECIMIENTO DE PRUEBA para la audiencia preparatoria (documental, testimonial, pericial social).",
+    "MEDIACION PREVIA FRUSTRADA obligatoria (Ley 19.968) - acreditar que se realizo o solicitarla.",
+    "PETITORIO NUMERADO con rechazo o acogimiento parcial.",
+    "OTROSI: documentos, patrocinio y poder."
+  ],
+  "tactica": [
+    "Verificar MEDIACION PREVIA FRUSTRADA: en materia de familia es obligatoria antes de la demanda (Ley 19.968). Si no hubo, oponer la excepcion correspondiente.",
+    "En alimentos: revisar carga probatoria de necesidades del menor y capacidad economica del alimentante (Arts. 321 y 323 CC, Ley 14.908). Si hay cambio de circunstancias, reconvencion de rebaja/cese.",
+    "En cuidado personal / relacion directa y regular: considerar siempre la reconvencion si el cliente busca un regimen distinto al pedido.",
+    "Aportar informe social / pericial psicologico si la controversia afecta al menor (interes superior del nino)."
+  ],
+  "noAlegar": [
+    "No omitir la acreditacion de la mediacion previa.",
+    "No introducir antecedentes que perjudiquen al menor sin evaluacion pericial."
+  ],
+  "normasBase": ["Ley 19.968", "Ley 14.908", "CC art. 321", "CC art. 323"],
+  "alertas": { "requierePatrocinio": true }
+}

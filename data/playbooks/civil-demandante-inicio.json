@@ -1,0 +1,27 @@
+{
+  "id": "civil-demandante-inicio",
+  "materia": "civil",
+  "rol": "demandante",
+  "etapa": "inicio",
+  "verificadaPorAbogado": false,
+  "estructura": [
+    "EN LO PRINCIPAL: DEMANDA (ordinaria / ejecutiva / monitoria según el caso). Encabezado S.J.L. con сумa, RIT 'por asignar' y carátula.",
+    "I. LOS HECHOS: numerados PRIMERO, SEGUNDO..., con fechas y montos exactos del documento.",
+    "II. EL DERECHO: artículos verificados contra BCN.",
+    "III. PETITORIO NUMERADO: 1) declarar, 2) condenar al pago de suma líquida, 3) intereses/reajustes, 4) costas.",
+    "PRIMER OTROSÍ: acompaña documentos con citación.",
+    "SEGUNDO OTROSÍ: patrocinio y poder."
+  ],
+  "tactica": [
+    "Elegir la vía correcta: si hay factura aceptada, no reclamada y con recibo de conformidad, evaluar juicio ejecutivo (Ley 19.983); si falta alguno de esos requisitos o hubo reclamo, usar juicio ordinario de cumplimiento (Arts. 1545, 1556 CC).",
+    "Si la factura fue reclamada dentro de 8 días (Art. 3 Ley 19.983), NO tiene mérito ejecutivo: demandar por ordinario.",
+    "Cuantificar toda pretensión de indemnización: daño emergente y lucro cesante con su fundamento probatorio (Art. 1556 CC). No pedir 'indemnización a tasarse' sin antecedentes.",
+    "Si se invocan 'intereses penales', fundarlos en cláusula contractual o disposición legal expresa; si no, omitirlos para evitar ineptitud del libelo."
+  ],
+  "noAlegar": [
+    "No demandar por ejecutiva si la factura fue reclamada o no tiene recibo de conformidad.",
+    "No pedir intereses penales sin fundamento legal o contractual."
+  ],
+  "normasBase": ["CC art. 1545", "CC art. 1556", "CC art. 1698", "CPC art. 254", "Ley 19.983 art. 3", "Ley 19.983 art. 10"],
+  "alertas": { "requierePatrocinio": true }
+}

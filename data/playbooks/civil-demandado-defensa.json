@@ -1,0 +1,38 @@
+{
+  "id": "civil-demandado-defensa",
+  "materia": "civil",
+  "rol": "demandado",
+  "etapa": "defensa",
+  "verificadaPorAbogado": false,
+  "estructura": [
+    "EN LO PRINCIPAL: CONTESTACION DE DEMANDA (en lo ordinario) u OPOSICION (en monitorio de arrendamiento Ley 18.101). Encabezado S.J.L. EN LO CIVIL con suma y Rol.",
+    "I. EXCEPCIONES PREVIAS (si proceden): ineptitud del libelo (Art. 303 N 3 CPC), falta de causa para pedir, incompetencia, litispendencia. Deben oponerse ANTES de la contestacion de fondo.",
+    "II. NEGATIVA PUNTUAL DE HECHOS: numeral por numeral (En cuanto al Hecho PRIMERO, SEGUNDO...), negando o admitiendo expresamente cada uno.",
+    "III. EXCEPCIONES PERENTORIAS Y DEFENSAS DE FONDO: contrato no cumplido (Art. 1552 CC), prescripcion, pago, compensacion.",
+    "IV. FUNDAMENTOS DE DERECHO con articulos verificados.",
+    "V. PETITORIO NUMERADO: rechazo de la demanda en todas sus partes (o en lo que exceda lo reconocido), con expresa condenacion en costas.",
+    "PRIMER OTROSI: acompana documentos con citacion.",
+    "SEGUNDO OTROSI: patrocinio y poder (Ley 18.120).",
+    "CUANDO APLICA: si hay danos del demandado por el incumplimiento de la contraparte, interponer DEMANDA RECONVENCIONAL en la misma contestacion (Art. 273 CPC)."
+  ],
+  "tactica": [
+    "Atacar las pretensiones sin fundamento: si el libelo pide 'intereses penales' sin clausula contractual ni articulo que los autorice, oponer ineptitud del libelo (Art. 303 N 3 CPC) y falta de causa para pedir respecto de esa pretension.",
+    "Indemnizacion de perjuicios no cuantificada: exigir a la demandante probar dano emergente y lucro cesante con documentos, peritajes y testigos; sin esa prueba el rubro se rechaza (Art. 1698 CC).",
+    "Exceptio non adimpleti contractus (Art. 1552 CC): NO enunciarla en abstracto. Redactar hechos concretos: cuando se entrego el servicio/producto, que fallas especificas tuvo, cuando se reclamo por escrito, que respuesta dio el proveedor. Sin hechos, la excepcion no prospera.",
+    "Si la pretension se funda en factura: verificar Art. 3 Ley 19.983 - si el deudor reclamo por escrito dentro de los 8 dias siguientes a la recepcion, la factura PIERDE merito ejecutivo. Preguntar al cliente si hubo reclamo tempestivo.",
+    "Prescripcion: revisar plazo de la accion (1 ano para cobro ejecutivo de factura Art. 10 Ley 19.983; 5 anos para accion ordinaria personal Art. 2515 CC) y oponerla si aplica.",
+    "Defensa subsidiaria: si no se puede negar todo, reconocer SOLO sumas liquidas, ciertas e indiscutidas, sin allanarse al resto ni aceptar la procedencia de la indemnizacion para discutir solo el monto.",
+    "Etapa siguiente: audiencia de conciliacion obligatoria (Art. 262 CPC) - preparar postura conciliatoria sin reconocer deuda.",
+    "Revisar vicios de notificacion: si hubo defecto en el emplazamiento (persona no habilitada, omision de copias, cedula defectuosa), incidente de nulidad de todo lo obrado (Art. 40 y ss. CPC).",
+    "El plazo de contestacion (18 dias habiles, Art. 258 CPC) varia segun notificacion: personal, personal subsidiaria o por cedula al representante legal. No tratarlo como siempre igual."
+  ],
+  "noAlegar": [
+    "No allanarse parcialmente a la factura sin oponer la excepcion correspondiente.",
+    "No aceptar la procedencia de la indemnizacion aunque sea solo para discutir el monto.",
+    "No ofrecer pagar a cuenta: se interpreta como reconocimiento de deuda.",
+    "No hacer reconocimientos de deuda por WhatsApp o correo que puedan incorporarse al proceso."
+  ],
+  "normasBase": ["CPC art. 258", "CPC art. 262", "CPC art. 303", "CPC art. 40", "CPC art. 273", "CC art. 1552", "CC art. 1698", "CC art. 2515", "Ley 19.983 art. 3", "Ley 19.983 art. 10", "Ley 18.120"],
+  "plazoId": "civil_contestacion",
+  "alertas": { "plazoFatal": "Contestar dentro de 18 dias habiles desde la notificacion (Art. 258 CPC). Confirmar fecha real en OJV.", "requierePatrocinio": true }
+}

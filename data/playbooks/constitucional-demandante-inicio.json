@@ -1,0 +1,27 @@
+{
+  "id": "constitucional-demandante-inicio",
+  "materia": "constitucional",
+  "rol": "requirente",
+  "etapa": "inicio",
+  "verificadaPorAbogado": false,
+  "estructura": [
+    "RECURSO DE PROTECCIÓN (Art. 20 CPR) o RECURSO DE AMPARO (Art. 21 CPR) según el derecho vulnerado.",
+    "EN LO PRINCIPAL: recurso respectivo. Encabezado ante la Corte de Apelaciones / Tribunal competente.",
+    "HECHOS: acto u omisión que vulnera la garantía constitucional, con fecha y autoridad.",
+    "DERECHO: artículo de la Constitución invocado (Art. 19 N°...), Art. 20/21 CPR, Auto Acordado aplicable.",
+    "PETITORIO NUMERADO: se declare ilegal/arbitrario, se ordene cesar y se adopten medidas.",
+    "OTROSÍES: documentos, patrocinio y poder, medida cautelar si procede."
+  ],
+  "tactica": [
+    "Recurso de protección (Art. 20 CPR): procede contra actos u omisiones ilegales o arbitrarios que vulneren garantías constitucionales; plazo de 20 días hábiles desde el acto (verificar Auto Acordado vigente).",
+    "Recurso de amparo (Art. 21 CPR): procede contra privación de libertad ilegal o arbitraria; es de tramitación preferente.",
+    "Fundamentar la ilegalidad/arbitrariedad con hechos concretos, no solo citas abstractas de derechos.",
+    "Si hay urgencia, pedir medida cautelar (Art. 20 inciso final CPR) para suspender el acto mientras se resuelve."
+  ],
+  "noAlegar": [
+    "No usar protección para materias de competencia de otros recursos (ej. amparo para libertad).",
+    "No dejar vencer el plazo de interposición."
+  ],
+  "normasBase": ["CPR art. 19", "CPR art. 20", "CPR art. 21"],
+  "alertas": { "plazoFatal": true, "medidasCautelares": true, "requierePatrocinio": true }
+}

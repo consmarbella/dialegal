@@ -98,6 +98,24 @@ export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initi
       if (saved === "persona" || saved === "abogado") audience = saved;
     } catch { /* incógnito */ }
 
+    // Enrutador Procesal Universal (4 ejes) derivado del formulario. El servidor
+    // lo usa para elegir el Playbook Procesal (estructura + táctica del escrito).
+    const etapaPorTipo: Record<string, string> = {
+      demanda: "inicio", contestacion: "defensa", otrosi: "defensa", minuta: "prueba",
+      contrato: "inicio", correo: "defensa",
+    };
+    const enrutador = {
+      materia: area === "auto" ? "indeterminada" : area,
+      rol: postura,
+      etapa: etapaPorTipo[tipo] || "inicio",
+      alertas: {
+        plazoFatal: tipo === "contestacion" || tipo === "otrosi" || tipo === "minuta",
+        medidasCautelares: false,
+        requierePatrocinio: true,
+        viciosFormales: false,
+      },
+    };
+
     const input: DraftInput = {
       tipo,
       area: area === "auto" ? undefined : area,
@@ -110,6 +128,7 @@ export const DraftForm: React.FC<DraftFormProps> = ({ onSubmit, isLoading, initi
       tribunal: tribunal.trim() || undefined,
       postura: postura as DraftPostura,
       audience,
+      enrutador,
     };
     await onSubmit(input);
   };

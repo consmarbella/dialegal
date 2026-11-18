@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { LegalArea, ChatMessage, PremiumResult, DraftInput, DraftOutput, fechaVersionSana } from '../types';
+import { DraftResult } from './DraftResult';
 import { Scale, Download, Copy, BookmarkPlus, Send, MessageSquare, AlertCircle, CheckCircle, ShieldAlert, FileText, Lock, ShieldCheck, CreditCard, Sparkles, CheckCircle2, Globe, ExternalLink, RotateCcw, X } from 'lucide-react';
 import { PaymentModal } from './PaymentModal';
 import { PreviewAlertCard } from './PreviewAlertCard';
@@ -81,6 +82,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [draftPrefill, setDraftPrefill] = useState<DraftInput | null>(null);
+  const [directDraftOutput, setDirectDraftOutput] = useState<DraftOutput | null>(null);
 
   // Contestación/otrosí: NUNCA inyectar el diagnóstico (decisión de origen remoto).
   // La defensa sale del DOCUMENTO DEL CASO + hechos del usuario.
@@ -192,6 +194,30 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
           ...draftContextExtra(tipoLocal),
         };
         console.log('[draft] Tier 3: negativa ética interceptada en cliente → abriendo modal con prefill local');
+      }
+
+      // Borrador generado directamente por el servidor (chat → draft real).
+      // Antes el chat solo devolvía un memo/formulario; ahora mostramos el
+      // escrito judicial completo con su trazabilidad.
+      if (data.directDraft && data.draft) {
+        const output: DraftOutput = {
+          draft: data.draft,
+          validacion: data.validacion,
+          vacios: data.vacios,
+          bcn: data.bcn,
+          metadatos: data.metadatos,
+        };
+        setDirectDraftOutput(output);
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            role: 'model',
+            content: data.reply || '✅ Borrador generado con la estrategia del diagnóstico.',
+            timestamp: new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
+          },
+        ]);
+        return;
       }
 
       // Detectar acción de generar borrador (LegalHelp IA)
@@ -694,7 +720,7 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
                               </>
                             )}
                             {j.normas && j.normas.length > 0 && (
-                              <div className="text-[10px] text-slate-500 mt-0.5">{(j.normas ?? []).join(" � ")}</div>
+                              <div className="text-[10px] text-slate-500 mt-0.5">{(j.normas ?? []).join(" � ")}</div>
                             )}
                           </span>
                         </li>
@@ -1118,6 +1144,26 @@ export const AnalysisReport: React.FC<AnalysisReportProps> = ({
         onAdminSuccess={handleAdminUnlockSuccess}
         areaLabel={area.toUpperCase()}
       />
+
+      {/* Borrador generado directamente desde el chat */}
+      {directDraftOutput && (
+        <div className="mt-4 border-t border-slate-200 pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-slate-900">Borrador generado desde el diagnóstico</h3>
+            <button
+              onClick={() => setDirectDraftOutput(null)}
+              className="text-sm text-slate-500 hover:text-slate-800"
+            >
+              Cerrar
+            </button>
+          </div>
+          <DraftResult
+            output={directDraftOutput}
+            onRegenerate={() => {}}
+            onNewDraft={() => setDirectDraftOutput(null)}
+          />
+        </div>
+      )}
 
       {/* Draft Modal - LegalHelp IA */}
       {showDraftModal && draftPrefill && (
